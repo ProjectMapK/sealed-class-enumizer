@@ -1,0 +1,33 @@
+package org.wrongwrong.mpp.fixtures
+
+import org.wrongwrong.sealedClassEnumizer.label
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertSame
+
+// 末端 fun interface の SAM が全ターゲットで 1 メソッドに保たれることの box テスト
+// （docs/テストケース管理.md TC-MPP-054・V10-c）。ラムダで Handler.Fn を生成できること自体が
+// 「生成 asEnumish が default 実装で SAM を壊していない」ことの実証になる
+class HandlerSamTest {
+    // SAM ラムダ生成が成立し、抽象メソッドは handle の 1 つに保たれている
+    @Test
+    fun samConversionStillWorksOnLeafFunInterface() {
+        val fn = Handler.Fn { "ran" }
+        assertEquals("ran", fn.handle())
+    }
+
+    // ラムダ由来のインスタンスも Fn の kind（companion）に吸収される
+    // （生成 companion の名指しは跨コンパイレーション NG のため valueOf 経由で同一性を観測する）
+    @Test
+    fun lambdaInstanceIsAbsorbedIntoLeafKind() {
+        val fn: Handler = Handler.Fn { "x" }
+        assertSame(Handler.Enumish.valueOf("Fn"), fn.asEnumish())
+        assertEquals("Fn", fn.label)
+    }
+
+    // entries は末端の数だけ（ラムダ実装で増えない）
+    @Test
+    fun entriesListLeavesOnly() {
+        assertEquals(listOf("Direct", "Fn"), Handler.Enumish.entries.map { it.label })
+    }
+}
