@@ -6,6 +6,7 @@ package org.wrongwrong.sealedClassEnumizer.compiler.fir
 
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
 import org.jetbrains.kotlin.fir.resolve.providers.firProvider
@@ -23,6 +24,7 @@ import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.ClassIdBasedLocality
 import org.jetbrains.kotlin.name.Name
+import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
 // 設計01 §6.1: COMPANION_GENERATION フェーズで解決済み supertype に依存せずに「階層に属する候補か」を
 // 判定するための raw supertype ref の保守的追跡。フェーズ非依存の純関数として実装する
@@ -42,8 +44,34 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
     fun findEnumizeBase(classSymbol: FirRegularClassSymbol, followTypeAliases: Boolean): FirRegularClassSymbol? =
         findEnumizeBase(classSymbol, followTypeAliases, LinkedHashSet())
 
+    // 解決済み supertype として与えられたクラス群を起点に基底を探す
+    // （computeAdditionalSupertypes が受け取る resolvedSupertypes 用の入口）
+    fun findEnumizeBaseAmong(
+        superSymbols: List<FirRegularClassSymbol>,
+        followTypeAliases: Boolean,
+    ): FirRegularClassSymbol? {
+        for (superSymbol in superSymbols) {
+            if (isEnumizeBase(superSymbol) && isRawSealed(superSymbol)) return superSymbol
+            if (isRawSealed(superSymbol)) {
+                val base = findEnumizeBase(superSymbol, followTypeAliases)
+                if (base != null) return base
+            }
+        }
+        return null
+    }
+
+    // supertype グラフ上で targetClassId へ到達できるか（Enumized の間接継承検出などの汎用到達判定）
+    fun reachesSupertype(
+        classSymbol: FirRegularClassSymbol,
+        targetClassId: ClassId,
+        followTypeAliases: Boolean,
+    ): Boolean = reachesSupertype(classSymbol, targetClassId, followTypeAliases, LinkedHashSet())
+
+    // 述語はソース宣言にしかマッチしないため、IC ラウンド外のファイル由来（前ラウンドの
+    // メタデータからの逆直列化）はアノテーションの直接照合で判定する（Retention が BINARY のため残る）
     fun isEnumizeBase(symbol: FirRegularClassSymbol): Boolean =
-        session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, symbol.fir)
+        session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, symbol.fir) ||
+            symbol.fir.hasAnnotation(EnumizeNames.ENUMIZE_ANNOTATION_CLASS_ID, session)
 
     fun isRawSealed(symbol: FirRegularClassSymbol): Boolean =
         symbol.rawStatus.modality == Modality.SEALED
@@ -77,6 +105,19 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
             }
         }
         return null
+    }
+
+    private fun reachesSupertype(
+        classSymbol: FirRegularClassSymbol,
+        targetClassId: ClassId,
+        followTypeAliases: Boolean,
+        visited: MutableSet<ClassId>,
+    ): Boolean {
+        if (!visited.add(classSymbol.classId)) return false
+        return supertypeClassSymbols(classSymbol, followTypeAliases).any { superSymbol ->
+            superSymbol.classId == targetClassId ||
+                reachesSupertype(superSymbol, targetClassId, followTypeAliases, visited)
+        }
     }
 
     private fun resolveSupertypeRef(

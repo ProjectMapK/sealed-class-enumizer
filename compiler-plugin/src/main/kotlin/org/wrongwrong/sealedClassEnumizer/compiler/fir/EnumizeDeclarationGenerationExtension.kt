@@ -41,8 +41,9 @@ import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 // 宣言の形状の生成（設計01 §5・§6）。ボディは一切作らず、シグネチャは継承者の集合に依存させない（P2）。
 // 唯一の例外は生成 Enumish への sealed inheritors 属性の lazy 登録である（§5.2）。
 class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclarationGenerationExtension(session) {
-    private val hierarchy = EnumizeHierarchyResolver(session)
-    private val tracker get() = hierarchy.tracker
+    // コンポーネント群の生成順に依存しないよう、初回コールバック時に解決する
+    private val resolver: EnumizeHierarchyResolver by lazy { session.enumizeHierarchyResolver }
+    private val tracker: EnumizeRawSupertypeTracker get() = resolver.tracker
 
     // 生成 Enumish → その生成 Companion。FirCompanionGenerationTransformer はソース宣言しか走査せず、
     // 生成クラスには companionObjectSymbol を連結しないため、生成時に自前で構築・連結して同一インスタンスを返す
@@ -96,7 +97,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
         if (symbol.isLocal) return emptySet()
         val names = mutableSetOf<Name>()
         // 生成 companion は候補判定の誤検知（外側が末端でなかった）でもコンストラクタだけは必要（設計01 §6.2）
-        if (symbol.rawStatus.isCompanion && hierarchy.isOurGenerated(symbol)) {
+        if (symbol.rawStatus.isCompanion && resolver.isOurGenerated(symbol)) {
             names += SpecialNames.INIT
         }
         val role = roleOf(symbol)
@@ -178,7 +179,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
 
     override fun generateConstructors(context: MemberGenerationContext): List<FirConstructorSymbol> {
         val owner = context.owner as? FirRegularClassSymbol ?: return emptyList()
-        if (!owner.rawStatus.isCompanion || !hierarchy.isOurGenerated(owner)) return emptyList()
+        if (!owner.rawStatus.isCompanion || !resolver.isOurGenerated(owner)) return emptyList()
         return listOf(createDefaultPrivateConstructor(owner, EnumizeKey).symbol)
     }
 
@@ -199,6 +200,8 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
         return tracker.isHierarchyCandidate(symbol, followTypeAliases = false)
     }
 
+    // 所属（membership）は resolver が一度だけ計算した事実を読み、役割へ写像する。
+    // 非所属・複数階層に属するエラー構成では membership が null になり、生成しない（診断はチェッカーが担う）
     private fun roleOf(symbol: FirRegularClassSymbol): EnumizeGenerationRole? {
         if (isGeneratedEnumish(symbol)) {
             val base = tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return null
@@ -207,42 +210,41 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
         if (symbol.rawStatus.isCompanion) {
             // companion 自身が末端である場合（階層外クラスの companion が単独で末端になる許容構成）は
             // 末端 object として扱う。kind = その companion・label = companion の宣言名（設計01 §7.2）
-            val selfBase = leafBaseOf(symbol)
-            if (selfBase != null) return EnumizeGenerationRole.LeafObject(selfBase)
+            val selfMembership = resolver.membershipOf(symbol)
+            if (selfMembership != null && selfMembership.isLeaf) {
+                return EnumizeGenerationRole.LeafObject(selfMembership.base)
+            }
             val outer = tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return null
             if (isGeneratedEnumish(outer)) return EnumizeGenerationRole.GeneratedEnumishCompanion(outer)
-            val base = leafBaseOf(outer) ?: return null
-            return EnumizeGenerationRole.KindCompanion(outer, base)
+            val outerMembership = resolver.membershipOf(outer) ?: return null
+            if (!outerMembership.isLeaf) return null
+            return EnumizeGenerationRole.KindCompanion(outer, outerMembership.base)
         }
-        val base = leafBaseOf(symbol) ?: return null
+        val membership = resolver.membershipOf(symbol) ?: return null
+        if (!membership.isLeaf) return null
         return if (symbol.classKind == ClassKind.OBJECT) {
-            EnumizeGenerationRole.LeafObject(base)
+            EnumizeGenerationRole.LeafObject(membership.base)
         } else {
-            EnumizeGenerationRole.LeafClass(base)
+            EnumizeGenerationRole.LeafClass(membership.base)
         }
-    }
-
-    private fun leafBaseOf(symbol: FirRegularClassSymbol): FirRegularClassSymbol? {
-        if (tracker.isRawSealed(symbol)) return null
-        return hierarchy.findSingleBase(symbol)
     }
 
     private fun isGeneratedEnumish(symbol: FirRegularClassSymbol): Boolean =
-        hierarchy.isOurGenerated(symbol) && symbol.classId.shortClassName == EnumizeNames.ENUMISH_NAME
+        resolver.isOurGenerated(symbol) && symbol.classId.shortClassName == EnumizeNames.ENUMISH_NAME
 
     private fun nestedNamesForBase(base: FirRegularClassSymbol): Set<Name> =
-        if (hierarchy.hasUserDeclaredNestedEnumish(base)) emptySet() else setOf(EnumizeNames.ENUMISH_NAME)
+        if (resolver.hasUserDeclaredNestedEnumish(base)) emptySet() else setOf(EnumizeNames.ENUMISH_NAME)
 
     // ユーザーが同名メンバーを手動宣言している場合は生成しない（ENUMIZE_MANUAL_MEMBER_CONFLICT はチェッカーが報告）
     private fun notManuallyDeclared(symbol: FirRegularClassSymbol, vararg names: Name): Set<Name> {
-        val declared = hierarchy.declaredCallableNames(symbol)
+        val declared = resolver.declaredCallableNames(symbol)
         return names.filterNotTo(mutableSetOf()) { it in declared }
     }
 
     // ---- 生成本体 ----
 
     private fun generateEnumishClass(base: FirRegularClassSymbol): FirClassLikeSymbol<*>? {
-        if (hierarchy.hasUserDeclaredNestedEnumish(base)) return null
+        if (resolver.hasUserDeclaredNestedEnumish(base)) return null
         val enumish = createNestedClass(base, EnumizeNames.ENUMISH_NAME, EnumizeKey, classKind = ClassKind.INTERFACE) {
             modality = Modality.SEALED
             superType(EnumizeNames.ENUMISH_CLASS_ID.constructClassLikeType())
@@ -252,7 +254,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
         EnumizeOwnerGeneratorPatch.stamp(companion.fir, this)
         enumishCompanions[enumish.symbol] = companion
         // 継承者一覧の lazy 登録（V1）。計算は登録せず遅延し、実際の列挙は網羅性検査以降に走る（設計01 §5.2）
-        enumish.setSealedClassInheritors { hierarchy.computeGeneratedEnumishInheritors(base) }
+        enumish.setSealedClassInheritors { resolver.computeGeneratedEnumishInheritors(base) }
         return enumish.symbol
     }
 
@@ -277,8 +279,8 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
     private fun generateLeafCompanion(leaf: FirRegularClassSymbol): FirClassLikeSymbol<*> {
         val base = tracker.findEnumizeBase(leaf, followTypeAliases = false)
         val companion = createCompanionObject(leaf, EnumizeKey) {
-            if (base != null && !hierarchy.hasUserDeclaredNestedEnumish(base)) {
-                superType(hierarchy.generatedEnumishClassId(base).constructClassLikeType())
+            if (base != null && !resolver.hasUserDeclaredNestedEnumish(base)) {
+                superType(resolver.generatedEnumishClassId(base).constructClassLikeType())
             }
         }
         return companion.symbol
@@ -303,7 +305,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
             EnumizeKey,
             EnumizeNames.ENUMIZED_CLASS_PROPERTY,
             StandardClassIds.KClass.constructClassLikeType(
-                arrayOf(ConeKotlinTypeProjectionOut(hierarchy.starProjectedType(base)))
+                arrayOf(ConeKotlinTypeProjectionOut(resolver.starProjectedType(base)))
             ),
             hasBackingField = false,
         ) {
@@ -341,7 +343,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
             EnumizeKey,
             EnumizeNames.ENUMIZED_CLASS_PROPERTY,
             StandardClassIds.KClass.constructClassLikeType(
-                arrayOf<ConeTypeProjection>(hierarchy.starProjectedType(leaf))
+                arrayOf<ConeTypeProjection>(resolver.starProjectedType(leaf))
             ),
             hasBackingField = false,
         ) {
@@ -370,7 +372,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
             leaf,
             EnumizeKey,
             EnumizeNames.AS_ENUMISH,
-            hierarchy.asEnumishReturnType(leaf, base),
+            resolver.asEnumishReturnType(leaf, base),
         ) {
             modality = if (leaf.classKind == ClassKind.INTERFACE) Modality.OPEN else Modality.FINAL
             status { isOverride = true }

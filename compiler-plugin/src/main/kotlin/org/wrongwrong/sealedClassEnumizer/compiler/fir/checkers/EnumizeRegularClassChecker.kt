@@ -30,97 +30,64 @@ import org.jetbrains.kotlin.fir.types.renderReadable
 import org.jetbrains.kotlin.name.Name
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 import org.wrongwrong.sealedClassEnumizer.compiler.fir.EnumizeHierarchyResolver
+import org.wrongwrong.sealedClassEnumizer.compiler.fir.EnumizeMembership
 import org.wrongwrong.sealedClassEnumizer.compiler.fir.EnumizePredicates
+import org.wrongwrong.sealedClassEnumizer.compiler.fir.enumizeHierarchyResolver
 
 // 診断カタログの検査ロジック（設計01 §7.2）。マルチラウンド IC の部分集合ビューで偽陽性を出さないよう、
-// すべての検査を「見えている宣言の性質に対する条件検査」として実装する（単調性。設計01 §7.1）
+// すべての検査を「見えている宣言の性質に対する条件検査」として実装する（単調性。設計01 §7.1）。
+// 検査対象クラスの所属（EnumizeMembership）は入口で一度だけ resolver から読み、各検査へ引数で受け渡す
 object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(declaration: FirRegularClass) {
         val symbol = declaration.symbol
         if (symbol.isLocal) return
-        val hierarchy = EnumizeHierarchyResolver(context.session)
+        val resolver = context.session.enumizeHierarchyResolver
         val annotated = context.session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, declaration)
-        val bases = hierarchy.findBases(symbol)
+        // 家族系診断だけは異常状態（非所属・複数所属）の内訳が要るため一覧を生読みする。
+        // 以降の検査へ取り回すのは正常な所属（membership。異常時は null）のみ
+        val familyBases = resolver.basesOf(symbol)
+        val membership = resolver.membershipOf(symbol)
         if (annotated) {
-            checkBase(declaration, hierarchy, context, reporter)
-            if (bases.isNotEmpty()) {
+            checkBase(declaration, resolver, context, reporter)
+            if (familyBases.isNotEmpty()) {
                 reporter.reportOn(
                     declaration.source,
                     EnumizeErrors.ENUMIZE_NESTED_IN_HIERARCHY,
-                    bases.first().classId.asFqNameString(),
+                    familyBases.first().classId.asFqNameString(),
                     context,
                 )
             }
         }
-        if (bases.size >= 2) {
+        if (familyBases.size >= 2) {
             reporter.reportOn(
                 declaration.source,
                 EnumizeErrors.ENUMIZE_MULTIPLE_FAMILIES,
-                bases[0].classId.asFqNameString(),
-                bases[1].classId.asFqNameString(),
+                familyBases[0].classId.asFqNameString(),
+                familyBases[1].classId.asFqNameString(),
                 context,
             )
         }
-        if (annotated || bases.isNotEmpty()) {
-            checkLabelShadowing(declaration, hierarchy, context, reporter)
+        if (annotated || familyBases.isNotEmpty()) {
+            checkLabelShadowing(declaration, resolver, context, reporter)
         }
-        checkAmbiguousKind(symbol, declaration, hierarchy, context, reporter)
-        checkManualEnumishImplementation(declaration, hierarchy, context, reporter)
-        val base = bases.singleOrNull()
-        if (base != null) {
-            checkHierarchyMember(declaration, base, hierarchy, context, reporter)
+        checkAmbiguousKind(declaration, membership, resolver, context, reporter)
+        checkManualEnumishImplementation(declaration, membership, resolver, context, reporter)
+        if (membership != null) {
+            checkHierarchyMember(declaration, membership, resolver, context, reporter)
         }
-    }
-
-    // 生成 Enumish の直接実装は階層内（メンバー）と kind に限る。階層外の実装は sealed の
-    // 継承者一覧へ反映する経路が無く、JVM では PermittedSubclasses により実行時拒否になるため
-    // コンパイル時にエラーとする（V1-(e) の帰結。設計00 §5.2）
-    private fun checkManualEnumishImplementation(
-        declaration: FirRegularClass,
-        hierarchy: EnumizeHierarchyResolver,
-        context: CheckerContext,
-        reporter: DiagnosticReporter,
-    ) {
-        val symbol = declaration.symbol
-        for (ref in symbol.resolvedSuperTypeRefs) {
-            val superSymbol = hierarchy.tracker.resolveExpandedClassSymbol(ref.coneType) ?: continue
-            if (!hierarchy.isOurGenerated(superSymbol)) continue
-            if (superSymbol.classId.shortClassName != EnumizeNames.ENUMISH_NAME) continue
-            val base = hierarchy.tracker.resolveClassSymbol(superSymbol.classId.outerClassId) ?: continue
-            if (isInsideHierarchyOf(symbol, base, hierarchy)) continue
-            reporter.reportOn(
-                ref.source ?: declaration.source,
-                EnumizeErrors.ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY,
-                base.classId.asFqNameString(),
-                context,
-            )
-        }
-    }
-
-    // 階層のメンバー（末端 class 自身による実装を含む）と、階層の末端の kind を担う companion は
-    // 生成 Enumish の正当な実装である
-    private fun isInsideHierarchyOf(
-        symbol: FirRegularClassSymbol,
-        base: FirRegularClassSymbol,
-        hierarchy: EnumizeHierarchyResolver,
-    ): Boolean {
-        if (hierarchy.findBases(symbol).any { it.classId == base.classId }) return true
-        if (!symbol.rawStatus.isCompanion) return false
-        val outer = hierarchy.tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return false
-        return !hierarchy.isSealed(outer) && hierarchy.findBases(outer).any { it.classId == base.classId }
     }
 
     // ---- @Enumize 対象（基底）に対する検査 ----
 
     private fun checkBase(
         declaration: FirRegularClass,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
         val symbol = declaration.symbol
-        if (!hierarchy.isSealed(symbol)) {
+        if (!resolver.isSealed(symbol)) {
             reporter.reportOn(declaration.source, EnumizeErrors.ENUMIZE_NOT_SEALED, context)
             return
         }
@@ -130,28 +97,28 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         if (declaration.isActual) {
             reporter.reportOn(declaration.source, EnumizeErrors.ENUMIZE_ON_ACTUAL, context)
         }
-        checkReservedNestedName(declaration, hierarchy, context, reporter)
-        checkManualEnumizedSupertype(symbol, symbol, symbol, hierarchy, context, reporter)
+        checkReservedNestedName(declaration, resolver, context, reporter)
+        checkManualEnumizedSupertype(symbol, symbol, symbol, resolver, context, reporter)
         // 手動 Enumized<K> の判定は間接継承（interface MyBase : Enumized<K> 経由）も対象とする
         // （docs/エッジケースへの対応方針.md §2）。他の @Enumize 基底は生成された Enumized を持つため除く
-        for (superSymbol in hierarchy.supertypeClosure(symbol)) {
-            if (hierarchy.isEnumizeBase(superSymbol)) continue
-            checkManualEnumizedSupertype(symbol, superSymbol, symbol, hierarchy, context, reporter)
+        for (superSymbol in resolver.supertypeClosure(symbol)) {
+            if (resolver.isEnumizeBase(superSymbol)) continue
+            checkManualEnumizedSupertype(symbol, superSymbol, symbol, resolver, context, reporter)
         }
-        checkLabelClash(symbol, hierarchy, context, reporter)
-        checkCrossSourceSet(declaration, hierarchy, context, reporter)
+        checkLabelClash(symbol, resolver, context, reporter)
+        checkCrossSourceSet(declaration, resolver, context, reporter)
     }
 
     private fun checkReservedNestedName(
         declaration: FirRegularClass,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
         val userEnumish = declaration.declarations.firstOrNull { nested ->
             nested is FirRegularClass &&
                 nested.name == EnumizeNames.ENUMISH_NAME &&
-                !hierarchy.isOurGenerated(nested.symbol)
+                !resolver.isOurGenerated(nested.symbol)
         } ?: return
         reporter.reportOn(userEnumish.source, EnumizeErrors.ENUMIZE_RESERVED_NAME_CLASH, context)
     }
@@ -162,11 +129,11 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         reportTarget: FirRegularClassSymbol,
         declaring: FirRegularClassSymbol,
         base: FirRegularClassSymbol,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
-        val expectedArgument = hierarchy.generatedEnumishClassId(base)
+        val expectedArgument = resolver.generatedEnumishClassId(base)
         for (ref in declaring.resolvedSuperTypeRefs) {
             val coneType = ref.coneType as? ConeClassLikeType ?: continue
             if (coneType.classId != EnumizeNames.ENUMIZED_CLASS_ID) continue
@@ -187,11 +154,11 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
 
     private fun checkLabelClash(
         base: FirRegularClassSymbol,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
-        val groups = hierarchy.leavesOf(base).groupBy(hierarchy::labelOf)
+        val groups = resolver.leavesOf(base).groupBy(resolver::labelOf)
         for ((label, leaves) in groups) {
             if (leaves.size < 2) continue
             for (leaf in leaves) {
@@ -205,12 +172,12 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     // コンパイラ本体の診断（継承者の別ソースセット逸脱）への補足説明
     private fun checkCrossSourceSet(
         declaration: FirRegularClass,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
         for (inheritorId in declaration.getSealedClassInheritors(context.session)) {
-            val inheritor = hierarchy.tracker.resolveClassSymbol(inheritorId) ?: continue
+            val inheritor = resolver.tracker.resolveClassSymbol(inheritorId) ?: continue
             if (inheritor.moduleData != declaration.moduleData) {
                 reporter.reportOn(
                     declaration.source,
@@ -222,32 +189,75 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         }
     }
 
-    // ---- 階層メンバー（中間 sealed・末端）に対する検査 ----
+    // ---- 生成 Enumish の直接実装（階層内・kind に限る）----
 
-    private fun checkHierarchyMember(
+    // 階層外の実装は sealed の継承者一覧へ反映する経路が無く、JVM では PermittedSubclasses により
+    // 実行時拒否になるためコンパイル時にエラーとする（V1-(e) の帰結。設計00 §5.2）
+    private fun checkManualEnumishImplementation(
         declaration: FirRegularClass,
-        base: FirRegularClassSymbol,
-        hierarchy: EnumizeHierarchyResolver,
+        membership: EnumizeMembership?,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
         val symbol = declaration.symbol
-        checkManualEnumizedSupertype(symbol, symbol, base, hierarchy, context, reporter)
-        if (hierarchy.isSealed(symbol)) return
+        for (ref in symbol.resolvedSuperTypeRefs) {
+            val superSymbol = resolver.tracker.resolveExpandedClassSymbol(ref.coneType) ?: continue
+            // 生成 Enumish の認識は origin だけに依らない構造判定を使う
+            //（IC ラウンド外のファイル由来では origin が逆直列化で失われるため）
+            if (!resolver.representsGeneratedEnumish(superSymbol)) continue
+            val base = resolver.tracker.resolveClassSymbol(superSymbol.classId.outerClassId) ?: continue
+            if (isLegitimateEnumishImplementor(symbol, membership, base, resolver)) continue
+            reporter.reportOn(
+                ref.source ?: declaration.source,
+                EnumizeErrors.ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY,
+                base.classId.asFqNameString(),
+                context,
+            )
+        }
+    }
+
+    // 階層のメンバー（末端 class 自身による実装を含む）と、階層の末端の kind を担う companion は
+    // 生成 Enumish の正当な実装である
+    private fun isLegitimateEnumishImplementor(
+        symbol: FirRegularClassSymbol,
+        membership: EnumizeMembership?,
+        base: FirRegularClassSymbol,
+        resolver: EnumizeHierarchyResolver,
+    ): Boolean {
+        if (membership != null && membership.isMemberOf(base.classId)) return true
+        if (!symbol.rawStatus.isCompanion) return false
+        val outer = resolver.tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return false
+        val outerMembership = resolver.membershipOf(outer) ?: return false
+        return outerMembership.isLeaf && outerMembership.isMemberOf(base.classId)
+    }
+
+    // ---- 階層メンバー（中間 sealed・末端）に対する検査 ----
+
+    private fun checkHierarchyMember(
+        declaration: FirRegularClass,
+        membership: EnumizeMembership,
+        resolver: EnumizeHierarchyResolver,
+        context: CheckerContext,
+        reporter: DiagnosticReporter,
+    ) {
+        val symbol = declaration.symbol
+        val base = membership.base
+        checkManualEnumizedSupertype(symbol, symbol, base, resolver, context, reporter)
+        if (membership.isIntermediate) return
         if (declaration.status.isInner) {
             reporter.reportOn(declaration.source, EnumizeErrors.ENUMIZE_INNER_LEAF, context)
             return
         }
-        checkKindAccessibility(declaration, base, hierarchy, context, reporter)
-        checkManualMemberConflicts(declaration, base, hierarchy, context, reporter)
+        checkKindAccessibility(declaration, base, context, reporter)
+        checkManualMemberConflicts(declaration, base, resolver, context, reporter)
         if (symbol.classKind == ClassKind.OBJECT) return
-        checkCompanionOfLeafClass(declaration, base, hierarchy, context, reporter)
+        checkCompanionOfLeafClass(declaration, base, resolver, context, reporter)
     }
 
     private fun checkKindAccessibility(
         declaration: FirRegularClass,
         base: FirRegularClassSymbol,
-        hierarchy: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
@@ -267,7 +277,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     private fun checkCompanionOfLeafClass(
         declaration: FirRegularClass,
         base: FirRegularClassSymbol,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
@@ -277,7 +287,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             reporter.reportOn(declaration.source, EnumizeErrors.ENUMIZE_COMPANION_REQUIRED, context)
             return
         }
-        if (hierarchy.isOurGenerated(companion)) return
+        if (resolver.isOurGenerated(companion)) return
         val companionVisibility = companion.rawStatus.visibility
         if (companionVisibility == Visibilities.Private || companionVisibility == Visibilities.Protected) {
             reporter.reportOn(
@@ -287,11 +297,11 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
                 context,
             )
         }
-        if (hierarchy.isLeaf(companion)) {
+        if (resolver.membershipOf(companion)?.isLeaf == true) {
             reporter.reportOn(companion.source, EnumizeErrors.ENUMIZE_COMPANION_LEAF_CONFLICT, context)
         }
-        val denotable = hierarchy.effectiveVisibilityAtLeast(companion, symbol) ||
-            hierarchy.effectiveVisibilityAtLeast(base, symbol)
+        val denotable = resolver.effectiveVisibilityAtLeast(companion, symbol) ||
+            resolver.effectiveVisibilityAtLeast(base, symbol)
         if (!denotable) {
             reporter.reportOn(
                 declaration.source,
@@ -306,7 +316,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     private fun checkManualMemberConflicts(
         declaration: FirRegularClass,
         base: FirRegularClassSymbol,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
@@ -317,12 +327,12 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         } else {
             setOf(EnumizeNames.AS_ENUMISH)
         }
-        reportConflicts(declaration, symbol, leafNames, base, hierarchy, context, reporter)
+        reportConflicts(declaration, symbol, leafNames, base, resolver, context, reporter)
         if (isObjectLeaf) return
         val companion = symbol.companionObjectSymbol ?: return
-        if (hierarchy.isOurGenerated(companion)) return
+        if (resolver.isOurGenerated(companion)) return
         val kindNames = setOf(EnumizeNames.LABEL, EnumizeNames.ENUMIZED_CLASS_PROPERTY)
-        reportConflicts(companion.fir, companion, kindNames, base, hierarchy, context, reporter)
+        reportConflicts(companion.fir, companion, kindNames, base, resolver, context, reporter)
     }
 
     private fun reportConflicts(
@@ -330,11 +340,11 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         symbol: FirRegularClassSymbol,
         names: Set<Name>,
         base: FirRegularClassSymbol,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
-        for (member in manualMembersNamed(declaration, names, hierarchy)) {
+        for (member in manualMembersNamed(declaration, names, resolver)) {
             reporter.reportOn(
                 member.source,
                 EnumizeErrors.ENUMIZE_MANUAL_MEMBER_CONFLICT,
@@ -342,7 +352,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
                 context,
             )
         }
-        for (name in inheritedConcreteConflicts(symbol, names, base, hierarchy)) {
+        for (name in inheritedConcreteConflicts(symbol, names, base, resolver)) {
             reporter.reportOn(
                 declaration.source,
                 EnumizeErrors.ENUMIZE_MANUAL_MEMBER_CONFLICT,
@@ -355,11 +365,11 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     private fun manualMembersNamed(
         declaration: FirRegularClass,
         names: Set<Name>,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
     ): List<FirDeclaration> =
         declaration.declarations.filter { member ->
             val name = memberNameOf(member)
-            name != null && name in names && !hierarchy.isOurGeneratedDeclaration(member)
+            name != null && name in names && !resolver.isOurGeneratedDeclaration(member)
         }
 
     private fun memberNameOf(declaration: FirDeclaration): Name? = when (declaration) {
@@ -373,20 +383,20 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         symbol: FirRegularClassSymbol,
         names: Set<Name>,
         base: FirRegularClassSymbol,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
     ): List<Name> {
         val excludedClassIds = setOf(
             EnumizeNames.ENUMISH_CLASS_ID,
             EnumizeNames.ENUMISH_COMPANION_CLASS_ID,
             EnumizeNames.ENUMIZED_CLASS_ID,
-            hierarchy.generatedEnumishClassId(base),
-            hierarchy.generatedEnumishCompanionClassId(base),
+            resolver.generatedEnumishClassId(base),
+            resolver.generatedEnumishCompanionClassId(base),
         )
-        val foreignInterfaces = hierarchy.supertypeClosure(symbol).filter { superSymbol ->
+        val foreignInterfaces = resolver.supertypeClosure(symbol).filter { superSymbol ->
             superSymbol.classKind == ClassKind.INTERFACE &&
                 superSymbol.classId !in excludedClassIds &&
-                hierarchy.findBases(superSymbol).isEmpty() &&
-                !hierarchy.isEnumizeBase(superSymbol)
+                resolver.basesOf(superSymbol).isEmpty() &&
+                !resolver.isEnumizeBase(superSymbol)
         }
         return names.filter { name ->
             foreignInterfaces.any { iface -> declaresConcreteMember(iface, name) }
@@ -406,27 +416,30 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     // ---- kind の一意対応（AMBIGUOUS_KIND）: 階層内・利用側（プラグイン適用モジュール）の双方 ----
 
     private fun checkAmbiguousKind(
-        symbol: FirRegularClassSymbol,
         declaration: FirRegularClass,
-        hierarchy: EnumizeHierarchyResolver,
+        membership: EnumizeMembership?,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
-        val leafAncestors = hierarchy.supertypeClosure(symbol).filter(hierarchy::isLeaf)
+        val symbol = declaration.symbol
         val kindCandidates = buildList {
-            if (hierarchy.isLeaf(symbol)) add(symbol)
-            addAll(leafAncestors)
+            if (membership != null && membership.isLeaf) add(symbol to membership)
+            for (superSymbol in resolver.supertypeClosure(symbol)) {
+                val superMembership = resolver.membershipOf(superSymbol) ?: continue
+                if (superMembership.isLeaf) add(superSymbol to superMembership)
+            }
         }
         if (kindCandidates.size < 2) return
         val sameBaseGroup = kindCandidates
-            .groupBy { hierarchy.findSingleBase(it)?.classId }
-            .entries.firstOrNull { (baseId, group) -> baseId != null && group.size >= 2 }
+            .groupBy { (_, candidateMembership) -> candidateMembership.base.classId }
+            .entries.firstOrNull { (_, group) -> group.size >= 2 }
             ?: return
         reporter.reportOn(
             declaration.source,
             EnumizeErrors.ENUMIZE_AMBIGUOUS_KIND,
-            sameBaseGroup.value[0].classId.asFqNameString(),
-            sameBaseGroup.value[1].classId.asFqNameString(),
+            sameBaseGroup.value[0].first.classId.asFqNameString(),
+            sameBaseGroup.value[1].first.classId.asFqNameString(),
             context,
         )
     }
@@ -435,14 +448,14 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
 
     private fun checkLabelShadowing(
         declaration: FirRegularClass,
-        hierarchy: EnumizeHierarchyResolver,
+        resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
         for (member in declaration.declarations) {
             val name = memberNameOf(member) ?: continue
             if (name != EnumizeNames.LABEL) continue
-            if (hierarchy.isOurGeneratedDeclaration(member)) continue
+            if (resolver.isOurGeneratedDeclaration(member)) continue
             val visibility = when (member) {
                 is FirNamedFunction -> member.status.visibility
                 is FirProperty -> member.status.visibility

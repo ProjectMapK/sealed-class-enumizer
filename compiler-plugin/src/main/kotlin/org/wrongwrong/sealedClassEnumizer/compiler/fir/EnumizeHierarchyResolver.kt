@@ -5,6 +5,10 @@ package org.wrongwrong.sealedClassEnumizer.compiler.fir
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.EffectiveVisibility
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.caches.FirCache
+import org.jetbrains.kotlin.fir.caches.createCache
+import org.jetbrains.kotlin.fir.caches.firCachesFactory
+import org.jetbrains.kotlin.fir.caches.getValue
 import org.jetbrains.kotlin.fir.declarations.DirectDeclarationsAccess
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
@@ -12,6 +16,10 @@ import org.jetbrains.kotlin.fir.declarations.FirNamedFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.getSealedClassInheritors
+import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
+import org.jetbrains.kotlin.fir.extensions.FirExtensionSessionComponent
+import org.jetbrains.kotlin.fir.extensions.extensionService
+import org.jetbrains.kotlin.fir.extensions.extensionSessionComponents
 import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
@@ -30,11 +38,33 @@ import org.jetbrains.kotlin.name.SpecialNames
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeKey
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
-// 解決済み情報（sealed inheritors 属性・解決済み supertype・実効可視性）を用いる階層照会。
-// SUPER_TYPES 以降のフェーズ（メンバー生成・チェッカー・lazy inheritors 計算）から使う。
+// 解決済み情報（sealed inheritors 属性・解決済み supertype・実効可視性）を用いる階層照会の
+// セッション単一コンポーネント。所属事実（EnumizeMembership）は membershipOf がクラス毎に一度だけ
+// 計算してキャッシュし、消費側（宣言生成の役割判定・チェッカー）はその値を受け渡して読む。
+// membershipOf を含む本コンポーネントの照会は SUPER_TYPES 解決後のフェーズ
+// （メンバー生成・チェッカー・lazy inheritors 計算）からのみ呼ぶこと — raw 段階の答えを
+// キャッシュすると解決後のフェーズを汚染する。raw 段階の判定は tracker を直接使う。
 // 用語（階層・末端・中間 sealed・kind）は設計00 §1 に従う。
-class EnumizeHierarchyResolver(val session: FirSession) {
+class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionComponent(session) {
     val tracker: EnumizeRawSupertypeTracker = EnumizeRawSupertypeTracker(session)
+
+    private val basesCache: FirCache<FirRegularClassSymbol, List<FirRegularClassSymbol>, Nothing?> =
+        session.firCachesFactory.createCache { symbol -> computeBases(symbol) }
+
+    override fun FirDeclarationPredicateRegistrar.registerPredicates() {
+        register(EnumizePredicates.ENUMIZE)
+    }
+
+    // 階層への正常な所属（取り回しの唯一の入口）。ちょうど 1 つの @Enumize 基底に属する場合のみ
+    // 非 null を返し、非所属・複数階層への所属（エラー構成）は null で表現する
+    fun membershipOf(symbol: FirRegularClassSymbol): EnumizeMembership? {
+        val base = basesCache.getValue(symbol).singleOrNull() ?: return null
+        return EnumizeMembership(base, tracker.isRawSealed(symbol))
+    }
+
+    // 所属する基底の一覧の生読み。家族系診断（MULTIPLE_FAMILIES / NESTED_IN_HIERARCHY）と
+    // 「どの階層にも属さない」ことの判定にのみ使い、通常の取り回しには membershipOf を使う
+    fun basesOf(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> = basesCache.getValue(symbol)
 
     fun isEnumizeBase(symbol: FirRegularClassSymbol): Boolean =
         tracker.isEnumizeBase(symbol) && tracker.isRawSealed(symbol)
@@ -44,6 +74,17 @@ class EnumizeHierarchyResolver(val session: FirSession) {
     fun isOurGenerated(symbol: FirBasedSymbol<*>): Boolean =
         (symbol.origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
 
+    // このシンボルが生成 Enumish（SI.Enumish）を表すか。同一 IC ラウンドの生成物は origin で判定できるが、
+    // ラウンド外のファイル由来は前ラウンドのメタデータからの逆直列化で origin が失われるため、
+    // 「@Enumize 付き基底の直下の Enumish」という構造で判定する（ネスト名 Enumish の手動宣言は
+    // RESERVED_NAME_CLASH でコンパイル不能のため、有効な前ラウンド出力とは衝突しない）
+    fun representsGeneratedEnumish(symbol: FirRegularClassSymbol): Boolean {
+        if (symbol.classId.shortClassName != EnumizeNames.ENUMISH_NAME) return false
+        if (isOurGenerated(symbol)) return true
+        val outer = tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return false
+        return isEnumizeBase(outer)
+    }
+
     fun isOurGeneratedDeclaration(declaration: FirDeclaration): Boolean =
         (declaration.origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
 
@@ -52,20 +93,6 @@ class EnumizeHierarchyResolver(val session: FirSession) {
 
     fun generatedEnumishCompanionClassId(base: FirRegularClassSymbol): ClassId =
         generatedEnumishClassId(base).createNestedClassId(SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT)
-
-    // sealed 連鎖のみを上向きに辿り、到達できる相異なる @Enumize 基底をすべて返す
-    // （2 つ以上 = ENUMIZE_MULTIPLE_FAMILIES。設計01 §7.2）
-    fun findBases(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> {
-        val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
-        collectBases(symbol, LinkedHashSet(), result)
-        return result.values.toList()
-    }
-
-    fun findSingleBase(symbol: FirRegularClassSymbol): FirRegularClassSymbol? =
-        findBases(symbol).firstOrNull()
-
-    fun isLeaf(symbol: FirRegularClassSymbol): Boolean =
-        !tracker.isRawSealed(symbol) && findBases(symbol).isNotEmpty()
 
     // 基底の sealed inheritors 属性を再帰展開した階層の全メンバー（中間 sealed を含む・基底自身を除く）。
     // 並べ替えは行わず、コンパイラが提供する継承者リストの走査順のまま返す（設計00 §6.2）
@@ -109,10 +136,7 @@ class EnumizeHierarchyResolver(val session: FirSession) {
 
     // 生成 Enumish の継承者一覧: すべての kind + 階層内の手動実装（末端 class 自身による直接実装）。
     // 収集順のまま返す（setSealedClassInheritors のセッター側で FQN 順に正規化される。設計01 §5.2）。
-    // 階層外の手動実装は述語にも階層走査にも掛からず lazy 計算単独では列挙できない（V1-(e) 未確立。
-    // コンパイラ本体の収集器もソース宣言の sealed にしか属性を設定しない — 実測）。パッケージ探索に
-    // よる発見は IC ラウンドの可視ソースに依存して clean / incremental の生成物一致を壊すため行わない
-    //（設計00 §5.2・§9）
+    // 階層外の直接実装は ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY でエラーになるため、この 2 種で完全である
     fun computeGeneratedEnumishInheritors(base: FirRegularClassSymbol): List<ClassId> {
         val enumishClassId = generatedEnumishClassId(base)
         val result = mutableListOf<ClassId>()
@@ -152,6 +176,13 @@ class EnumizeHierarchyResolver(val session: FirSession) {
                 else -> null
             }
         }
+
+    // sealed 連鎖のみを上向きに辿り、到達できる相異なる @Enumize 基底を集める
+    private fun computeBases(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> {
+        val bases = LinkedHashMap<ClassId, FirRegularClassSymbol>()
+        collectBases(symbol, LinkedHashSet(), bases)
+        return bases.values.toList()
+    }
 
     private fun collectBases(
         symbol: FirRegularClassSymbol,
@@ -194,3 +225,7 @@ class EnumizeHierarchyResolver(val session: FirSession) {
         }
     }
 }
+
+// セッション単一の階層照会コンポーネントへの入口（registrar が登録する）
+val FirSession.enumizeHierarchyResolver: EnumizeHierarchyResolver
+    get() = extensionService.extensionSessionComponents.filterIsInstance<EnumizeHierarchyResolver>().single()

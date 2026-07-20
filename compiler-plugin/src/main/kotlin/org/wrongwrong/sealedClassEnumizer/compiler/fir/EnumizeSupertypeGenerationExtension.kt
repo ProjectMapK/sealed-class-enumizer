@@ -19,7 +19,6 @@ import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.constructClassLikeType
-import org.jetbrains.kotlin.name.ClassId
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
 // supertype 注入（設計01 §4）:
@@ -27,8 +26,9 @@ import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 //   末端 object / data object    += SI.Enumish
 //   末端の companion（既存・生成） += SI.Enumish
 class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGenerationExtension(session) {
-    private val tracker = EnumizeRawSupertypeTracker(session)
-    private val hierarchy = EnumizeHierarchyResolver(session)
+    // コンポーネント群の生成順に依存しないよう、初回コールバック時に解決する
+    private val resolver: EnumizeHierarchyResolver by lazy { session.enumizeHierarchyResolver }
+    private val tracker: EnumizeRawSupertypeTracker get() = resolver.tracker
 
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(EnumizePredicates.ENUMIZE)
@@ -84,7 +84,7 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
         resolvedSupertypes: List<FirResolvedTypeRef>,
     ): List<ConeKotlinType> {
         // 既存のネスト宣言 Enumish がある場合は生成自体をスキップするため注入もしない（ENUMIZE_RESERVED_NAME_CLASH）
-        if (hierarchy.hasUserDeclaredNestedEnumish(base.symbol)) return emptyList()
+        if (resolver.hasUserDeclaredNestedEnumish(base.symbol)) return emptyList()
         // 手動の Enumized<K> がある場合（間接継承経由を含む — エッジ §2）は注入しない。型引数一致なら
         // 重複回避、不一致なら ENUMIZE_MANUAL_SUPERTYPE_MISMATCH をチェッカーが報告する（設計01 §4）
         if (hasEnumizedSupertype(resolvedSupertypes)) return emptyList()
@@ -118,22 +118,15 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
 
     // 外側（末端）の supertype 解決は companion より先に走るため、解決済み ref を tracker 経由で辿れる
     private fun findBaseFromResolved(resolvedSupertypes: List<FirResolvedTypeRef>): FirRegularClassSymbol? {
-        for (ref in resolvedSupertypes) {
-            val superSymbol = tracker.resolveExpandedClassSymbol(ref.coneType) ?: continue
-            if (tracker.isEnumizeBase(superSymbol) && tracker.isRawSealed(superSymbol)) return superSymbol
-            if (tracker.isRawSealed(superSymbol)) {
-                val base = tracker.findEnumizeBase(superSymbol, followTypeAliases = true)
-                if (base != null) return base
-            }
-        }
-        return null
+        val superSymbols = resolvedSupertypes.mapNotNull { tracker.resolveExpandedClassSymbol(it.coneType) }
+        return tracker.findEnumizeBaseAmong(superSymbols, followTypeAliases = true)
     }
 
     private fun enumishInjectionFor(
         base: FirRegularClassSymbol,
         resolvedSupertypes: List<FirResolvedTypeRef>,
     ): List<ConeKotlinType> {
-        if (hierarchy.hasUserDeclaredNestedEnumish(base)) return emptyList()
+        if (resolver.hasUserDeclaredNestedEnumish(base)) return emptyList()
         val enumishClassId = base.classId.createNestedClassId(EnumizeNames.ENUMISH_NAME)
         // 型引数まで一致する手動宣言（この場合は非ジェネリックなので ClassId 一致）があればスキップ
         if (resolvedSupertypes.any { it.coneType.classId == enumishClassId }) return emptyList()
@@ -143,20 +136,10 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
     private fun hasEnumizedSupertype(resolvedSupertypes: List<FirResolvedTypeRef>): Boolean =
         resolvedSupertypes.any { ref ->
             ref.coneType.classId == EnumizeNames.ENUMIZED_CLASS_ID ||
-                tracker.resolveExpandedClassSymbol(ref.coneType)
-                    ?.let { implementsEnumizedTransitively(it, LinkedHashSet()) } == true
+                tracker.resolveExpandedClassSymbol(ref.coneType)?.let { superSymbol ->
+                    tracker.reachesSupertype(superSymbol, EnumizeNames.ENUMIZED_CLASS_ID, followTypeAliases = true)
+                } == true
         }
-
-    private fun implementsEnumizedTransitively(
-        symbol: FirRegularClassSymbol,
-        visited: MutableSet<ClassId>,
-    ): Boolean {
-        if (!visited.add(symbol.classId)) return false
-        return tracker.supertypeClassSymbols(symbol, followTypeAliases = true).any { superSymbol ->
-            superSymbol.classId == EnumizeNames.ENUMIZED_CLASS_ID ||
-                implementsEnumizedTransitively(superSymbol, visited)
-        }
-    }
 
     private fun outerSymbolOf(regularClass: FirRegularClass): FirRegularClassSymbol? =
         tracker.resolveClassSymbol(regularClass.symbol.classId.outerClassId)
