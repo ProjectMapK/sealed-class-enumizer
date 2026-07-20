@@ -13,7 +13,6 @@ import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.getSealedClassInheritors
 import org.jetbrains.kotlin.fir.resolve.defaultType
-import org.jetbrains.kotlin.fir.resolve.providers.firProvider
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
@@ -108,12 +107,12 @@ class EnumizeHierarchyResolver(val session: FirSession) {
             relation == EffectiveVisibility.Permissiveness.MORE
     }
 
-    // 生成 Enumish の継承者一覧: すべての kind + 手動実装（生成 Enumish の直接実装）。
+    // 生成 Enumish の継承者一覧: すべての kind + 階層内の手動実装（末端 class 自身による直接実装）。
     // 収集順のまま返す（setSealedClassInheritors のセッター側で FQN 順に正規化される。設計01 §5.2）。
-    // 手動実装のうち階層外のもの（V1-(e)）は、sealed の継承者が同一パッケージに閉じる言語規則
-    // （コンパイラ本体の収集器も同一パッケージでガードする）を利用し、基底のパッケージの
-    // ソースファイルに閉じた探索で列挙する。コンパイラ本体の収集器はソース宣言の sealed しか
-    // 属性設定の対象にしないため（実測）、生成 sealed の分は自前で列挙するしかない
+    // 階層外の手動実装は述語にも階層走査にも掛からず lazy 計算単独では列挙できない（V1-(e) 未確立。
+    // コンパイラ本体の収集器もソース宣言の sealed にしか属性を設定しない — 実測）。パッケージ探索に
+    // よる発見は IC ラウンドの可視ソースに依存して clean / incremental の生成物一致を壊すため行わない
+    //（設計00 §5.2・§9）
     fun computeGeneratedEnumishInheritors(base: FirRegularClassSymbol): List<ClassId> {
         val enumishClassId = generatedEnumishClassId(base)
         val result = mutableListOf<ClassId>()
@@ -125,39 +124,11 @@ class EnumizeHierarchyResolver(val session: FirSession) {
                 result.add(member.classId)
             }
         }
-        result += packageLocalDirectImplementors(base, enumishClassId)
         return result.distinct()
     }
 
     fun directlyImplements(symbol: FirRegularClassSymbol, classId: ClassId): Boolean =
         symbol.resolvedSuperTypeRefs.any { it.coneType.classId == classId }
-
-    // 基底のパッケージのソースファイルを走査し、生成 Enumish を直接実装するクラスを列挙する。
-    // 網羅性検査以降にしか走らない lazy 計算からのみ呼ぶこと（全宣言の supertype が解決済みである前提）
-    private fun packageLocalDirectImplementors(
-        base: FirRegularClassSymbol,
-        enumishClassId: ClassId,
-    ): List<ClassId> {
-        val result = mutableListOf<ClassId>()
-        for (file in session.firProvider.getFirFilesByPackage(base.classId.packageFqName)) {
-            collectDirectImplementors(file.declarations, enumishClassId, result)
-        }
-        return result
-    }
-
-    private fun collectDirectImplementors(
-        declarations: List<FirDeclaration>,
-        enumishClassId: ClassId,
-        result: MutableList<ClassId>,
-    ) {
-        for (declaration in declarations) {
-            if (declaration !is FirRegularClass) continue
-            if (directlyImplements(declaration.symbol, enumishClassId)) {
-                result.add(declaration.symbol.classId)
-            }
-            collectDirectImplementors(declaration.declarations, enumishClassId, result)
-        }
-    }
 
     // 解決済み supertype の全閉包（sealed に限らない全エッジ）。ENUMIZE_AMBIGUOUS_KIND の判定に使う
     fun supertypeClosure(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> {

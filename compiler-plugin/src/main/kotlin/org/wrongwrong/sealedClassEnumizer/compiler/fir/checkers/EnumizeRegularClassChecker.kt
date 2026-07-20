@@ -66,10 +66,49 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             checkLabelShadowing(declaration, hierarchy, context, reporter)
         }
         checkAmbiguousKind(symbol, declaration, hierarchy, context, reporter)
+        checkManualEnumishImplementation(declaration, hierarchy, context, reporter)
         val base = bases.singleOrNull()
         if (base != null) {
             checkHierarchyMember(declaration, base, hierarchy, context, reporter)
         }
+    }
+
+    // 生成 Enumish の直接実装は階層内（メンバー）と kind に限る。階層外の実装は sealed の
+    // 継承者一覧へ反映する経路が無く、JVM では PermittedSubclasses により実行時拒否になるため
+    // コンパイル時にエラーとする（V1-(e) の帰結。設計00 §5.2）
+    private fun checkManualEnumishImplementation(
+        declaration: FirRegularClass,
+        hierarchy: EnumizeHierarchyResolver,
+        context: CheckerContext,
+        reporter: DiagnosticReporter,
+    ) {
+        val symbol = declaration.symbol
+        for (ref in symbol.resolvedSuperTypeRefs) {
+            val superSymbol = hierarchy.tracker.resolveExpandedClassSymbol(ref.coneType) ?: continue
+            if (!hierarchy.isOurGenerated(superSymbol)) continue
+            if (superSymbol.classId.shortClassName != EnumizeNames.ENUMISH_NAME) continue
+            val base = hierarchy.tracker.resolveClassSymbol(superSymbol.classId.outerClassId) ?: continue
+            if (isInsideHierarchyOf(symbol, base, hierarchy)) continue
+            reporter.reportOn(
+                ref.source ?: declaration.source,
+                EnumizeErrors.ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY,
+                base.classId.asFqNameString(),
+                context,
+            )
+        }
+    }
+
+    // 階層のメンバー（末端 class 自身による実装を含む）と、階層の末端の kind を担う companion は
+    // 生成 Enumish の正当な実装である
+    private fun isInsideHierarchyOf(
+        symbol: FirRegularClassSymbol,
+        base: FirRegularClassSymbol,
+        hierarchy: EnumizeHierarchyResolver,
+    ): Boolean {
+        if (hierarchy.findBases(symbol).any { it.classId == base.classId }) return true
+        if (!symbol.rawStatus.isCompanion) return false
+        val outer = hierarchy.tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return false
+        return !hierarchy.isSealed(outer) && hierarchy.findBases(outer).any { it.classId == base.classId }
     }
 
     // ---- @Enumize 対象（基底）に対する検査 ----

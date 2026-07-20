@@ -79,6 +79,13 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
             CommonRenderers.STRING,
         )
         map.put(
+            EnumizeErrors.ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY,
+            "This declaration implements the generated Enumish of ''{0}'' from outside its hierarchy. " +
+                "The sealed inheritors list cannot include such an implementation, so it would be rejected " +
+                "at runtime. Make the declaration a member of the hierarchy of ''{0}'' or remove the supertype.",
+            CommonRenderers.STRING,
+        )
+        map.put(
             EnumizeErrors.ENUMIZE_MANUAL_SUPERTYPE_MISMATCH,
             "Manually declared supertype ''{0}'' does not match the generated supertype ''{1}''. " +
                 "Use the same type argument as the generated declaration or remove the manual supertype.",
