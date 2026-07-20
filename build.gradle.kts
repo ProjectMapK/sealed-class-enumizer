@@ -1,22 +1,2 @@
-plugins {
-    kotlin("jvm") version "2.4.20-Beta1"
-}
-
-group = "org.wrongwrong"
-version = "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    testImplementation(kotlin("test"))
-}
-
-kotlin {
-    jvmToolchain(17)
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
+// ルートプロジェクトは集約のみを担う。各モジュールの構成は各自の build.gradle.kts が持つ。
+// integration-test は独立した composite build であり、ここには含めない（docs/テストケース管理.md）。
