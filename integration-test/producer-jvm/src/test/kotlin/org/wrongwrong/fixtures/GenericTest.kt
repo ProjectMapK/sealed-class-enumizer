@@ -28,4 +28,11 @@ class GenericTest {
         val generic: Generic<Int> = Generic.Empty()
         assertEquals("Empty", generic.label)
     }
+
+    // TC-LEAF-050: 型パラメータ付き末端の companion（自動生成）は型パラメータを持たず、kind は単一
+    @Test
+    fun companionKindHasNoTypeParameters() {
+        assertSame(Generic.Box.Companion, Generic.Box(1).asEnumish())
+        assertSame(Generic.Box.Companion, Generic.Enumish.valueOf("Box"))
+    }
 }

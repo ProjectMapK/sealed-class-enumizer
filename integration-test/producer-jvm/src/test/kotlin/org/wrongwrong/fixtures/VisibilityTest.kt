@@ -1,5 +1,6 @@
 package org.wrongwrong.fixtures
 
+import org.wrongwrong.fixtures.widerleaf.AutoWide
 import org.wrongwrong.fixtures.widerleaf.InternalBase
 import org.wrongwrong.fixtures.widerleaf.PublicLeaf
 import org.wrongwrong.sealedClassEnumizer.label
@@ -22,6 +23,15 @@ class VisibilityTest {
     @Test
     fun internalBaseWorksInsideModule() {
         assertEquals(listOf("PublicLeaf"), InternalBase.Enumish.entries.map { it.label })
+    }
+
+    // TC-VIS-030: 基底より広い末端 + 自動生成 companion（宣言 public・実効 public = 末端）は規則 1 のまま。
+    // 具体型（AutoWide.Companion）で受けられること自体が規則 3 非発火の検査
+    @Test
+    fun autoCompanionOfWiderLeafStaysOnRule1() {
+        val kind: AutoWide.Companion = AutoWide(1).asEnumish()
+        assertSame(AutoWide.Companion, kind)
+        assertEquals("AutoWide", kind.label)
     }
 
     // 基底より広い可視性の末端（E-2 生成側）: 値・kind API は public 側からも観測できる

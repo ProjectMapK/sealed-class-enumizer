@@ -26,4 +26,11 @@ class ValueClassTest {
         val boxed: Valued = Wrapped(3)
         assertEquals("Wrapped", boxed.label)
     }
+
+    // TC-LEAF-053: value class 末端の kind の enumizedClass / toString（値側の合成 toString とは別管轄）
+    @Test
+    fun kindApiOfValueClassLeaf() {
+        assertEquals(Wrapped::class, Wrapped.Companion.enumizedClass)
+        assertEquals(listOf("Wrapped", "Wrapped(v=1)"), listOf(Wrapped.Companion.toString(), Wrapped(1).toString()))
+    }
 }

@@ -27,6 +27,13 @@ class CommandTest {
         assertSame(Command.Enumish.valueOf("Builtin"), Command.Builtin.HELP.asEnumish())
     }
 
+    // TC-BOX-051: enum 末端の enumizedClass は enum class 自身を指し、valueOf は companion（kind）を返す
+    @Test
+    fun enumLeafEnumizedClassAndValueOf() {
+        assertEquals(Command.Builtin::class, Command.Builtin.HELP.asEnumish().enumizedClass)
+        assertSame(Command.Builtin.HELP.asEnumish(), Command.Enumish.valueOf("Builtin"))
+    }
+
     // 定数側の表示（Enum.toString = name）と kind 側の表示（toString = label）は管轄の異なる別物
     @Test
     fun constantAndKindHaveSeparateToString() {
