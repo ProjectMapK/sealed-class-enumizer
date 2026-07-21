@@ -30,7 +30,7 @@ class OwnHierarchyCoexistTest {
 
     // TC-XM-056（正値側）: gradle-plugin 適用側は runtime-api が自動追加されるため、
     // build.gradle.kts に明示宣言が無くても基底型（Enumized）・label 拡張が解決できる
-    //（オプトアウト縮退・producer 側 implementation 隠しの比較は gradle-integration 担当）
+    //（オプトアウト縮退・producer 側 implementation 隠しの比較は gradle-integration の RuntimeApiExposureTest が担当）
     @Test
     fun runtimeApiIsAutoSuppliedToPluginConsumer() {
         val value: Enumized<TI.Enumish> = TI.Alpha(7)

@@ -66,7 +66,7 @@ class GeneratedApiVisibilityTest {
 
     // TC-XM-006: 未適用消費側は producer-jvm の api 依存（runtime-api）を推移取得し、明示宣言なしで
     // 基底型（Enumish / Enumized）・label 拡張・Companion 束ねが解決できることの正値観測。
-    // implementation 縮退（producer が runtime-api を隠す）の比較はコンパイル失敗を要するため gradle-integration 担当
+    // implementation 縮退（producer が runtime-api を隠す）との比較は gradle-integration の RuntimeApiExposureTest が担当（コンパイル失敗を要するため通常モジュールに置けない）
     @Test
     fun runtimeApiTypesResolveViaTransitiveApi() {
         val companions: List<Enumish.Companion<Enumish>> = listOf(SI.Enumish, Command.Enumish)
