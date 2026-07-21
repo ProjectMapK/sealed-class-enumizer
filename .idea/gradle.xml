@@ -37,6 +37,13 @@
             <option value="$PROJECT_DIR$/compiler-plugin" />
             <option value="$PROJECT_DIR$/gradle-plugin" />
             <option value="$PROJECT_DIR$/integration-test" />
+            <option value="$PROJECT_DIR$/integration-test/consumer-plugin-jvm" />
+            <option value="$PROJECT_DIR$/integration-test/consumer-pure-jvm" />
+            <option value="$PROJECT_DIR$/integration-test/downstream-subtype-jvm" />
+            <option value="$PROJECT_DIR$/integration-test/gradle-integration" />
+            <option value="$PROJECT_DIR$/integration-test/java-consumer" />
+            <option value="$PROJECT_DIR$/integration-test/mpp-consumer" />
+            <option value="$PROJECT_DIR$/integration-test/mpp-producer" />
             <option value="$PROJECT_DIR$/integration-test/producer-jvm" />
             <option value="$PROJECT_DIR$/runtime-api" />
           </set>
