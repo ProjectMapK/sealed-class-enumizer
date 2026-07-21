@@ -31,9 +31,6 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(project(":mpp-producer"))
-                // 暫定: gradle-plugin が runtime-api を implementation で自動追加するため利用側へ伝播しない
-                // （docs/修正方針案.md #1。api 化の修正後はこの宣言は不要になる）
-                implementation("org.wrongwrong:runtime-api:1.0-SNAPSHOT")
             }
         }
         commonTest {

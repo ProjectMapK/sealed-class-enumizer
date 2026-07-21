@@ -13,9 +13,6 @@ kotlin {
 
 dependencies {
     implementation(project(":producer-jvm"))
-    // 暫定: gradle-plugin が runtime-api を implementation で自動追加するため利用側へ伝播しない
-    // （docs/修正方針案.md #1。api 化の修正後はこの宣言は不要になる）
-    implementation("org.wrongwrong:runtime-api:1.0-SNAPSHOT")
     testImplementation(kotlin("test"))
     // sealedSubclasses と entries の不一致観測（TC-XM-047）に使用。
     // ランタイム reflection 非依存の原則はプラグイン生成物側の話であり、テストからの観測には利用してよい

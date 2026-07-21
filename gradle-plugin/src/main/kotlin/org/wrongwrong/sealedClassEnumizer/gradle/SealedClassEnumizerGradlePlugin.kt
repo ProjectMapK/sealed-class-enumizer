@@ -33,9 +33,11 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
     private fun addRuntimeDependencyIfEnabled(project: Project, kotlinCompilation: KotlinCompilation<*>) {
         val extension = project.extensions.getByType(SealedClassEnumizerExtension::class.java)
         if (extension.addRuntimeDependency.get()) {
-            // コンパイレーション単位の dependencies は deprecated のため、既定ソースセットへ宣言する
+            // コンパイレーション単位の dependencies は deprecated のため、既定ソースセットへ宣言する。
+            // 生成 API は runtime-api の型（Enumish / Enumized）を supertype として公開する ABI 依存のため、
+            // 利用側のコンパイルクラスパスへ伝播する api スコープで追加する（概要 §7）
             kotlinCompilation.defaultSourceSet.dependencies {
-                implementation(
+                api(
                     "${SealedClassEnumizerCoordinates.GROUP}:${SealedClassEnumizerCoordinates.RUNTIME_API_ARTIFACT}:${SealedClassEnumizerCoordinates.VERSION}"
                 )
             }

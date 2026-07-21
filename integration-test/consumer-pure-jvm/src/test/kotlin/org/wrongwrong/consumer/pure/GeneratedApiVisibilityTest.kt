@@ -64,12 +64,11 @@ class GeneratedApiVisibilityTest {
         assertEquals(listOf("Foo", "Bar"), listOf(SI.Foo.Companion.toString(), SI.Bar.toString()))
     }
 
-    // TC-XM-006 読み替え: gradle-plugin の runtime-api 自動追加が implementation のため利用側へ伝播せず
-    // （docs/修正方針案.md #1）、未適用消費側は build.gradle.kts の明示宣言で runtime-api を解決する。
-    // その状態で基底型（Enumish / Enumized）・label 拡張・Companion 束ねが解決できることの正値観測。
-    // api 公開 / implementation 縮退の比較はコンパイル失敗を要するため gradle-integration 担当
+    // TC-XM-006: 未適用消費側は producer-jvm の api 依存（runtime-api）を推移取得し、明示宣言なしで
+    // 基底型（Enumish / Enumized）・label 拡張・Companion 束ねが解決できることの正値観測。
+    // implementation 縮退（producer が runtime-api を隠す）の比較はコンパイル失敗を要するため gradle-integration 担当
     @Test
-    fun runtimeApiTypesResolveWithExplicitDeclaration() {
+    fun runtimeApiTypesResolveViaTransitiveApi() {
         val companions: List<Enumish.Companion<Enumish>> = listOf(SI.Enumish, Command.Enumish)
         val labels = companions.flatMap { companion -> companion.entries.map { it.label } }
         assertEquals(listOf("Bar", "Foo", "Builtin", "Custom"), labels)
