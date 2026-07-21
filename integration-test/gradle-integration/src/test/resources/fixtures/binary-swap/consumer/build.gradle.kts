@@ -9,7 +9,8 @@ val v2Jar = rootDir.resolve("producer-v2/build/libs/producer-v2.jar")
 dependencies {
     // コンパイルは常に v1（2 末端）に対して行う（テストが先に :producer-v1:jar を組み立てる）
     implementation(files(v1Jar))
-    // 暫定: 未適用消費側は runtime-api の明示宣言が必要（docs/修正方針案.md #1）
+    // producer を raw jar（files）で参照するため推移的メタデータが無く、runtime-api の明示宣言が必要。
+    // これは gradle-plugin の api 自動公開とは独立の恒久要件（生成 API の supertype 解決に要る）
     implementation("org.wrongwrong:runtime-api:1.0-SNAPSHOT")
 }
 
