@@ -42,7 +42,7 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
         // コンパイレーション単位の dependencies は deprecated のため、既定ソースセットへ宣言する。
         // production（main / metadata）は生成 API の supertype（runtime-api の Enumish / Enumized）を公開する
         // ABI 依存のため、利用側のコンパイルクラスパスへ伝播する api で追加する（概要 §7）。
-        // test（friend）コンパイレーションは公開面を持たないため implementation で足りる。api を付けると
+        // test コンパイレーションは公開面を持たないため implementation で足りる。api を付けると
         // 「Unsupported API dependency types in test source sets」（KT-63142）の警告になる
         kotlinCompilation.defaultSourceSet.dependencies {
             if (isTest) {
@@ -53,8 +53,8 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
         }
     }
 
-    // main / metadata（production）の associatedCompilations は空、test（friend）コンパイレーションは
-    // associate 先（main）を返す（KotlinCompilation KDoc: test は setOf(main)）。これを production / test の判定に用いる
+    // test コンパイレーションの名前は "test"（KotlinCompilation.TEST_COMPILATION_NAME）。
+    // KT-63142 警告を出す KGP 本体の TestApiDependenciesChecker と同じ判定基準に揃える
     private fun isTestCompilation(kotlinCompilation: KotlinCompilation<*>): Boolean =
-        kotlinCompilation.associatedCompilations.isNotEmpty()
+        kotlinCompilation.name == KotlinCompilation.TEST_COMPILATION_NAME
 }
