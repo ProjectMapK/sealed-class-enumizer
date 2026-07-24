@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="mpp-producer-wasm-wasi-1.0-SNAPSHOT">
+    <output-path>$PROJECT_DIR$/integration-test/mpp-producer/build/libs</output-path>
+    <root id="archive" name="mpp-producer-wasm-wasi-1.0-SNAPSHOT.jar">
+      <element id="module-output" name="enumize-integration-test.mpp-producer.wasmWasiMain" />
+    </root>
+  </artifact>
+</component>

@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="mpp-consumer-wasm-js-1.0-SNAPSHOT">
+    <output-path>$PROJECT_DIR$/integration-test/mpp-consumer/build/libs</output-path>
+    <root id="archive" name="mpp-consumer-wasm-js-1.0-SNAPSHOT.jar">
+      <element id="module-output" name="enumize-integration-test.mpp-consumer.wasmJsMain" />
+    </root>
+  </artifact>
+</component>
