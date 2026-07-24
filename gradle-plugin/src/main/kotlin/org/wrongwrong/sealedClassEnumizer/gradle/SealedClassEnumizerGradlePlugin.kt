@@ -8,7 +8,8 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 
 // 全コンパイレーション（main / test / metadata / 全ターゲット）へコンパイラプラグインを適用し、
-// runtime-api を自動追加する（docs/概要.md §7・docs/コンパイラプラグイン設計00.md §2）
+// runtime-api を自動追加する（production は api / test は implementation。docs/概要.md §7・
+// docs/コンパイラプラグイン設計00.md §2）
 class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         target.extensions.create("sealedClassEnumizer", SealedClassEnumizerExtension::class.java)
@@ -32,15 +33,28 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     private fun addRuntimeDependencyIfEnabled(project: Project, kotlinCompilation: KotlinCompilation<*>) {
         val extension = project.extensions.getByType(SealedClassEnumizerExtension::class.java)
-        if (extension.addRuntimeDependency.get()) {
-            // コンパイレーション単位の dependencies は deprecated のため、既定ソースセットへ宣言する。
-            // 生成 API は runtime-api の型（Enumish / Enumized）を supertype として公開する ABI 依存のため、
-            // 利用側のコンパイルクラスパスへ伝播する api スコープで追加する（概要 §7）
-            kotlinCompilation.defaultSourceSet.dependencies {
-                api(
-                    "${SealedClassEnumizerCoordinates.GROUP}:${SealedClassEnumizerCoordinates.RUNTIME_API_ARTIFACT}:${SealedClassEnumizerCoordinates.VERSION}"
-                )
+        if (!extension.addRuntimeDependency.get()) {
+            return
+        }
+        val coordinates =
+            "${SealedClassEnumizerCoordinates.GROUP}:${SealedClassEnumizerCoordinates.RUNTIME_API_ARTIFACT}:${SealedClassEnumizerCoordinates.VERSION}"
+        val isTest = isTestCompilation(kotlinCompilation)
+        // コンパイレーション単位の dependencies は deprecated のため、既定ソースセットへ宣言する。
+        // production（main / metadata）は生成 API の supertype（runtime-api の Enumish / Enumized）を公開する
+        // ABI 依存のため、利用側のコンパイルクラスパスへ伝播する api で追加する（概要 §7）。
+        // test（friend）コンパイレーションは公開面を持たないため implementation で足りる。api を付けると
+        // 「Unsupported API dependency types in test source sets」（KT-63142）の警告になる
+        kotlinCompilation.defaultSourceSet.dependencies {
+            if (isTest) {
+                implementation(coordinates)
+            } else {
+                api(coordinates)
             }
         }
     }
+
+    // main / metadata（production）の associatedCompilations は空、test（friend）コンパイレーションは
+    // associate 先（main）を返す（KotlinCompilation KDoc: test は setOf(main)）。これを production / test の判定に用いる
+    private fun isTestCompilation(kotlinCompilation: KotlinCompilation<*>): Boolean =
+        kotlinCompilation.associatedCompilations.isNotEmpty()
 }
