@@ -2,6 +2,7 @@ package org.wrongwrong.consumer.pure
 
 import org.wrongwrong.fixtures.SI
 import org.wrongwrong.sealedClassEnumizer.Enumish
+import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
 import org.wrongwrong.sealedClassEnumizer.Enumized
 import kotlin.reflect.KClass
 
@@ -12,7 +13,7 @@ import kotlin.reflect.KClass
 object MyThing : Enumish {
     override val label: String get() = "MyThing"
 
-    override val enumishCompanion: Enumish.Companion<Enumish> get() = SI.Enumish
+    override val enumishCompanion: EnumishCompanion<Enumish> get() = SI.Enumish
 
     override val enumizedClass: KClass<out Enumized<*>> get() = SI.Foo::class
 }

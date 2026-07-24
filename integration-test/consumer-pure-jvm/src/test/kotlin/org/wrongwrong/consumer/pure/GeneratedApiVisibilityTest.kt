@@ -3,6 +3,7 @@ package org.wrongwrong.consumer.pure
 import org.wrongwrong.fixtures.Command
 import org.wrongwrong.fixtures.SI
 import org.wrongwrong.sealedClassEnumizer.Enumish
+import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
 import org.wrongwrong.sealedClassEnumizer.Enumized
 import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.reflect.KClass
@@ -69,7 +70,7 @@ class GeneratedApiVisibilityTest {
     // implementation 縮退（producer が runtime-api を隠す）との比較は gradle-integration の RuntimeApiExposureTest が担当（コンパイル失敗を要するため通常モジュールに置けない）
     @Test
     fun runtimeApiTypesResolveViaTransitiveApi() {
-        val companions: List<Enumish.Companion<Enumish>> = listOf(SI.Enumish, Command.Enumish)
+        val companions: List<EnumishCompanion<Enumish>> = listOf(SI.Enumish, Command.Enumish)
         val labels = companions.flatMap { companion -> companion.entries.map { it.label } }
         assertEquals(listOf("Bar", "Foo", "Builtin", "Custom"), labels)
         val value: Enumized<SI.Enumish> = SI.Foo(1)

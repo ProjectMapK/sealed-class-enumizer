@@ -1,6 +1,7 @@
 package org.wrongwrong.mpp.fixtures
 
 import org.wrongwrong.sealedClassEnumizer.Enumish
+import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
 import org.wrongwrong.sealedClassEnumizer.Enumized
 import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
@@ -20,10 +21,10 @@ class RuntimeApiSurfaceTest {
         )
     }
 
-    // TC-MPP-058: List<Enumish.Companion<Enumish>> へ射影なしで束ね、各 entries を走査できる
+    // TC-MPP-058: List<EnumishCompanion<Enumish>> へ射影なしで束ね、各 entries を走査できる
     @Test
     fun companionsOfMultipleHierarchiesBundleCovariantly() {
-        val companions: List<Enumish.Companion<Enumish>> = listOf(SI.Enumish, Command.Enumish)
+        val companions: List<EnumishCompanion<Enumish>> = listOf(SI.Enumish, Command.Enumish)
         assertEquals(
             listOf(listOf("Bar", "Foo"), listOf("Builtin", "Custom")),
             companions.map { companion -> companion.entries.map { it.label } },

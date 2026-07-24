@@ -2,6 +2,7 @@ package org.wrongwrong.consumer.plugin
 
 import org.wrongwrong.fixtures.SI
 import org.wrongwrong.sealedClassEnumizer.Enumish
+import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
 import org.wrongwrong.sealedClassEnumizer.Enumized
 import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
@@ -19,11 +20,11 @@ class OwnHierarchyCoexistTest {
         assertEquals(listOf("Bar", "Foo"), SI.Enumish.entries.map { it.label })
     }
 
-    // TC-XM-040: 両モジュールの階層の Companion を List<Enumish.Companion<Enumish>> として
-    // 射影なしで束ねられる（Companion<out T> の宣言側共変の跨モジュール併用）
+    // TC-XM-040: 両モジュールの階層の Companion を List<EnumishCompanion<Enumish>> として
+    // 射影なしで束ねられる（EnumishCompanion<out T> の宣言側共変の跨モジュール併用）
     @Test
     fun companionsOfBothModulesBundleWithoutProjection() {
-        val companions: List<Enumish.Companion<Enumish>> = listOf(SI.Enumish, TI.Enumish)
+        val companions: List<EnumishCompanion<Enumish>> = listOf(SI.Enumish, TI.Enumish)
         val labels = companions.flatMap { companion -> companion.entries.map { it.label } }
         assertEquals(listOf("Bar", "Foo", "Alpha", "Beta"), labels)
     }
