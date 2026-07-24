@@ -1,6 +1,5 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Disabled
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -22,35 +21,13 @@ class SweepDiagFailTest : DiagTestBase() {
         )
     }
 
-    // 指定ファイルの診断行のうち、指定断片を含む行数を数える（同一診断の複数発火の検査用）
-    private fun countDiagnosticsInFile(output: String, file: String, fragment: String): Int =
-        output.lineSequence()
-            .count { it.contains("$file:") && it.contains("e: ") && it.contains(fragment) }
-
-    // TC-LEAF-090 (CX-11): doc は別ファイルの private 外側クラスにネストした末端も「kind が基底本体
-    // スコープから参照不能」の同一規則で ENUMIZE_KIND_NOT_ACCESSIBLE に捕捉されることを期待するが、
-    // 実測は完全非発火（チェッカーが末端・companion 自身の可視性のみを見て外側チェーンを辿らない）。
-    // 生成は成立し実行時も正常（producer-jvm の sweepprivateouter が実挙動を固定する）
+    // TC-LEAF-090: 別ファイルの private 外側クラスにネストした末端は IR-only アクセサ経由で load し、
+    // 診断ゼロで通る（発火し始めたら検出する回帰ゲート。実挙動は producer-jvm / mpp-producer が固定）
     @Test
-    @Disabled("NG: private 外側クラスにネストした別ファイル末端で ENUMIZE_KIND_NOT_ACCESSIBLE が不発火（生成成立・実行時正常） — docs/修正方針案.md 反映待ち")
-    fun privateOuterNestedLeafReportsKindNotAccessible() {
-        assertDiagnosticInFile(sweep(), "SwKnaOuter.kt", DiagFragments.KIND_NOT_ACCESSIBLE)
-    }
-
-    // TC-LEAF-090 の実挙動固定: private 外側ネスト末端の階層は診断ゼロで通る（発火し始めたら検出する）
-    @Test
-    fun privateOuterNestedLeafCurrentlyPassesWithoutDiagnostics() {
+    fun privateOuterNestedLeafLoadsWithoutDiagnostics() {
         val output = sweep()
         assertFragmentAbsentAt(output, "SwKnaOuter.kt", "e: ")
         assertFragmentAbsentAt(output, "SwKnaSi.kt", "e: ")
-    }
-
-    // TC-GAP-019: interface / fun interface 末端の private companion も KIND_NOT_ACCESSIBLE
-    // （open/abstract class = TC-DIAG-027/028 と同じ帰結が非 final 末端の全種別で成立する）
-    @Test
-    fun privateCompanionOnInterfaceLeavesIsNotAccessible() {
-        val count = countDiagnosticsInFile(sweep(), "SwPcSi.kt", DiagFragments.KIND_NOT_ACCESSIBLE)
-        assertTrue(count >= 2, "interface / fun interface の両末端で発火すること（実測 $count 件）:\n${sweep()}")
     }
 
     // TC-LEAF-067 / TC-MAN-032: 末端 class の既存 companion（= kind・生成先）の label 手動宣言
@@ -136,7 +113,6 @@ class SweepDiagFailTest : DiagTestBase() {
         val output = sweep()
         for (file in listOf("SwScopePrivUse.kt", "SwPrivHostUse.kt", "SwProtHostUse.kt")) {
             assertDiagnosticInFile(output, file, "e: ")
-            assertFragmentAbsentAt(output, file, DiagFragments.KIND_NOT_ACCESSIBLE)
         }
     }
 

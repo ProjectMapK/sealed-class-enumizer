@@ -15,7 +15,6 @@ object DiagFragments {
     const val NESTED_IN_HIERARCHY = "cannot be applied to a member of the"
     const val AMBIGUOUS_KIND = "The kind of this type is ambiguous"
     const val INNER_LEAF = "cannot be an inner class because an inner class"
-    const val KIND_NOT_ACCESSIBLE = "is not accessible from the body scope"
     const val KIND_TYPE_NOT_DENOTABLE = "cannot be denoted for leaf"
     const val COMPANION_LEAF_CONFLICT = "cannot itself be a leaf of the same"
     const val LABEL_CLASH = "Duplicated label"

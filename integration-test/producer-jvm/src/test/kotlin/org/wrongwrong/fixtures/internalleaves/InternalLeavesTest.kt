@@ -8,8 +8,8 @@ import kotlin.test.assertSame
 // （docs/テストケース管理.md TC-GAP-015 生成側 / TC-VIS-010 / TC-VIS-018 / TC-VIS-023 / TC-VIS-026 /
 //  TC-VIS-034 / TC-VIS-039 / TC-VIS-044）
 class InternalLeavesTest {
-    // TC-VIS-010 / TC-VIS-034 / TC-VIS-044: 別ファイルの internal トップレベル末端は KIND_NOT_ACCESSIBLE に
-    // ならず（コンパイル成立が証明）、可視性の低い kind も entries に通常どおり載る
+    // TC-VIS-010 / TC-VIS-034 / TC-VIS-044: 別ファイルの internal トップレベル末端は同モジュールから参照可能で
+    // アクセサ不要（直接参照。コンパイル成立が証明）、可視性の低い kind も entries に通常どおり載る
     @Test
     fun internalLeavesOfAllShapesAppearInEntries() {
         assertEquals(

@@ -1,0 +1,6 @@
+package org.wrongwrong.mpp.fixtures.kindaccessor
+
+// private 外側クラスにネストした末端（#13）→ 末端ファイルのトップレベル IR-only アクセサ経由で load
+private class KaHiddenHost {
+    object Leaf : KaRoot
+}

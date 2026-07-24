@@ -7,7 +7,7 @@ import kotlin.test.assertNotNull
 
 // sealed class 基底 + protected ネスト末端の box テスト（docs/テストケース管理.md TC-VIS-017）
 class GuardedTest {
-    // protected 末端はコンパイルが通り（KIND_NOT_ACCESSIBLE 非発火）、entries に載る
+    // protected 末端は基底本体から参照可能で（直接参照）、entries に載る
     @Test
     fun protectedNestedLeafAppearsInEntries() {
         assertEquals(listOf("Inner", "Open"), Guarded.Enumish.entries.map { it.label })

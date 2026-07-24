@@ -60,11 +60,12 @@ class IcRegressionCompanionTest {
         assertTrue(fooCompanionClass !in keys, "旧 Foo\$Companion.class の stale が掃除されること")
     }
 
-    // #7-c companion の可視性変更（TC-IC-020/021）: public ⇔ internal で asEnumish の返り値型が
-    // 規則 1（Foo.Companion）⇔ 規則 2（SI.Enumish）で切り替わり、private 化は
-    // ENUMIZE_KIND_NOT_ACCESSIBLE になる。逆編集で診断が解除される
+    // #7-c companion の可視性変更（TC-IC-020）: public ⇔ internal で asEnumish の返り値型が
+    // 規則 1（Foo.Companion）⇔ 規則 2（SI.Enumish）で切り替わり、ABI 差分として利用側へ伝播する。
+    // private 化は kind の名指し（利用側 when 枝）を言語が拒否する別事象で、entries 構築（IR-only アクセサ）
+    // 側の成立は producer-jvm / mpp-producer の KindAccessorTest が固定する（概要 §8・設計02 §4.3）
     @Test
-    fun case7cCompanionVisibilityChangesReturnTypeAndDiagnostics() {
+    fun case7cCompanionVisibilityChangesReturnType() {
         val dir = IcTestSupport.prepare(IcBasicFixture.NAME, "ic7c-")
         val baseline = IcTestSupport.outLines(TestKitHarness.build(dir, "runMain"))
         assertEquals(IcBasicFixture.BASELINE_OUT, baseline)
@@ -91,16 +92,8 @@ class IcRegressionCompanionTest {
         )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
 
-        // private 化 → kind が基底本体から参照できず ENUMIZE_KIND_NOT_ACCESSIBLE（TC-IC-021）
-        TestKitHarness.replaceInFile(dir, IcBasicFixture.FOO_FILE, "    internal companion object\n", "    private companion object\n")
-        val notAccessible = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertTrue(
-            "not accessible from the body scope" in notAccessible.output,
-            "ENUMIZE_KIND_NOT_ACCESSIBLE の発火:\n${notAccessible.output}",
-        )
-
-        // 逆編集で診断が解除される（単調性）
-        TestKitHarness.replaceInFile(dir, IcBasicFixture.FOO_FILE, "    private companion object\n", "    companion object\n")
+        // 逆編集で public 具体型（規則 1）へ戻る
+        TestKitHarness.replaceInFile(dir, IcBasicFixture.FOO_FILE, "    internal companion object\n", "    companion object\n")
         TestKitHarness.writeFile(
             dir, IcBasicFixture.TYPED_USE_FILE,
             "package org.wrongwrong.icfix\n\n// asEnumish の返り値型（規則 1: 具体型 Foo.Companion）へ静的に依存する観測点（TC-IC-020）\nprivate val typedKind: Foo.Companion = Foo(1).asEnumish()\n",

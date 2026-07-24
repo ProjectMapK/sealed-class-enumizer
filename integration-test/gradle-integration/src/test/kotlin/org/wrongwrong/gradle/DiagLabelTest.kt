@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Disabled
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAnywhere
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
+import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
 import org.wrongwrong.gradle.DiagAsserts.assertNoDiagnosticAt
 import kotlin.test.Test
 
@@ -52,14 +53,14 @@ class DiagLabelTest : DiagTestBase() {
         assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Dup", "org.wrongwrong.diag.label.Lc3Outer.Dup")
     }
 
-    // TC-DIAG-103: LABEL_CLASH と KIND_NOT_ACCESSIBLE が同一階層で独立に発火し相互抑止しない
-    // （KIND_NOT_ACCESSIBLE は末端自身の検査のため位置も仕様どおり）
+    // TC-DIAG-103: LABEL_CLASH は衝突する両末端に発火し、同一階層の別の末端（Lc4Priv = 参照不能だが
+    // IR-only アクセサで load する）の存在に抑止されない（診断の相互非抑止を Lc4Priv 無診断で確認）
     @Test
-    fun independentDiagnosticsCoexistInOneHierarchy() {
+    fun labelClashReportsBothParticipantsAndIsNotSuppressed() {
         val output = labelClash()
         assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Same", "org.wrongwrong.diag.label.Lc4A.Same")
         assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Same", "org.wrongwrong.diag.label.Lc4B.Same")
-        assertDiagnosticAt(output, "Lc4Priv.kt", 4, DiagFragments.KIND_NOT_ACCESSIBLE)
+        assertFragmentAbsentAt(output, "Lc4Priv.kt", "e: ")
     }
 
     // TC-DIAG-063/080: 末端 class 本体の label メンバーは警告（EXTENSION_SHADOWED）のみで、ビルドは成功し
