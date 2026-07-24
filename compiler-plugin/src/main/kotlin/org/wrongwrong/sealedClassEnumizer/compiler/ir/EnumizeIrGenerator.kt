@@ -38,6 +38,7 @@ import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 class EnumizeIrGenerator(pluginContext: IrPluginContext) {
     private val ctx = EnumizeIrContext(pluginContext)
     private val holderGenerator = EnumizeEntriesHolderIrGenerator(ctx)
+    private val accessorGenerator = EnumizeKindAccessorIrGenerator(ctx)
 
     fun processHierarchy(base: IrClass) {
         val enumish = base.declarations.filterIsInstance<IrClass>()
@@ -46,7 +47,9 @@ class EnumizeIrGenerator(pluginContext: IrPluginContext) {
         val companion = enumish.companionObject() ?: return
         val leaves = collectLeaves(base)
         val kinds = leaves.mapNotNull(::kindOf)
-        val holder = holderGenerator.generate(enumish, base, kinds)
+        // 参照不能 kind には IR-only アクセサを生成し、createEntries はその取得式ビルダで組み立てる（設計02 §4.3）
+        val kindProviders = accessorGenerator.buildKindProviders(base, enumish, kinds)
+        val holder = holderGenerator.generate(enumish, base, kindProviders)
         ensureObjectConstructorBody(companion)
         fillEnumishCompanionProperty(enumish, companion)
         fillCompanionMembers(companion, holder)
@@ -253,10 +256,9 @@ class EnumizeIrGenerator(pluginContext: IrPluginContext) {
         if (!ctx.isOurs(objectClass)) return
         val constructor = objectClass.constructors.firstOrNull { it.isPrimary } ?: return
         if (constructor.body != null) return
-        val anyConstructor = ctx.anyClass.owner.constructors.first()
         constructor.body = ctx.builder(constructor.symbol).run {
             irBlockBody {
-                +irDelegatingConstructorCall(anyConstructor)
+                +irDelegatingConstructorCall(ctx.anyConstructor.owner)
                 +IrInstanceInitializerCallImpl(
                     UNDEFINED_OFFSET,
                     UNDEFINED_OFFSET,

@@ -19,7 +19,6 @@ import org.jetbrains.kotlin.fir.declarations.utils.isActual
 import org.jetbrains.kotlin.fir.declarations.utils.isExpect
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
-import org.jetbrains.kotlin.fir.resolve.providers.firProvider
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
@@ -249,29 +248,9 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             reporter.reportOn(declaration.source, EnumizeErrors.ENUMIZE_INNER_LEAF, context)
             return
         }
-        checkKindAccessibility(declaration, base, context, reporter)
         checkManualMemberConflicts(declaration, base, resolver, context, reporter)
         if (symbol.classKind == ClassKind.OBJECT) return
         checkCompanionOfLeafClass(declaration, base, resolver, context, reporter)
-    }
-
-    private fun checkKindAccessibility(
-        declaration: FirRegularClass,
-        base: FirRegularClassSymbol,
-        context: CheckerContext,
-        reporter: DiagnosticReporter,
-    ) {
-        val symbol = declaration.symbol
-        val isPrivateTopLevel =
-            symbol.classId.outerClassId == null && declaration.status.visibility == Visibilities.Private
-        if (isPrivateTopLevel && !inSameFile(symbol, base, context)) {
-            reporter.reportOn(
-                declaration.source,
-                EnumizeErrors.ENUMIZE_KIND_NOT_ACCESSIBLE,
-                "private top-level leaf '${symbol.classId.asFqNameString()}' declared in another file",
-                context,
-            )
-        }
     }
 
     private fun checkCompanionOfLeafClass(
@@ -288,15 +267,6 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             return
         }
         if (resolver.isOurGenerated(companion)) return
-        val companionVisibility = companion.rawStatus.visibility
-        if (companionVisibility == Visibilities.Private || companionVisibility == Visibilities.Protected) {
-            reporter.reportOn(
-                companion.source,
-                EnumizeErrors.ENUMIZE_KIND_NOT_ACCESSIBLE,
-                "companion object of '${symbol.classId.asFqNameString()}' is ${companionVisibility.name}",
-                context,
-            )
-        }
         if (resolver.membershipOf(companion)?.isLeaf == true) {
             reporter.reportOn(companion.source, EnumizeErrors.ENUMIZE_COMPANION_LEAF_CONFLICT, context)
         }
@@ -464,16 +434,5 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             if (visibility == Visibilities.Private) continue
             reporter.reportOn(member.source, EnumizeErrors.ENUMIZE_EXTENSION_SHADOWED, context)
         }
-    }
-
-    private fun inSameFile(
-        first: FirRegularClassSymbol,
-        second: FirRegularClassSymbol,
-        context: CheckerContext,
-    ): Boolean {
-        val provider = context.session.firProvider
-        val firstFile = provider.getFirClassifierContainerFileIfAny(first)
-        val secondFile = provider.getFirClassifierContainerFileIfAny(second)
-        return firstFile != null && firstFile === secondFile
     }
 }

@@ -11,12 +11,14 @@ import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
+import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.symbols.IrPropertySymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.typeWith
+import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -56,6 +58,10 @@ class EnumizeIrContext(val pluginContext: IrPluginContext) {
     val unitType: IrType = pluginContext.irBuiltIns.unitType
 
     val anyClass: IrClassSymbol = pluginContext.irBuiltIns.anyClass
+
+    val anyType: IrType = pluginContext.irBuiltIns.anyType
+
+    val anyConstructor: IrConstructorSymbol = anyClass.owner.constructors.first().symbol
 
     val anyToString: IrSimpleFunctionSymbol = anyClass.owner.declarations
         .filterIsInstance<IrSimpleFunction>()

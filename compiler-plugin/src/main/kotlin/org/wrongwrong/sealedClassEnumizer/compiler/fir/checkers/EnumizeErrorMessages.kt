@@ -48,12 +48,6 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
                 "cannot have a companion object. Remove the 'inner' modifier or the hierarchy membership.",
         )
         map.put(
-            EnumizeErrors.ENUMIZE_KIND_NOT_ACCESSIBLE,
-            "The kind of this leaf ({0}) is not accessible from the body scope of the '@Enumize' base, " +
-                "so entries cannot be built. Widen its visibility or move the leaf into the base declaration.",
-            CommonRenderers.STRING,
-        )
-        map.put(
             EnumizeErrors.ENUMIZE_KIND_TYPE_NOT_DENOTABLE,
             "The return type of 'asEnumish' cannot be denoted for leaf ''{0}'': the leaf is more visible " +
                 "than both its companion and the generated Enumish. Make the companion at least as visible " +

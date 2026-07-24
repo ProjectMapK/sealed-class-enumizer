@@ -15,7 +15,6 @@ import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.irBlockBody
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irDelegatingConstructorCall
-import org.jetbrains.kotlin.ir.builders.irGetObjectValue
 import org.jetbrains.kotlin.ir.builders.irReturn
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
@@ -36,12 +35,14 @@ import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 // EnumishEntriesHolder 側が持つ。IR-only のためメタデータに載らず、Kotlin ソースからは不可視（ABI 保証外）
 class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
 
-    // enumish の中にネストして生成し、IR 上の帰属を基底ファイルにする（P1 の実装）
-    fun generate(enumish: IrClass, base: IrClass, kinds: List<IrClass>): IrClass {
+    // enumish の中にネストして生成し、IR 上の帰属を基底ファイルにする（P1 の実装）。
+    // kind の取得は kindProviders に委ねる（参照可能な kind は直接参照、参照不能な kind は
+    // EnumizeKindAccessorIrGenerator が生成したアクセサ呼び出し。設計02 §4.3）
+    fun generate(enumish: IrClass, base: IrClass, kindProviders: List<EnumizeKindProvider>): IrClass {
         val holder = createHolderClass(enumish)
         generateConstructor(holder, enumish)
         generateEnumizedRootClassOverride(holder, base)
-        generateCreateEntriesOverride(holder, enumish, kinds)
+        generateCreateEntriesOverride(holder, enumish, kindProviders)
         return holder
     }
 
@@ -107,7 +108,11 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
         }
     }
 
-    private fun generateCreateEntriesOverride(holder: IrClass, enumish: IrClass, kinds: List<IrClass>) {
+    private fun generateCreateEntriesOverride(
+        holder: IrClass,
+        enumish: IrClass,
+        kindProviders: List<EnumizeKindProvider>,
+    ) {
         val enumishType = enumish.defaultType
         val returnType = ctx.listTypeOf(enumishType)
         val function = holder.addFunction(
@@ -120,13 +125,14 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
         function.overriddenSymbols = listOf(ctx.holderCreateEntries)
         function.body = ctx.builder(function.symbol).run {
             irBlockBody {
+                val builder = this
                 // §3 の順序（コンパイラ提供の継承者リストの走査順）をそのまま listOf(...) の並びにする
                 val vararg = IrVarargImpl(
                     UNDEFINED_OFFSET,
                     UNDEFINED_OFFSET,
                     ctx.pluginContext.irBuiltIns.arrayClass.typeWith(enumishType),
                     enumishType,
-                    kinds.map { kind -> irGetObjectValue(kind.defaultType, kind.symbol) },
+                    kindProviders.map { provider -> provider(builder) },
                 )
                 +irReturn(
                     irCall(ctx.listOfVararg, returnType).apply {
