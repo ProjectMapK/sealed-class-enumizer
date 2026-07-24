@@ -6,12 +6,6 @@ import kotlin.reflect.KClass
 // 宣言しても充足の成立条件を増やすだけで利点が無い（docs/概要.md §2）
 interface Enumish {
     val label: String
-    val enumishCompanion: Companion<Enumish>
+    val enumishCompanion: EnumishCompanion<Enumish>
     val enumizedClass: KClass<out Enumized<*>>
-
-    interface Companion<out T : Enumish> {
-        val entries: List<T>
-        fun valueOf(value: String): T
-        fun valueOfOrNull(value: String): T?
-    }
 }

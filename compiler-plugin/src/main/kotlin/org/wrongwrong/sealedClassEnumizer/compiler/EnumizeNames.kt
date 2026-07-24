@@ -12,8 +12,7 @@ object EnumizeNames {
     val ENUMIZE_ANNOTATION_CLASS_ID: ClassId = ClassId(RUNTIME_PACKAGE, Name.identifier("Enumize"))
     val ENUMIZE_ANNOTATION_FQ_NAME: FqName = ENUMIZE_ANNOTATION_CLASS_ID.asSingleFqName()
     val ENUMISH_CLASS_ID: ClassId = ClassId(RUNTIME_PACKAGE, Name.identifier("Enumish"))
-    val ENUMISH_COMPANION_CLASS_ID: ClassId =
-        ENUMISH_CLASS_ID.createNestedClassId(Name.identifier("Companion"))
+    val ENUMISH_COMPANION_CLASS_ID: ClassId = ClassId(RUNTIME_PACKAGE, Name.identifier("EnumishCompanion"))
     val ENUMIZED_CLASS_ID: ClassId = ClassId(RUNTIME_PACKAGE, Name.identifier("Enumized"))
     val ENTRIES_HOLDER_BASE_CLASS_ID: ClassId =
         ClassId(RUNTIME_PACKAGE, Name.identifier("EnumishEntriesHolder"))
