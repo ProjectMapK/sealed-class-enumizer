@@ -38,7 +38,7 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
         }
         val coordinates =
             "${SealedClassEnumizerCoordinates.GROUP}:${SealedClassEnumizerCoordinates.RUNTIME_API_ARTIFACT}:${SealedClassEnumizerCoordinates.VERSION}"
-        val isTest = isTestCompilation(kotlinCompilation)
+        val isTest = kotlinCompilation.isTestCompilation()
         // コンパイレーション単位の dependencies は deprecated のため、既定ソースセットへ宣言する。
         // production（main / metadata）は生成 API の supertype（runtime-api の Enumish / Enumized）を公開する
         // ABI 依存のため、利用側のコンパイルクラスパスへ伝播する api で追加する（概要 §7）。
@@ -55,6 +55,6 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     // test コンパイレーションの名前は "test"（KotlinCompilation.TEST_COMPILATION_NAME）。
     // KT-63142 警告を出す KGP 本体の TestApiDependenciesChecker と同じ判定基準に揃える
-    private fun isTestCompilation(kotlinCompilation: KotlinCompilation<*>): Boolean =
-        kotlinCompilation.name == KotlinCompilation.TEST_COMPILATION_NAME
+    private fun KotlinCompilation<*>.isTestCompilation(): Boolean =
+        name == KotlinCompilation.TEST_COMPILATION_NAME
 }
