@@ -4,11 +4,17 @@ package org.wrongwrong.sealedClassEnumizer.compiler.ir
 
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
+import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
+import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.declarations.IrProperty
+import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
 // IR 側のエントリポイント（設計02 §1）。ボディの充填は origin 駆動であり、FIR が生成した宣言を
@@ -30,6 +36,7 @@ class EnumizeIrGenerationExtension : IrGenerationExtension {
         generatedOwners.forEach(leafGenerator::process)
         val baseGenerator = EnumizeIrBaseGenerator(ctx)
         bases.forEach(baseGenerator::process)
+        generatedOwners.forEach(::verifyBodiesFilled)
     }
 
     private fun collectClasses(moduleFragment: IrModuleFragment): List<IrClass> {
@@ -44,5 +51,25 @@ class EnumizeIrGenerationExtension : IrGenerationExtension {
             result.add(declaration)
             collectFrom(declaration, result)
         }
+    }
+
+    // 「FIR が生成した宣言はこのラウンドですべて充填される」ことは origin 駆動の不変条件である。
+    // 取りこぼしはバックエンドの `Function has no body` として遠くで表面化するため、ここで検出して
+    // どの宣言が漏れたかを名指しする（FIR 側が生成先を増やしたときの検知点でもある）
+    private fun verifyBodiesFilled(owner: IrClass) {
+        for (declaration in owner.declarations) {
+            if (!declaration.isGeneratedByEnumize) continue
+            when (declaration) {
+                is IrProperty -> declaration.getter?.let { verifyBody(it, declaration.modality, owner) }
+                is IrSimpleFunction -> verifyBody(declaration, declaration.modality, owner)
+                is IrConstructor -> verifyBody(declaration, Modality.FINAL, owner)
+                else -> Unit
+            }
+        }
+    }
+
+    private fun verifyBody(function: IrFunction, modality: Modality, owner: IrClass) {
+        if (modality == Modality.ABSTRACT || function.body != null) return
+        error("generated declaration was not filled: ${owner.kotlinFqName}.${function.name} (${function.origin})")
     }
 }
