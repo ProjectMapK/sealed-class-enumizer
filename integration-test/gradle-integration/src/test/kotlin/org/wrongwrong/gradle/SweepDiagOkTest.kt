@@ -1,6 +1,5 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Disabled
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
 import kotlin.test.Test
@@ -39,21 +38,11 @@ class SweepDiagOkTest : DiagTestBase() {
         assertFragmentAbsent(sweep(), "must be exhaustive")
     }
 
-    // TC-MAN-069: doc（設計01 §4 の型引数込み照合 = D9X-14）は typealias 展開後の厳密一致による
-    // 注入スキップを期待するが、実測は表層の Enumized<SwTaAlias> が展開されず
-    // ENUMIZE_MANUAL_SUPERTYPE_MISMATCH が発火する
+    // TC-MAN-069: typealias 経由の手動 Enumized<Alias=生成 Enumish>（設計01 §4 の型引数込み照合 = D9X-14）。
+    // 照合は展開後の型で行うため厳密一致し、注入スキップで受容される（MISMATCH 非発火）
     @Test
-    @Disabled("NG#15: typealias 経由の手動 Enumized<Alias=生成Enumish> が展開後照合されず MANUAL_SUPERTYPE_MISMATCH — docs/修正方針案.md #15")
     fun typealiasedManualEnumizedIsAcceptedBySkip() {
         val output = successOutput("sweep-typealias", "compileKotlin")
         assertFragmentAbsent(output, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
-    }
-
-    // TC-MAN-069 の実挙動固定: typealias 経由の手動 Enumized は現状 MISMATCH でコンパイル不能
-    // （展開後照合が実装されたらこのテストが fail して検出する）
-    @Test
-    fun typealiasedManualEnumizedCurrentlyMismatches() {
-        val output = failOutput("sweep-typealias", "compileKotlin")
-        DiagAsserts.assertDiagnosticAnywhere(output, DiagFragments.MANUAL_SUPERTYPE_MISMATCH, "SwTaAlias")
     }
 }
