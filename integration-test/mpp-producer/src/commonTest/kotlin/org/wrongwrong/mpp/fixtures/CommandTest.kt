@@ -22,14 +22,11 @@ class CommandTest {
     }
 
     // 定数がどれでも kind は同一（enum の companion が kind）。
-    // enum 型受け手からの asEnumish()（返り値型 = 生成 companion）は klib ターゲットで
-    // Cannot access class になる NG のため、基底型経由で観測する（docs/修正方針案.md 反映待ち）
+    // enum 型受け手からの asEnumish()（返り値型 = 生成 companion）で直接観測する
     @Test
     fun allConstantsShareTheKind() {
-        val help: Command = Command.Builtin.HELP
-        val version: Command = Command.Builtin.VERSION
-        assertSame(help.asEnumish(), version.asEnumish())
-        assertSame(Command.Enumish.valueOf("Builtin"), help.asEnumish())
+        assertSame(Command.Builtin.HELP.asEnumish(), Command.Builtin.VERSION.asEnumish())
+        assertSame(Command.Builtin.Companion, Command.Builtin.HELP.asEnumish())
     }
 
     // 定数側の表示（Enum.toString = name）と kind 側の表示（toString = label）は別物

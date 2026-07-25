@@ -10,11 +10,10 @@ import kotlin.test.assertSame
 // ENUMIZE_CROSS_SOURCE_SET を発火させず kind に吸収されることの box テスト
 // （docs/テストケース管理.md TC-MPP-050。コンパイル成立自体が非発火の実証）
 class JvmSubtypeTest {
-    // 生成 companion の名指しは跨コンパイレーション NG のため valueOf 経由で同一性を観測する
     @Test
     fun platformSourceSetSubtypeIsAbsorbed() {
         val triangle: Shape = JvmTriangle()
-        assertSame(Shape.Enumish.valueOf("Polygon"), triangle.asEnumish())
+        assertSame(Shape.Polygon.Companion, triangle.asEnumish())
         assertEquals("Polygon", triangle.label)
     }
 

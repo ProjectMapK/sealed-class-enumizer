@@ -8,12 +8,9 @@ import org.wrongwrong.mpp.fixtures.SI
 // 直列化されている」ことの実証になる
 fun consumerLabels(): List<String> = SI.Enumish.entries.map { it.label }
 
-// NG 記録（TC-MPP-047 の跨モジュール面・docs/修正方針案.md 反映待ち）:
-// else 無し kind-when の本来形は
-//     fun consumerClassify(si: SI): String = when (si.asEnumish()) {
-//         SI.Foo.Companion -> "foo"
-//         SI.Bar -> "bar"
-//     }
-// だが、共通ソース由来の生成 companion（SI.Foo.Companion）が跨モジュールで
-// Unresolved reference 'Companion' となり（同時に網羅性検査は 'Companion' 枝の欠落を報告 =
-// inheritors 自体は直列化されている）、枝が書けないため定義できない
+// else 無し kind-when（TC-MPP-047 の跨モジュール面）。共通ソース由来の生成 companion
+// （SI.Foo.Companion）を跨モジュールで名指しでき、網羅性検査も else なしで満たされる
+fun consumerClassify(si: SI): String = when (si.asEnumish()) {
+    SI.Foo.Companion -> "foo"
+    SI.Bar -> "bar"
+}

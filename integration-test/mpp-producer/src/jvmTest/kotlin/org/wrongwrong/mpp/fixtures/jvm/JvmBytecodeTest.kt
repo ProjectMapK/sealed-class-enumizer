@@ -22,13 +22,12 @@ class JvmBytecodeTest {
     }
 
     // TC-MPP-031: 生成 Enumish（sealed。V1 成立）にも PermittedSubclasses が出る
-    // （生成 companion の名指しは跨コンパイレーション NG のため asEnumish() の実行時クラスで観測する）
     @Test
     fun generatedEnumishIsSealedWithPermittedSubclasses() {
         val enumish = SI.Enumish::class.java
         assertTrue(enumish.isSealed)
         assertEquals(
-            setOf(SI.Foo(0).asEnumish()::class.java, SI.Bar::class.java),
+            setOf(SI.Foo.Companion::class.java, SI.Bar::class.java),
             enumish.permittedSubclasses.toSet(),
         )
     }

@@ -17,11 +17,10 @@ class HandlerSamTest {
     }
 
     // ラムダ由来のインスタンスも Fn の kind（companion）に吸収される
-    // （生成 companion の名指しは跨コンパイレーション NG のため valueOf 経由で同一性を観測する）
     @Test
     fun lambdaInstanceIsAbsorbedIntoLeafKind() {
         val fn: Handler = Handler.Fn { "x" }
-        assertSame(Handler.Enumish.valueOf("Fn"), fn.asEnumish())
+        assertSame(Handler.Fn.Companion, fn.asEnumish())
         assertEquals("Fn", fn.label)
     }
 

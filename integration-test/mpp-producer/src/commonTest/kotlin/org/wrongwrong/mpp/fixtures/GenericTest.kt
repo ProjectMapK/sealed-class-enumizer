@@ -10,13 +10,11 @@ import kotlin.test.assertSame
 // 全ターゲットで一致することの box テスト（docs/テストケース管理.md TC-MPP-043）
 class GenericTest {
     // 型引数は kind の同一性に影響しない（Box<Int> / Box<String> は同一 kind）。
-    // 末端型受け手からの asEnumish() は klib ターゲットで生成 companion が
-    // Cannot access class になる NG のため、基底型経由で観測する（docs/修正方針案.md 反映待ち）
+    // 末端型受け手からの asEnumish()（返り値型 = 生成 companion）で直接観測する
     @Test
     fun kindIsSharedAcrossTypeArguments() {
-        val intBox: Generic<Int> = Generic.Box(1)
-        val stringBox: Generic<String> = Generic.Box("text")
-        assertSame(intBox.asEnumish(), stringBox.asEnumish())
+        assertSame(Generic.Box(1).asEnumish(), Generic.Box("text").asEnumish())
+        assertSame(Generic.Box.Companion, Generic.Box(1).asEnumish())
         assertEquals(listOf("Box", "Empty"), Generic.Enumish.entries.map { it.label })
     }
 

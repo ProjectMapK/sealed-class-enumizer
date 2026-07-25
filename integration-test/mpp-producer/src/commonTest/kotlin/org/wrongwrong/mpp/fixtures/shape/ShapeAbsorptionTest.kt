@@ -20,11 +20,10 @@ class ShapeAbsorptionTest {
     }
 
     // TC-MPP-045: abstract class 末端のサブタイプは asEnumish を継承して kind に吸収される
-    // （生成 companion の名指しは跨コンパイレーション NG のため valueOf 経由で同一性を観測する）
     @Test
     fun subclassOfAbstractLeafIsAbsorbed() {
         val triangle: Shape = CtTriangle()
-        assertSame(Shape.Enumish.valueOf("Polygon"), triangle.asEnumish())
+        assertSame(Shape.Polygon.Companion, triangle.asEnumish())
         assertEquals("Polygon", triangle.label)
     }
 
@@ -32,13 +31,11 @@ class ShapeAbsorptionTest {
     @Test
     fun interfaceLeafDefaultAsEnumishWorks() {
         val custom: Shape = CtCustom
-        assertSame(Shape.Enumish.valueOf("Custom"), custom.asEnumish())
+        assertSame(Shape.Custom.Companion, custom.asEnumish())
         assertEquals("Custom", custom.label)
     }
 
-    // enumizedClass は値の実行時クラスではなく分類の代表（末端自身）を返す。
-    // 末端型の受け手からの asEnumish() は klib ターゲットで生成 companion が
-    // Cannot access class になる NG のため、基底型経由で観測する
+    // enumizedClass は値の実行時クラスではなく分類の代表（末端自身）を返す
     @Test
     fun enumizedClassReturnsRepresentativeLeaf() {
         val triangle: Shape = CtTriangle()

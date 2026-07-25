@@ -1,14 +1,12 @@
 package org.wrongwrong.mpp.fixtures
 
 import org.wrongwrong.sealedClassEnumizer.label
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
-import kotlin.test.fail
 
 // 全 API 表面の box テスト（docs/テストケース管理.md TC-MPP-001〜005/007/008/010/011/013/014/022/061）。
 // commonTest に置くことで同一のテストが jvm / js / wasmJs / wasmWasi / native(host) の
@@ -39,15 +37,13 @@ class SiApiSurfaceTest {
     }
 
     // TC-MPP-001〜004/061/022: entries の内容・FQN 順・kind シングルトン性。
-    // 末端 class の kind の名指し（SI.Foo.Companion）は別コンパイレーションから未解決になる
-    // NG（metadata nested_class_name 欠落）のため、同一性は asEnumish() 経由で観測する
+    // 末端 class の kind は生成 companion の名指し（SI.Foo.Companion）で観測する
     @Test
     fun entriesAreKindSingletonsInFqnOrder() {
         val entries: List<SI.Enumish> = SI.Enumish.entries
         assertEquals(listOf("Bar", "Foo"), entries.map { it.label })
         assertSame(SI.Bar, entries[0])
-        val foo: SI = SI.Foo(0)
-        assertSame(foo.asEnumish(), entries[1])
+        assertSame(SI.Foo.Companion, entries[1])
     }
 
     // TC-MPP-026/027: 遅延初期化は初回のみ構築され、以降は同一インスタンスを返す
@@ -96,23 +92,17 @@ class SiApiSurfaceTest {
         assertSame(SI.Enumish, companion)
     }
 
-    // kind 単位の網羅 when（else 省略）。末端 class の kind 枝は `SI.Foo.Companion ->` と書く仕様
-    // （docs/概要.md §1・§6）だが、共通ソース由来の生成 companion は別コンパイレーション
-    // （commonTest を含む）から Unresolved reference 'Companion' になり枝が書けない。本来形:
-    //     val branches = SI.Enumish.entries.map { kind ->
-    //         when (kind) {
-    //             SI.Foo.Companion -> "foo"
-    //             SI.Bar -> "bar"
-    //         }
-    //     }
-    //     assertEquals(listOf("bar", "foo"), branches)
-    // 同一コンパイレーション内の同形は CommonUsage.classify（commonMain）が green で通る。
-    // NG: 共通ソースの生成 companion が跨コンパイレーションで未解決（JVM: metadata
-    // nested_class_name 欠落 / klib: Cannot access class）— docs/修正方針案.md 反映待ち。
-    // kotlin.test.Ignore は共通コードでは message 引数を取れないため理由はこのコメントが持つ
-    @Ignore
+    // kind 単位の網羅 when（else 省略）。末端 class の kind 枝は `SI.Foo.Companion ->` と書く
+    // （docs/概要.md §1・§6）。共通ソース由来の生成 companion を別コンパイレーション
+    // （commonTest）から名指しできることを併せて確認する
     @Test
     fun kindWhenIsExhaustiveWithoutElse() {
-        fail("NG により無効化（本来形は上のコメントを参照）")
+        val branches = SI.Enumish.entries.map { kind ->
+            when (kind) {
+                SI.Foo.Companion -> "foo"
+                SI.Bar -> "bar"
+            }
+        }
+        assertEquals(listOf("bar", "foo"), branches)
     }
 }

@@ -14,11 +14,10 @@ class ConsumerSubtypeTest {
     private object Cust : Shape.Custom
 
     // TC-MPP-045: 別モジュールのサブタイプは Polygon の kind に吸収され entries は増えない
-    // （生成 companion の名指しは跨モジュール NG のため valueOf 経由で同一性を観測する）
     @Test
     fun subtypeIsAbsorbedIntoLeafKindAcrossModules() {
         val tri: Shape = Tri()
-        assertSame(Shape.Enumish.valueOf("Polygon"), tri.asEnumish())
+        assertSame(Shape.Polygon.Companion, tri.asEnumish())
         assertEquals("Polygon", tri.label)
         assertEquals(listOf("Circle", "Custom", "Polygon"), Shape.Enumish.entries.map { it.label })
         assertEquals(Shape.Polygon::class, tri.asEnumish().enumizedClass)
