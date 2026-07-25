@@ -16,9 +16,9 @@ import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeProjection
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
-import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.constructClassLikeType
+import org.jetbrains.kotlin.name.ClassId
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
 // supertype 注入（設計01 §4）:
@@ -37,8 +37,8 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
     // 判定材料は raw な情報に限る（このコールバックは supertype 解決前に呼ばれうる）。
     // companion は「外側が末端（kind を担う）」と「companion 自身が末端（階層外クラスの companion が
     // 単独で末端になる許容構成 — 設計01 §7.2 COMPANION_LEAF_CONFLICT の注記）」の両方を candidate にする。
-    // typealias 経由の supertype は raw 段階では展開できないため、ゲートだけ保守的に開き、
-    // 実際の階層判定は computeAdditionalSupertypes の解決済み ref で行う
+    // supertype の表記（typealias・import エイリアス等）は raw 追跡が展開して候補を拾い、
+    // 実際の階層判定は computeAdditionalSupertypes の解決済み ref を展開して行う
     override fun needTransformSupertypes(declaration: FirClassLikeDeclaration): Boolean {
         val regularClass = declaration as? FirRegularClass ?: return false
         if (regularClass.symbol.isLocal) return false
@@ -129,17 +129,25 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
         if (resolver.hasUserDeclaredNestedEnumish(base)) return emptyList()
         val enumishClassId = base.classId.createNestedClassId(EnumizeNames.ENUMISH_NAME)
         // 型引数まで一致する手動宣言（この場合は非ジェネリックなので ClassId 一致）があればスキップ
-        if (resolvedSupertypes.any { it.coneType.classId == enumishClassId }) return emptyList()
+        if (resolvedSupertypes.any { expandedClassIdOf(it) == enumishClassId }) return emptyList()
         return listOf(enumishClassId.constructClassLikeType())
     }
 
     private fun hasEnumizedSupertype(resolvedSupertypes: List<FirResolvedTypeRef>): Boolean =
-        resolvedSupertypes.any { ref ->
-            ref.coneType.classId == EnumizeNames.ENUMIZED_CLASS_ID ||
-                tracker.resolveExpandedClassSymbol(ref.coneType)?.let { superSymbol ->
-                    tracker.reachesSupertype(superSymbol, EnumizeNames.ENUMIZED_CLASS_ID)
-                } == true
-        }
+        resolvedSupertypes.any(::declaresOrInheritsEnumized)
+
+    // 展開後が Enumized 自身である場合を先に判定し、そうでなければ間接継承
+    //（interface MyBase : Enumized<K> 経由 — エッジ §2）を supertype グラフで探す
+    private fun declaresOrInheritsEnumized(ref: FirResolvedTypeRef): Boolean {
+        val classId = expandedClassIdOf(ref) ?: return false
+        if (classId == EnumizeNames.ENUMIZED_CLASS_ID) return true
+        val superSymbol = tracker.resolveClassSymbol(classId) ?: return false
+        return tracker.reachesSupertype(superSymbol, EnumizeNames.ENUMIZED_CLASS_ID)
+    }
+
+    // このコールバックが受け取る解決済み型は typealias が未展開のことがあるため、照合の前に展開する
+    // （型の同一性は表記に依らない — 設計01 §4・§6.2）
+    private fun expandedClassIdOf(ref: FirResolvedTypeRef): ClassId? = tracker.expandedClassId(ref.coneType)
 
     private fun outerSymbolOf(regularClass: FirRegularClass): FirRegularClassSymbol? =
         tracker.resolveClassSymbol(regularClass.symbol.classId.outerClassId)

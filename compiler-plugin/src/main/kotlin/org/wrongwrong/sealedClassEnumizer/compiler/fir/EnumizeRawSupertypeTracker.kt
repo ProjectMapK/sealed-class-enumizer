@@ -81,8 +81,19 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         return session.symbolProvider.getClassLikeSymbolByClassId(classId) as? FirRegularClassSymbol
     }
 
-    // 解決済み型の ClassId は typealias を展開してから取る（型の同一性は表記に依らない）
-    fun expandedClassId(coneType: ConeKotlinType): ClassId? = coneType.fullyExpandedType(session).classId
+    // 解決済み型の照合は typealias を展開してから行う（型の同一性は表記に依らない）。
+    // 型引数まで見る照合は展開後の型そのものを要するため、ClassId だけを取る入口と分ける
+    fun expandedType(coneType: ConeKotlinType): ConeKotlinType = coneType.fullyExpandedType(session)
+
+    // 解決済み型の展開はエイリアス自身の解決状況に依存し、エイリアスと階層が同一ファイルにある場合など
+    // 展開が届かないことがある。頭の ClassId だけで足りる照合は、その場合に
+    // raw 追跡（エイリアス自身のスコープでの名前解決）へ落として展開する
+    fun expandedClassId(coneType: ConeKotlinType): ClassId? {
+        val classId = expandedType(coneType).classId ?: return null
+        val symbol = session.symbolProvider.getClassLikeSymbolByClassId(classId) as? FirTypeAliasSymbol
+            ?: return classId
+        return resolveAliasExpansion(symbol, LinkedHashSet())?.classId
+    }
 
     fun resolveExpandedClassSymbol(coneType: ConeKotlinType): FirRegularClassSymbol? =
         resolveClassSymbol(expandedClassId(coneType))
