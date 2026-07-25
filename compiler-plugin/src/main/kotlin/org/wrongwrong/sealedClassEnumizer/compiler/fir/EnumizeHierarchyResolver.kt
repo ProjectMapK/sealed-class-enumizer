@@ -51,6 +51,11 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
     private val basesCache: FirCache<FirRegularClassSymbol, List<FirRegularClassSymbol>, Nothing?> =
         session.firCachesFactory.createCache { symbol -> computeBases(symbol) }
 
+    // 階層ごとの label 索引（label → その label を持つ末端）。LABEL_CLASH の検査は末端の数だけ走るため、
+    // 階層 1 つにつき一度だけ構築する
+    private val labelIndexCache: FirCache<FirRegularClassSymbol, Map<String, List<FirRegularClassSymbol>>, Nothing?> =
+        session.firCachesFactory.createCache { base -> leavesOf(base).groupBy(::labelOf) }
+
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(EnumizePredicates.ENUMIZE)
     }
@@ -111,6 +116,11 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
 
     // label の既定 = 末端宣言の単純名（companion 自身が末端である場合はその宣言名がそのまま単純名になる）
     fun labelOf(leaf: FirRegularClassSymbol): String = leaf.classId.shortClassName.asString()
+
+    // 同じ階層で同じ label を持つ他の末端（LABEL_CLASH の衝突相手）。基底の継承者一覧に自分が
+    // まだ載っていない IC ラウンドでも、自分以外との衝突は同じ判定で得られる
+    fun leavesSharingLabel(leaf: FirRegularClassSymbol, base: FirRegularClassSymbol): List<FirRegularClassSymbol> =
+        labelIndexCache.getValue(base)[labelOf(leaf)].orEmpty().filterNot { it.classId == leaf.classId }
 
     fun starProjectedType(symbol: FirRegularClassSymbol): ConeClassLikeType =
         symbol.classId.constructClassLikeType(

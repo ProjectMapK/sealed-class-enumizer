@@ -104,7 +104,6 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             if (resolver.isEnumizeBase(superSymbol)) continue
             checkManualEnumizedSupertype(symbol, superSymbol, symbol, resolver, context, reporter)
         }
-        checkLabelClash(symbol, resolver, context, reporter)
         checkCrossSourceSet(declaration, resolver, context, reporter)
     }
 
@@ -147,23 +146,6 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
                     "Enumized<${expectedArgument.asFqNameString()}>",
                     context,
                 )
-            }
-        }
-    }
-
-    private fun checkLabelClash(
-        base: FirRegularClassSymbol,
-        resolver: EnumizeHierarchyResolver,
-        context: CheckerContext,
-        reporter: DiagnosticReporter,
-    ) {
-        val groups = resolver.leavesOf(base).groupBy(resolver::labelOf)
-        for ((label, leaves) in groups) {
-            if (leaves.size < 2) continue
-            for (leaf in leaves) {
-                val others = leaves.filter { it !== leaf }
-                    .joinToString(separator = ", ") { it.classId.asFqNameString() }
-                reporter.reportOn(leaf.source, EnumizeErrors.ENUMIZE_LABEL_CLASH, label, others, context)
             }
         }
     }
@@ -244,6 +226,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         val base = membership.base
         checkManualEnumizedSupertype(symbol, symbol, base, resolver, context, reporter)
         if (membership.isIntermediate) return
+        checkLabelClash(declaration, base, resolver, context, reporter)
         if (declaration.status.isInner) {
             reporter.reportOn(declaration.source, EnumizeErrors.ENUMIZE_INNER_LEAF, context)
             return
@@ -251,6 +234,28 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         checkManualMemberConflicts(declaration, base, resolver, context, reporter)
         if (symbol.classKind == ClassKind.OBJECT) return
         checkCompanionOfLeafClass(declaration, base, resolver, context, reporter)
+    }
+
+    // label 衝突は「検査中の末端が衝突当事者か」を末端ごとに判定し、自分の宣言へ報告する。
+    // 診断の座標系は検査中のファイルに紐づくため、基底の検査中に別ファイルの末端の source で
+    // 報告してはならない（設計01 §7.1 の報告先規則）
+    private fun checkLabelClash(
+        declaration: FirRegularClass,
+        base: FirRegularClassSymbol,
+        resolver: EnumizeHierarchyResolver,
+        context: CheckerContext,
+        reporter: DiagnosticReporter,
+    ) {
+        val symbol = declaration.symbol
+        val others = resolver.leavesSharingLabel(symbol, base)
+        if (others.isEmpty()) return
+        reporter.reportOn(
+            declaration.source,
+            EnumizeErrors.ENUMIZE_LABEL_CLASH,
+            resolver.labelOf(symbol),
+            others.joinToString(separator = ", ") { it.classId.asFqNameString() },
+            context,
+        )
     }
 
     private fun checkCompanionOfLeafClass(
