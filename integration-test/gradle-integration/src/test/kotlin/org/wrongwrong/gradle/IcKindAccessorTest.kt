@@ -54,4 +54,23 @@ class IcKindAccessorTest {
         assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
         assertEquals(siGenerated0, IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) })
     }
+
+    // 新規ファイルでの末端追加（基底不在ラウンド）を、参照不能 kind を含む階層で行う。1 巡目は基底不在、
+    // 2 巡目で基底が再コンパイルされてアクセサ呼び出しを含む createEntries が組み直される（設計00 §5.1）。
+    // アクセサ生成は基底側の生成に属するため、この収束が成立することを IC 直行で固定する
+    @Test
+    fun newLeafFileRebuildsAccessorBasedEntries() {
+        val dir = IcTestSupport.prepare(fixtureName, "ickacc3-")
+        assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+
+        TestKitHarness.writeFile(
+            dir, "src/main/kotlin/org/wrongwrong/ickacc/KaNew.kt",
+            "package org.wrongwrong.ickacc\n\n// 基底不在ラウンドの引き金となる新規末端\ndata object KaNew : KaSi\n",
+        )
+        val added = listOf("ENTRIES=Leaf,KaNew,KaPriv,Visible", "VALUEOF=Leaf,KaPriv")
+        assertEquals(added, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+        val incremental = IcTestSupport.classDigests(dir)
+        assertEquals(added, IcTestSupport.outLines(TestKitHarness.build(dir, "clean", "runMain")))
+        assertEquals(IcTestSupport.classDigests(dir), incremental, "アクセサを含む生成物が clean と一致すること")
+    }
 }

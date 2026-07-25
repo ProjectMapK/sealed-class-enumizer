@@ -53,6 +53,10 @@ object IcTestSupport {
     fun classTimes(projectDir: Path, subProject: String = ""): Map<String, Long> =
         walkClasses(projectDir, subProject) { Files.getLastModifiedTime(it).toMillis() }
 
+    // 任意の出力ディレクトリ配下のバイト一致検証用ダイジェスト（MPP の klib / metadata 出力など）
+    fun outputDigests(projectDir: Path, relativePath: String): Map<String, String> =
+        walkUnder(projectDir.resolve(relativePath)) { it.sha256() }
+
     // 2 スナップショット間で値が変わった（または出現・消滅した）キーの集合
     fun <T> changedKeys(before: Map<String, T>, after: Map<String, T>): Set<String> =
         (before.keys + after.keys).filterTo(mutableSetOf()) { before[it] != after[it] }
@@ -98,11 +102,15 @@ object IcTestSupport {
         } else {
             projectDir.resolve(subProject).resolve(CLASSES_DIR)
         }
-        if (!classesRoot.isDirectory()) return emptyMap()
-        return Files.walk(classesRoot).use { paths ->
+        return walkUnder(classesRoot, value)
+    }
+
+    private fun <T> walkUnder(root: Path, value: (Path) -> T): Map<String, T> {
+        if (!root.isDirectory()) return emptyMap()
+        return Files.walk(root).use { paths ->
             paths.asSequence()
                 .filter { it.isRegularFile() }
-                .associate { it.relativeTo(classesRoot).toString().replace('\\', '/') to value(it) }
+                .associate { it.relativeTo(root).toString().replace('\\', '/') to value(it) }
         }
     }
 
