@@ -1,4 +1,4 @@
-// TestKit フィクスチャ: 跨モジュール ABI 伝播（設計00 §5.3 #11・docs/テストケース管理.md TC-XM-013 系）
+// TestKit フィクスチャ: 跨モジュール ABI 伝播（docs/コンパイラプラグイン設計00.md §5.3 #11・docs/テストケース管理.md TC-XM-013 系）
 pluginManagement {
     repositories {
         mavenLocal()

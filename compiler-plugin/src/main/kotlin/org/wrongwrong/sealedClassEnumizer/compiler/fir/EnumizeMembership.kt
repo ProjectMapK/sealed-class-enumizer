@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.name.ClassId
 // null を返して表現するため、このオブジェクトが存在する時点で base は常に一意である。
 // 異常状態の内訳が必要な家族系診断は resolver.basesOf を使う
 class EnumizeMembership(val base: FirRegularClassSymbol, private val subjectIsSealed: Boolean) {
-    // 末端 = 階層に属する非 sealed（設計00 §1）
+    // 末端 = 階層に属する非 sealed（docs/コンパイラプラグイン設計00.md §1）
     val isLeaf: Boolean
         get() = !subjectIsSealed
 

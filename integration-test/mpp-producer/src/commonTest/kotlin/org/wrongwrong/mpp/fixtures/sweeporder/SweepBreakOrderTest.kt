@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 // 決定的一致（V5×順序）の実測になる
 class SweepBreakOrderTest {
     // BreakRoot 継承者 [Bbb, BreakMid]（FQN 順）→ BreakMid を [Aaa] へ展開 → entries=[Bbb, Aaa]。
-    // 末端集合の FQN 順 [Aaa, Bbb] にはならない（設計00 §6.2 の break が全ターゲットで同一）
+    // 末端集合の FQN 順 [Aaa, Bbb] にはならない（docs/コンパイラプラグイン設計00.md §6.2 の break が全ターゲットで同一）
     @Test
     fun breakOrderIsIdenticalOnEveryTarget() {
         assertEquals(listOf("Bbb", "Aaa"), BreakRoot.Enumish.entries.map { it.label })

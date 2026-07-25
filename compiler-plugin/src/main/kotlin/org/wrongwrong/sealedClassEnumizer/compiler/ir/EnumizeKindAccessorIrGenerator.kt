@@ -32,7 +32,7 @@ import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 // createEntries が 1 つの kind を取得する式を組み立てるビルダ（呼び出し時の receiver は createEntries のビルダ）
 typealias EnumizeKindProvider = IrBuilderWithScope.() -> IrExpression
 
-// 参照不能 kind 用の IR-only アクセサ生成（設計02 §4.3）。基底本体スコープから名前参照できない kind
+// 参照不能 kind 用の IR-only アクセサ生成（docs/コンパイラプラグイン設計02.md §4.3）。基底本体スコープから名前参照できない kind
 // （private/protected な既存 companion・別ファイルの private トップレベル末端・private 外側クラスの末端）へ、
 // アクセス権を持つ位置に IR-only の internal アクセサを生成し、createEntries から呼んで実体を得る。
 // FIR には宣言を作らないため（メタデータ非搭載）Kotlin ソースからは不可視であり、外部からの参照はできない。

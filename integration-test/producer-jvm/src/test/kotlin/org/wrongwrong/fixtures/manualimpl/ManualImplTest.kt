@@ -28,7 +28,7 @@ class ManualImplTest {
         assertSame(ManualLeaf.Companion, ManualLeaf(1).asEnumish())
     }
 
-    // 手動実装は継承者一覧に載り、kind 単位の網羅 when にはその is 枝が必要になる（概要 §8）
+    // 手動実装は継承者一覧に載り、kind 単位の網羅 when にはその is 枝が必要になる（docs/概要.md §8）
     @Test
     fun kindWhenRequiresManualImplementationBranch() {
         val branches =

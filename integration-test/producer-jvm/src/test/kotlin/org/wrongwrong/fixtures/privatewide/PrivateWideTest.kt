@@ -19,7 +19,7 @@ class PrivateWideTest {
     }
 
     // TC-VIS-024: private 基底の中の末端 + internal companion は実効可視性 private 同士で規則 1。
-    // 露出エラーもフォールバックも起きない（設計01 §5.4 末尾の明示例）
+    // 露出エラーもフォールバックも起きない（docs/コンパイラプラグイン設計01.md §5.4 末尾の明示例）
     @Test
     fun internalCompanionInsidePrivateBaseUsesRule1() {
         assertEquals(listOf("Leaf"), observePrivateRule1Labels())

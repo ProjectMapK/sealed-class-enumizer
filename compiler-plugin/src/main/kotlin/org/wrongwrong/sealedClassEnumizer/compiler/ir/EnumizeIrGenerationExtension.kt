@@ -17,8 +17,8 @@ import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
-// IR 側のエントリポイント（設計02 §1）。ボディの充填は origin 駆動であり、FIR が生成した宣言を
-// その持ち主のクラスごとに埋める。@Enumize 基底が IC ラウンドに同席しなくても末端側は成立する（設計00 §5）。
+// IR 側のエントリポイント（docs/コンパイラプラグイン設計02.md §1）。ボディの充填は origin 駆動であり、FIR が生成した宣言を
+// その持ち主のクラスごとに埋める。@Enumize 基底が IC ラウンドに同席しなくても末端側は成立する（docs/コンパイラプラグイン設計00.md §5）。
 // 継承者の集合に依存する生成物（$EntriesHolder と生成 companion の委譲）は基底が同席するラウンドに限り、
 // 基底ファイル帰属で生成する（P1）
 class EnumizeIrGenerationExtension : IrGenerationExtension {

@@ -1,5 +1,5 @@
 // TestKit フィクスチャ: 決定性検証（clean / incremental / from-cache / relocated のバイト一致）
-// docs/コンパイラプラグイン設計00.md §9・設計02 §6・docs/テストケース管理.md Gradle TestKit 方針
+// docs/コンパイラプラグイン設計00.md §9・docs/コンパイラプラグイン設計02.md §6・docs/テストケース管理.md Gradle TestKit 方針
 pluginManagement {
     repositories {
         mavenLocal()

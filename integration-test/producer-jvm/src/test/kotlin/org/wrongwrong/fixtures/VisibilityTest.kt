@@ -19,7 +19,7 @@ class VisibilityTest {
         assertEquals(listOf("Full", "Half"), Mixed.Enumish.entries.map { it.label })
     }
 
-    // internal 基底でもモジュール内では全機能が使える（エッジ §1「基底の可視性は制限ではない」）
+    // internal 基底でもモジュール内では全機能が使える（docs/エッジケースへの対応方針.md §1「基底の可視性は制限ではない」）
     @Test
     fun internalBaseWorksInsideModule() {
         assertEquals(listOf("PublicLeaf"), InternalBase.Enumish.entries.map { it.label })

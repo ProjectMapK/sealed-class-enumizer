@@ -38,7 +38,7 @@ import org.jetbrains.kotlin.name.StandardClassIds
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeKey
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
-// 宣言の形状の生成（設計01 §5・§6）。ボディは一切作らず、シグネチャは継承者の集合に依存させない（P2）。
+// 宣言の形状の生成（docs/コンパイラプラグイン設計01.md §5・§6）。ボディは一切作らず、シグネチャは継承者の集合に依存させない（P2）。
 // 唯一の例外は生成 Enumish への sealed inheritors 属性の lazy 登録である（§5.2）。
 class EnumizeDeclarationGenerationExtension(session: FirSession) :
     FirDeclarationGenerationExtension(session) {
@@ -101,7 +101,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         val symbol = classSymbol as? FirRegularClassSymbol ?: return emptySet()
         if (symbol.isLocal) return emptySet()
         val names = mutableSetOf<Name>()
-        // 生成 companion は候補判定の誤検知（外側が末端でなかった）でもコンストラクタだけは必要（設計01 §6.2）
+        // 生成 companion は候補判定の誤検知（外側が末端でなかった）でもコンストラクタだけは必要（docs/コンパイラプラグイン設計01.md §6.2）
         if (symbol.rawStatus.isCompanion && resolver.isOurGenerated(symbol)) {
             names += SpecialNames.INIT
         }
@@ -213,7 +213,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
 
     // ---- 役割判定・候補判定 ----
 
-    // COMPANION_GENERATION の候補判定（設計01 §6.1）。COMPILER_REQUIRED_ANNOTATIONS までに確定する
+    // COMPANION_GENERATION の候補判定（docs/コンパイラプラグイン設計01.md §6.1）。COMPILER_REQUIRED_ANNOTATIONS までに確定する
     // 情報（述語・classKind・rawStatus・raw superTypeRefs・import・symbol provider）だけを使う純関数
     private fun isCompanionGenerationCandidate(symbol: FirRegularClassSymbol): Boolean {
         val supportedKind =
@@ -224,7 +224,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         val status = symbol.rawStatus
         if (status.isCompanion || status.isInner || status.modality == Modality.SEALED) return false
         if (hasForeignCompanion(symbol)) return false
-        // 候補判定は所属判定と同じ材料で行う（設計01 §6.2）。supertype の書き方（直接名・FQN 表記・
+        // 候補判定は所属判定と同じ材料で行う（docs/コンパイラプラグイン設計01.md §6.2）。supertype の書き方（直接名・FQN 表記・
         // 明示 import・star import・typealias / import エイリアス）で末端の扱いを変えない
         return tracker.isHierarchyCandidate(symbol)
     }
@@ -232,7 +232,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
     // 自前の生成結果（連結済みの生成 companion）を候補判定の入力にしない。
     // getNestedClassifiersNames は COMPANION_GENERATION 後にも再評価される（KMP では
     // 宣言側とは別のセッションが直列化時にネスト分類子スコープを構築し直す）ため、
-    // 生成済みを理由に false へ転ずるとネスト索引から companion が落ちる（設計01 §6.1 の
+    // 生成済みを理由に false へ転ずるとネスト索引から companion が落ちる（docs/コンパイラプラグイン設計01.md §6.1 の
     // 「同一入力に常に同一の答えを返す」要件）。手動宣言の companion は従来どおり候補から外す
     private fun hasForeignCompanion(symbol: FirRegularClassSymbol): Boolean {
         val companion = symbol.companionObjectSymbol ?: return false
@@ -248,7 +248,8 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         }
         if (symbol.rawStatus.isCompanion) {
             // companion 自身が末端である場合（階層外クラスの companion が単独で末端になる許容構成）は
-            // 末端 object として扱う。kind = その companion・label = companion の宣言名（設計01 §7.2）
+            // 末端 object として扱う。kind = その companion・label = companion の宣言名
+            // （docs/コンパイラプラグイン設計01.md §7.2）
             val selfMembership = resolver.membershipOf(symbol)
             if (selfMembership != null && selfMembership.isLeaf) {
                 return EnumizeGenerationRole.LeafObject(selfMembership.base)
@@ -301,7 +302,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         enumish.replaceCompanionObjectSymbol(companion)
         EnumizeOwnerGeneratorPatch.stamp(companion.fir, this)
         enumishCompanions[enumish.symbol] = companion
-        // 継承者一覧の lazy 登録（V1）。計算は登録せず遅延し、実際の列挙は網羅性検査以降に走る（設計01 §5.2）
+        // 継承者一覧の lazy 登録（V1）。計算は登録せず遅延し、実際の列挙は網羅性検査以降に走る（docs/コンパイラプラグイン設計01.md §5.2）
         enumish.setSealedClassInheritors { resolver.computeGeneratedEnumishInheritors(base) }
         return enumish.symbol
     }
@@ -322,7 +323,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         return companion.symbol
     }
 
-    // 設計01 §5.1 は supertype を §4 の注入に任せる方針だったが、supertype transformer は
+    // docs/コンパイラプラグイン設計01.md §5.1 は supertype を §4 の注入に任せる方針だったが、supertype transformer は
     // プラグイン生成の companion を訪問しない（実測）ため、生成 Enumish と同様に生成時へ直接指定する。
     // 候補判定の誤検知時は解決済み supertype による正式判定が効かないままだが、その構成は
     // チェッカーの後続診断で顕在化する
@@ -429,7 +430,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
             status { isOverride = true }
         }
 
-    // 返り値型は設計01 §5.4 の規則で決める。interface の場合は default 実装（ボディは IR が充填）
+    // 返り値型はdocs/コンパイラプラグイン設計01.md §5.4 の規則で決める。interface の場合は default 実装（ボディは IR が充填）
     private fun leafClassAsEnumishFunction(
         leaf: FirRegularClassSymbol,
         base: FirRegularClassSymbol,

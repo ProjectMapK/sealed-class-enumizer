@@ -5,7 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 
-// 基底不在ラウンドのシナリオ（設計00 §5.4・§9-4、docs/テストケース管理.md TC-IC-039/040・TC-ORD-050）:
+// 基底不在ラウンドのシナリオ（docs/コンパイラプラグイン設計00.md §5.4・§9-4、docs/テストケース管理.md TC-IC-039/040・TC-ORD-050）:
 // 多ファイル sealed 階層 × プラグイン生成コード × IC。基底ファイルが IC ラウンドへ入らない編集
 // （新規ファイルでの末端追加）でも、IR 側のボディ充填は origin 駆動で走るため成立する。合否は
 // 「クラッシュしないこと」ではなく、最終成果物（実行時 entries・生成 .class のバイト）と診断

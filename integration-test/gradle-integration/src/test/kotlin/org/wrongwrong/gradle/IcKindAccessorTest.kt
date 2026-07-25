@@ -4,7 +4,7 @@ import kotlin.test.assertEquals
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 
-// 参照不能 kind 用 IR-only アクセサの IC 決定性（概要 §8・設計02 §4.3・docs/テストケース管理.md）:
+// 参照不能 kind 用 IR-only アクセサの IC 決定性（docs/概要.md §8・docs/コンパイラプラグイン設計02.md §4.3・docs/テストケース管理.md）:
 // createEntries はトップレベルアクセサ（KaHidden.Leaf）とネストアクセサ（KaPriv の private companion）を
 // 呼ぶ。clean / incremental / from-cache で生成物のバイトと entries が決定的であること、末端ファイル単独の
 // ABI 非変更編集で基底帰属の生成物（アクセサ呼び出しを含む createEntries）が安定であることを検証する
@@ -56,7 +56,7 @@ class IcKindAccessorTest {
     }
 
     // 新規ファイルでの末端追加（基底不在ラウンド）を、参照不能 kind を含む階層で行う。1 巡目は基底不在、
-    // 2 巡目で基底が再コンパイルされてアクセサ呼び出しを含む createEntries が組み直される（設計00 §5.1）。
+    // 2 巡目で基底が再コンパイルされてアクセサ呼び出しを含む createEntries が組み直される（docs/コンパイラプラグイン設計00.md §5.1）。
     // アクセサ生成は基底側の生成に属するため、この収束が成立することを IC 直行で固定する
     @Test
     fun newLeafFileRebuildsAccessorBasedEntries() {

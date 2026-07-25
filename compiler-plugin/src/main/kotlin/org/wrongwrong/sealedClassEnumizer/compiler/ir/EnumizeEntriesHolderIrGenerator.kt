@@ -30,14 +30,15 @@ import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
-// $EntriesHolder の IR-only 生成（設計02 §4）。生成するのは supertype の指定・enumizedRootClass の実装・
-// createEntries() の実装の 3 つだけであり、遅延初期化・探索・失敗メッセージは runtime-api の
-// EnumishEntriesHolder 側が持つ。IR-only のためメタデータに載らず、Kotlin ソースからは不可視（ABI 保証外）
+// $EntriesHolder の IR-only 生成（docs/コンパイラプラグイン設計02.md §4）。生成するのは supertype の指定・
+// enumizedRootClass の実装・createEntries() の実装の 3 つだけであり、遅延初期化・探索・失敗メッセージは
+// runtime-api の EnumishEntriesHolder 側が持つ。IR-only のためメタデータに載らず、
+// Kotlin ソースからは不可視（ABI 保証外）
 class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
 
     // enumish の中にネストして生成し、IR 上の帰属を基底ファイルにする（P1 の実装）。
     // kind の取得は kindProviders に委ねる（参照可能な kind は直接参照、参照不能な kind は
-    // EnumizeKindAccessorIrGenerator が生成したアクセサ呼び出し。設計02 §4.3）
+    // EnumizeKindAccessorIrGenerator が生成したアクセサ呼び出し。docs/コンパイラプラグイン設計02.md §4.3）
     fun generate(
         enumish: IrClass,
         base: IrClass,

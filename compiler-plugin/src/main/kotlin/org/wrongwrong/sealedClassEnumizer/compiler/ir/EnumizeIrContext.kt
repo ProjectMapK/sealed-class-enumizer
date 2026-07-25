@@ -1,5 +1,5 @@
 // referenceClass / referenceFunctions 等は 2.4 系で deprecated だが後継（finderForSource 等）は
-// まだ安定しておらず、ClassId / CallableId からの静的参照という設計意図（設計02 §4.2）に合致するため使用を続ける
+// まだ安定しておらず、ClassId / CallableId からの静的参照という設計意図（docs/コンパイラプラグイン設計02.md §4.2）に合致するため使用を続ける
 @file:OptIn(UnsafeDuringIrConstructionAPI::class)
 @file:Suppress("DEPRECATION")
 
@@ -31,7 +31,7 @@ import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeKey
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
 // IR 生成で共有する参照（runtime-api のシンボル・ビルトイン型）と、プラグイン生成宣言の取り回し。
-// 参照はすべて ClassId / CallableId からの静的参照であり、名前解決を経ない（設計02 §4.2）
+// 参照はすべて ClassId / CallableId からの静的参照であり、名前解決を経ない（docs/コンパイラプラグイン設計02.md §4.2）
 class EnumizeIrContext(val pluginContext: IrPluginContext) {
     val generatedOrigin: IrDeclarationOrigin = IrDeclarationOrigin.GeneratedByPlugin(EnumizeKey)
 

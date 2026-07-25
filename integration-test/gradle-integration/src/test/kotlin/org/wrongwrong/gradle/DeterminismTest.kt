@@ -5,7 +5,7 @@ import kotlin.test.assertTrue
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 
-// 決定性検証（設計00 §9-3・設計02 §6・docs/テストケース管理.md TC-IC-031〜034 など）:
+// 決定性検証（docs/コンパイラプラグイン設計00.md §9-3・docs/コンパイラプラグイン設計02.md §6・docs/テストケース管理.md TC-IC-031〜034 など）:
 // (a) clean、(b) 無編集の再ビルド、(c) clean 後の from-cache 復元、(d) 別ディレクトリへの relocated
 // ビルド、(e) 宣言順の入れ替え編集、の生成 .class バイト一致と実行時 OUT: 行の一致を検証する。
 // フィクスチャは順序境界（中間 sealed の入れ子展開・ネスト/トップレベル/可視性の混在）と
@@ -16,7 +16,7 @@ class DeterminismTest {
 
     // プラグイン生成物（S$Enumish / その Companion / DefaultImpls / $EntriesHolder）だけを指す接頭辞。
     // 利用者宣言のネストクラス（S$Aaa 等）は宣言順の入れ替えで LineNumberTable が変わり
-    // バイトが揺れるため、宣言順非依存の主張（設計02 §6 規則 1）は生成物側にのみ適用する
+    // バイトが揺れるため、宣言順非依存の主張（docs/コンパイラプラグイン設計02.md §6 規則 1）は生成物側にのみ適用する
     private val generatedPrefix = "org/wrongwrong/det/S\$Enumish"
 
     // 実行時基準値。ENTRIES は FQN 序数順の途中に Mid の入れ子展開（Bbb）が挟まる形

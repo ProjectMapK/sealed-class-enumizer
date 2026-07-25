@@ -34,7 +34,7 @@ class WiderLeafCrossModuleTest {
     }
 
     // TC-VIS-051: 不可視 supertype（internal InternalBase.Enumish）から継承した public メンバーの解決は
-    // 「成立する範囲のみ提供」（エッジ §4 E-2）となる実測:
+    // 「成立する範囲のみ提供」（docs/エッジケースへの対応方針.md §4 E-2）となる実測:
     // - 成立: label / enumizedClass（override が companion 自身に生成されるため直接解決できる）と、
     //   公開基底 Enumish（runtime-api）への upcast（不可視の中間型を跨げる）。upcast 後は
     //   enumishCompanion 経由で実行時に階層の entries へ到達できる（階層 API の「名指し」は internal のまま）

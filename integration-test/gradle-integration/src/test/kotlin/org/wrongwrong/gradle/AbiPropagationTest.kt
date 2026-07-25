@@ -5,7 +5,7 @@ import kotlin.test.assertTrue
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 
-// 跨モジュール ABI 伝播（設計00 §5.3 #11・概要 §7・docs/テストケース管理.md TC-XM-013〜015・
+// 跨モジュール ABI 伝播（docs/コンパイラプラグイン設計00.md §5.3 #11・docs/概要.md §7・docs/テストケース管理.md TC-XM-013〜015・
 // TC-IC-027/044/046/056・TC-XM-044）: producer の sealed リスト変化が ABI 差分として未編集の
 // consumer の再コンパイルを誘発し、else 無し kind-when が再検査されること（V1-b）を検証する
 class AbiPropagationTest {

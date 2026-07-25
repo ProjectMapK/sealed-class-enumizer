@@ -47,7 +47,7 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
         val isTest = kotlinCompilation.isTestCompilation()
         // コンパイレーション単位の dependencies は deprecated のため、既定ソースセットへ宣言する。
         // production（main / metadata）は生成 API の supertype（runtime-api の Enumish / Enumized）を公開する
-        // ABI 依存のため、利用側のコンパイルクラスパスへ伝播する api で追加する（概要 §7）。
+        // ABI 依存のため、利用側のコンパイルクラスパスへ伝播する api で追加する（docs/概要.md §7）。
         // test コンパイレーションは公開面を持たないため implementation で足りる。api を付けると
         // 「Unsupported API dependency types in test source sets」（KT-63142）の警告になる
         kotlinCompilation.defaultSourceSet.dependencies {

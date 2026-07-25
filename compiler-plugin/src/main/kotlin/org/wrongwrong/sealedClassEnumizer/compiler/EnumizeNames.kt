@@ -21,7 +21,7 @@ object EnumizeNames {
     val ENUMISH_NAME: Name = Name.identifier("Enumish")
     val ENTRIES_HOLDER_NAME: Name = Name.identifier("\$EntriesHolder")
 
-    // 参照不能 kind 用の IR-only アクセサ（設計02 §4.3）。末端クラス内にネストする object の名前と、
+    // 参照不能 kind 用の IR-only アクセサ（docs/コンパイラプラグイン設計02.md §4.3）。末端クラス内にネストする object の名前と、
     // その kind 取得メンバー。file-private な壁に対するトップレベル関数名は kind ごとに一意化して生成する
     val KIND_ACCESSOR_NAME: Name = Name.identifier("\$EnumizeKindAccessor")
     val KIND_ACCESSOR_GET: Name = Name.identifier("get")

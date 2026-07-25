@@ -34,7 +34,7 @@ class DiagNearMissTest : DiagTestBase() {
     }
 
     // supertype の表記に依らず末端として成立する（kind は明示 companion か自動生成で必ず揃うため、
-    // 言語の「abstract member 未実装」へ落ちない = 階層判定の欠落が無いこと。設計01 §6.1・§6.2）
+    // 言語の「abstract member 未実装」へ落ちない = 階層判定の欠落が無いこと。docs/コンパイラプラグイン設計01.md §6.1・§6.2）
     // TC-DIAG-057: typealias 経由・companion 無し（NmAlNoc.kt）
     // TC-DIAG-058: import エイリアス経由・companion 無し（NmImNoc.kt）
     // TC-DIAG-060: typealias 経由の明示 companion（NmAlFoo.kt）

@@ -10,7 +10,7 @@ import org.wrongwrong.sealedClassEnumizer.EnumishEntriesHolder
 import org.wrongwrong.sealedClassEnumizer.Enumize
 import org.wrongwrong.sealedClassEnumizer.Enumized
 
-// EnumizeNames は runtime-api をロードせず名前をリテラルで持つ（実装ノート §2-6）。
+// EnumizeNames は runtime-api をロードせず名前をリテラルで持つ（docs/実装ノート.md §2-6）。
 // その一致をここで担保する: runtime-api 側の宣言を改名すると、参照が追随するこのテストが失敗し、
 // 定数の更新漏れを検知できる。マップのキーは差分の可読性のためのラベルであり、比較対象は値
 class EnumizeNamesTest {

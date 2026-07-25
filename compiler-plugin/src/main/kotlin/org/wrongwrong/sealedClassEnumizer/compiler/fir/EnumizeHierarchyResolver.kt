@@ -42,10 +42,10 @@ import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 // 一度だけ計算してキャッシュし、消費側（宣言生成の役割判定・チェッカー）はその値を受け渡して読む。
 // 所属の計算（supertype の追跡）は tracker が担い、それ以外の照会は解決済み情報
 // （sealed inheritors 属性・解決済み supertype・実効可視性）を用いる。
-// membershipOf は SUPER_TYPES 中（getCallableNamesForClass 経由。設計01 §3）にも呼ばれ、
+// membershipOf は SUPER_TYPES 中（getCallableNamesForClass 経由。docs/コンパイラプラグイン設計01.md §3）にも呼ばれ、
 // そのクラス自身の supertype ref が未解決のまま答えが確定するため、tracker は raw な ref からでも
-// 解決後と同じ答えを返せる必要がある（設計01 §6.1）。
-// 用語（階層・末端・中間 sealed・kind）は設計00 §1 に従う。
+// 解決後と同じ答えを返せる必要がある（docs/コンパイラプラグイン設計01.md §6.1）。
+// 用語（階層・末端・中間 sealed・kind）はdocs/コンパイラプラグイン設計00.md §1 に従う。
 class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionComponent(session) {
     val tracker: EnumizeRawSupertypeTracker = EnumizeRawSupertypeTracker(session)
 
@@ -104,7 +104,7 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
             .createNestedClassId(SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT)
 
     // 基底の sealed inheritors 属性を再帰展開した階層の全メンバー（中間 sealed を含む・基底自身を除く）。
-    // 並べ替えは行わず、コンパイラが提供する継承者リストの走査順のまま返す（設計00 §6.2）
+    // 並べ替えは行わず、コンパイラが提供する継承者リストの走査順のまま返す（docs/コンパイラプラグイン設計00.md §6.2）
     fun hierarchyMembersOf(base: FirRegularClassSymbol): List<FirRegularClassSymbol> {
         val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
         collectMembers(base, LinkedHashSet(), result)
@@ -137,8 +137,8 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
             Array<ConeTypeProjection>(symbol.typeParameterSymbols.size) { ConeStarProjection }
         )
 
-    // asEnumish の返り値型の規則（設計01 §5.4・エッジケースへの対応方針 §1.3）。
-    // 規則 3（構成不能）の診断はチェッカーが担い、生成はフォールバック型のまま行う（エッジ §5）
+    // asEnumish の返り値型の規則（docs/コンパイラプラグイン設計01.md §5.4・docs/エッジケースへの対応方針.md §1.3）。
+    // 規則 3（構成不能）の診断はチェッカーが担い、生成はフォールバック型のまま行う（docs/エッジケースへの対応方針.md §5）
     fun asEnumishReturnType(
         leaf: FirRegularClassSymbol,
         base: FirRegularClassSymbol,
@@ -165,7 +165,7 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
     }
 
     // 生成 Enumish の継承者一覧: すべての kind + 階層内の手動実装（末端 class 自身による直接実装）。
-    // 収集順のまま返す（setSealedClassInheritors のセッター側で FQN 順に正規化される。設計01 §5.2）。
+    // 収集順のまま返す（setSealedClassInheritors のセッター側で FQN 順に正規化される。docs/コンパイラプラグイン設計01.md §5.2）。
     // 階層外の直接実装は ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY でエラーになるため、この 2 種で完全である
     fun computeGeneratedEnumishInheritors(base: FirRegularClassSymbol): List<ClassId> {
         val enumishClassId = generatedEnumishClassId(base)

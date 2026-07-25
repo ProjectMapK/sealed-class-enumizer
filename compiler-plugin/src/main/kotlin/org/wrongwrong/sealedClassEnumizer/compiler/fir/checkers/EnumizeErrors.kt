@@ -11,7 +11,8 @@ import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.warning1
 
-// 診断カタログ（設計00 §8・設計01 §7.2）。診断 ID は英語の識別子であり、本文の日本語用語とは独立に安定させる。
+// 診断カタログ（docs/コンパイラプラグイン設計00.md §8・docs/コンパイラプラグイン設計01.md §7.2）。
+// 診断 ID は英語の識別子であり、本文の日本語用語とは独立に安定させる。
 // ENUMIZE_ENUM_LEAF_UNSUPPORTED は V4 不成立の縮退時のみ有効化するため、定義のみで現状は発火させない。
 object EnumizeErrors : KtDiagnosticsContainer() {
     val ENUMIZE_NOT_SEALED: KtDiagnosticFactory0 by error0<PsiElement>()

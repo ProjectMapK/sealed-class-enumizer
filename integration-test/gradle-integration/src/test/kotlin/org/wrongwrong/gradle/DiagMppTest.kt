@@ -32,7 +32,7 @@ class DiagMppTest : DiagTestBase() {
 
     // TC-DIAG-061: 階層の継承者が別ソースセット → コンパイラ本体の sealed 制約エラーへ合流する
     // （buildAndFail）。プラグイン側の補足診断は持たず本体診断に委ねる方針のため、その言語エラーが
-    // 十分に説明的であること（同一モジュール制約を明示すること）をここで固定する（設計01 §7.2）
+    // 十分に説明的であること（同一モジュール制約を明示すること）をここで固定する（docs/コンパイラプラグイン設計01.md §7.2）
     @Test
     fun crossSourceSetInheritorFailsBuild() {
         assertDiagnosticAt(

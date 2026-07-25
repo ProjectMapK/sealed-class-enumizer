@@ -27,10 +27,10 @@ import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
-// 末端側のファイル帰属の IR 生成（設計02 §5.2・§5.3）: asEnumish / label / enumizedClass のボディ充填、
+// 末端側のファイル帰属の IR 生成（docs/コンパイラプラグイン設計02.md §5.2・§5.3）: asEnumish / label / enumizedClass のボディ充填、
 // 生成 companion のコンストラクタ補完、kind の toString の IR-only 生成。
 // 充填対象は origin の刻印だけで決まり階層の走査を伴わないため、@Enumize 基底が IC ラウンドに
-// 同席しなくても成立する（設計00 §5）。kind に対応する末端は、生成 enumizedClass の宣言型
+// 同席しなくても成立する（docs/コンパイラプラグイン設計00.md §5）。kind に対応する末端は、生成 enumizedClass の宣言型
 // `KClass<末端>` から読む — FIR が確定させた対応をそのまま使い、IR 側で導出し直さない
 class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
 
@@ -121,7 +121,7 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
             }
     }
 
-    // ---- kind の toString（IR-only・宣言ごと生成。設計02 §5.3） ----
+    // ---- kind の toString（IR-only・宣言ごと生成。docs/コンパイラプラグイン設計02.md §5.3） ----
 
     private fun generateToStringIfNeeded(kind: IrClass) {
         val toStrings =

@@ -34,7 +34,7 @@ object IcBasicFixture {
             "NOLABEL=IAE:No enumish entry with label 'NoSuch' in SI",
         )
 
-    // SI 階層のファイル帰属を分類するための接頭辞（帰属はコンパイラ設計00 §4 の成果物対応表）
+    // SI 階層のファイル帰属を分類するための接頭辞（帰属はコンパイラdocs/コンパイラプラグイン設計00.md §4 の成果物対応表）
     fun isSiGenerated(key: String): Boolean = key.startsWith("$CLASS_PREFIX/SI$")
 
     fun isTiOutput(key: String): Boolean = key.startsWith("$CLASS_PREFIX/TI")

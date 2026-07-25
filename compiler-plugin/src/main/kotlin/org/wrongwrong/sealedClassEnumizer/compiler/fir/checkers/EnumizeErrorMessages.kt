@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
 
-// メッセージは英語（診断 ID とパラメータで機械可読性を確保）とし、「どうすれば直るか」を含める（設計01 §7.3）
+// メッセージは英語（診断 ID とパラメータで機械可読性を確保）とし、「どうすれば直るか」を含める（docs/コンパイラプラグイン設計01.md §7.3）
 object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
     override val MAP by
         KtDiagnosticFactoryToRendererMap("SealedClassEnumizer") { map ->

@@ -6,7 +6,7 @@ import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 
 // G 軸: 跨モジュール系（利用側モジュールでの ENUMIZE_AMBIGUOUS_KIND・2 家族実装・生成 Enumish の
 // 別モジュール実装・単一末端サブタイプの吸収・網羅 when の ABI 伝播。docs/テストケース管理.md
-// TC-DIAG-021・023・071・078・094・096、docs/概要.md §3・§8、設計01 §7.2）
+// TC-DIAG-021・023・071・078・094・096、docs/概要.md §3・§8、docs/コンパイラプラグイン設計01.md §7.2）
 class DiagCrossModuleTest : DiagTestBase() {
     // TC-DIAG-021: 別モジュール（プラグイン適用）での複数末端 interface 実装 → 利用側で AMBIGUOUS_KIND
     @Test
@@ -42,8 +42,8 @@ class DiagCrossModuleTest : DiagTestBase() {
     }
 
     // TC-DIAG-071: 生成 Enumish は sealed（V1）のため別モジュールからの手動実装は言語側で不可。
-    // プラグイン適用側では ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY も先回り報告される（現行仕様 = 概要 §8。
-    // テストケース管理.md MI-04 行の「非発火」は V1-(e) 反映前の記述）
+    // プラグイン適用側では ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY も先回り報告される（現行仕様 = docs/概要.md §8。
+    // docs/テストケース管理.md MI-04 行の「非発火」は V1-(e) 反映前の記述）
     @Test
     fun crossModuleRogueImplementationFailsBySealedRule() {
         val output = failOutput("diag-cross-rogue", ":app:compileKotlin")

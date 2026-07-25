@@ -8,7 +8,8 @@ import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 // （ENUMIZE_INNER_LEAF）と、その near-miss 群（docs/テストケース管理.md TC-DIAG-024〜035・077・088〜093、
 // docs/エッジケースへの対応方針.md §1）。参照不能 kind（private/protected companion・別ファイルの private
 // トップレベル末端・private 外側クラスの末端）は IR-only アクセサ経由で load するため診断せず、
-// 実挙動は producer-jvm / mpp-producer の KindAccessorTest が固定する（概要 §8・設計02 §4.3）
+// 実挙動は producer-jvm / mpp-producer の KindAccessorTest が固定する
+// （docs/概要.md §8・docs/コンパイラプラグイン設計02.md §4.3）
 class DiagVisibilityTest : DiagTestBase() {
     private fun kindAccess(): String = failOutput("diag-kind-access", "compileKotlin")
 

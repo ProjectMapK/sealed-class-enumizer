@@ -6,7 +6,7 @@ import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 
 // G 軸: 手動宣言と生成の衝突系（ENUMIZE_MANUAL_MEMBER_CONFLICT / ENUMIZE_MANUAL_SUPERTYPE_MISMATCH /
 // ENUMIZE_RESERVED_NAME_CLASH / ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY。docs/テストケース管理.md
-// TC-DIAG-044〜047・050〜054・068・084・107、設計01 §4・§5.1・§7.2）
+// TC-DIAG-044〜047・050〜054・068・084・107、docs/コンパイラプラグイン設計01.md §4・§5.1・§7.2）
 class DiagManualMemberTest : DiagTestBase() {
     private fun manualMember(): String = failOutput("diag-manual-member", "compileKotlin")
 
@@ -112,8 +112,8 @@ class DiagManualMemberTest : DiagTestBase() {
         assertDiagnosticAt(reservedName(), "Rn4.kt", 8, DiagFragments.RESERVED_NAME_CLASH)
     }
 
-    // TC-DIAG-068: 階層外クラスによる生成 Enumish の直接実装はエラー（docs/概要.md §8・設計01 §7.2 の現行仕様。
-    // テストケース管理.md MI-01 行の「非発火」は V1-(e) 反映前の記述であり doc 側の更新が必要）
+    // TC-DIAG-068: 階層外クラスによる生成 Enumish の直接実装はエラー（docs/概要.md §8・docs/コンパイラプラグイン設計01.md §7.2 の現行仕様。
+    // docs/テストケース管理.md MI-01 行の「非発火」は V1-(e) 反映前の記述であり doc 側の更新が必要）
     @Test
     fun manualImplementationOutsideHierarchyIsReported() {
         assertDiagnosticAt(

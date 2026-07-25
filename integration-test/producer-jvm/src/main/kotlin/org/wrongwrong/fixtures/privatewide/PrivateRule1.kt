@@ -2,7 +2,7 @@ package org.wrongwrong.fixtures.privatewide
 
 import org.wrongwrong.sealedClassEnumizer.Enumize
 
-// private 基底の中の末端 + internal companion（TC-VIS-024 = 設計01 §5.4 末尾の明示例）。
+// private 基底の中の末端 + internal companion（TC-VIS-024 = docs/コンパイラプラグイン設計01.md §5.4 末尾の明示例）。
 // 実効可視性は private 側が優位（eff(C) = eff(L) = private）で規則 1 が成立し、露出もフォールバックも起きない
 @Enumize
 private sealed interface PrivateRule1 {

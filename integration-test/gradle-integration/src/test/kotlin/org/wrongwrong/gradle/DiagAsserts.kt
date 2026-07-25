@@ -4,7 +4,7 @@ import kotlin.test.assertTrue
 
 // ビルド出力に対する診断アサーション。K2 の診断行は
 // 「e: file:///...<ファイル名>:<行>:<列> <メッセージ>」形式（警告は w:）で 1 診断 = 1 行に出る。
-// 位置は「宣言の先頭行（アノテーション含む）」または「メンバー・supertype 参照の行」（設計01 §7.1 の報告位置）。
+// 位置は「宣言の先頭行（アノテーション含む）」または「メンバー・supertype 参照の行」（docs/コンパイラプラグイン設計01.md §7.1 の報告位置）。
 object DiagAsserts {
     // 指定ファイル:行 の診断行に、指定断片がすべて含まれることを検査する
     fun assertDiagnosticAt(output: String, file: String, line: Int, vararg fragments: String) {

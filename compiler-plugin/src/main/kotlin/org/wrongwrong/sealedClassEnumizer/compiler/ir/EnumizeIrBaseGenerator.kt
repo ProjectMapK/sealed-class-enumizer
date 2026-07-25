@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.ir.util.companionObject
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
-// 基底ファイル帰属の IR 生成（設計02 §4・§5.1）: $EntriesHolder の生成と、生成 Enumish・
+// 基底ファイル帰属の IR 生成（docs/コンパイラプラグイン設計02.md §4・§5.1）: $EntriesHolder の生成と、生成 Enumish・
 // その companion のボディ充填。継承者の集合に依存する生成物はここでのみ作られ、基底が IC ラウンドに
 // 同席する場合に限って走る（P1 の帰属を保つ）。末端側のボディは基底の同席に依らず
 // EnumizeIrLeafGenerator が充填する
@@ -35,7 +35,7 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
             } ?: return
         val companion = enumish.companionObject() ?: return
         val kinds = collectLeaves(base).mapNotNull(::kindOf)
-        // 参照不能 kind には IR-only アクセサを生成し、createEntries はその取得式ビルダで組み立てる（設計02 §4.3）
+        // 参照不能 kind には IR-only アクセサを生成し、createEntries はその取得式ビルダで組み立てる（docs/コンパイラプラグイン設計02.md §4.3）
         val kindProviders = accessorGenerator.buildKindProviders(base, enumish, kinds)
         val holder = holderGenerator.generate(enumish, base, kindProviders)
         ctx.ensureObjectConstructorBody(companion)
@@ -43,7 +43,7 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
         fillCompanionMembers(companion, holder)
     }
 
-    // 末端の列挙（設計02 §2）: コンパイラの継承者リスト（FQN 順に正規化済み）を走査し、
+    // 末端の列挙（docs/コンパイラプラグイン設計02.md §2）: コンパイラの継承者リスト（FQN 順に正規化済み）を走査し、
     // 中間 sealed に到達したらその継承者リストへ再帰的に降りる。並べ替えは一切行わない（§3）
     private fun collectLeaves(base: IrClass): List<IrClass> {
         val result = mutableListOf<IrClass>()
@@ -70,7 +70,7 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
     private fun kindOf(leaf: IrClass): IrClass? =
         if (leaf.kind == ClassKind.OBJECT) leaf else leaf.companionObject()
 
-    // ---- 生成 Enumish とその companion のボディ（設計02 §5.1） ----
+    // ---- 生成 Enumish とその companion のボディ（docs/コンパイラプラグイン設計02.md §5.1） ----
 
     private fun fillEnumishCompanionProperty(enumish: IrClass, companion: IrClass) {
         val getter =

@@ -38,7 +38,8 @@ class SweepDiagOkTest : DiagTestBase() {
         assertFragmentAbsent(sweep(), "must be exhaustive")
     }
 
-    // TC-MAN-069: typealias 経由の手動 Enumized<Alias=生成 Enumish>（設計01 §4 の型引数込み照合 = D9X-14）。
+    // TC-MAN-069: typealias 経由の手動 Enumized<Alias=生成 Enumish>
+    // （docs/コンパイラプラグイン設計01.md §4 の型引数込み照合 = D9X-14）。
     // 照合は展開後の型で行うため厳密一致し、注入スキップで受容される（MISMATCH 非発火）
     @Test
     fun typealiasedManualEnumizedIsAcceptedBySkip() {

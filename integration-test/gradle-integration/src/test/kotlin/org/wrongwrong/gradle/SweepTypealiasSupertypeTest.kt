@@ -9,7 +9,7 @@ import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 // SweepDiagOkTest との対比）。注入抑止の照合は解決済み型を展開してから行い、展開が届かない配置
 // （エイリアスが階層より先に解決されない場合）では raw 追跡へ落ちるため、明示形と同じく注入は
 // スキップされる。継承者一覧の収集も展開後の supertype を見る（TC-MAN-083）。
-// 残る乖離は、その配置で言語側が別名を展開しないまま IR へ進む基底側の 1 形のみ（修正方針案 #17）
+// 残る乖離は、その配置で言語側が別名を展開しないまま IR へ進む基底側の 1 形のみ（docs/修正方針案.md #17）
 class SweepTypealiasSupertypeTest : DiagTestBase() {
     // TC-MAN-081: 基底の手動 Enumized 自体への typealias（展開後は Enumized<SwThSi.Enumish> と厳密一致）
     @Test
@@ -46,7 +46,7 @@ class SweepTypealiasSupertypeTest : DiagTestBase() {
         successOutput("sweep-typealias-samefile-head", "compileKotlin")
     }
 
-    // TC-MAN-085 の実挙動固定（修正方針案 #17 の回帰ゲート）
+    // TC-MAN-085 の実挙動固定（docs/修正方針案.md #17 の回帰ゲート）
     @Test
     fun sameFileTypealiasedEnumizedHeadCrashesAsKnownIssue() {
         val output = failOutput("sweep-typealias-samefile-head", "compileKotlin")

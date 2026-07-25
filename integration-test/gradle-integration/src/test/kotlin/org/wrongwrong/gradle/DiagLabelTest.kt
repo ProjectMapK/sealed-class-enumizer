@@ -7,8 +7,8 @@ import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
 import org.wrongwrong.gradle.DiagAsserts.assertNoDiagnosticAt
 
 // G 軸: label の一意性（ENUMIZE_LABEL_CLASH）と拡張シャドーイング警告（ENUMIZE_EXTENSION_SHADOWED）
-// （docs/テストケース管理.md TC-DIAG-039〜043・063〜065・080〜081・098〜099・103・114〜115、概要 §2・§8）。
-// LABEL_CLASH は衝突する両末端の宣言位置に報告される（設計01 §7.1）ため、基底と別ファイルの末端も
+// （docs/テストケース管理.md TC-DIAG-039〜043・063〜065・080〜081・098〜099・103・114〜115、docs/概要.md §2・§8）。
+// LABEL_CLASH は衝突する両末端の宣言位置に報告される（docs/コンパイラプラグイン設計01.md §7.1）ため、基底と別ファイルの末端も
 // 含めて位置と衝突相手の FQN を検証する。
 class DiagLabelTest : DiagTestBase() {
     private fun labelClash(): String = failOutput("diag-label-clash", "compileKotlin")
@@ -151,7 +151,7 @@ class DiagLabelTest : DiagTestBase() {
         )
     }
 
-    // TC-DIAG-043: 別ファイル追加で label 衝突を導入すると発火し、削除で解除される（設計00 §5.3 #8）。
+    // TC-DIAG-043: 別ファイル追加で label 衝突を導入すると発火し、削除で解除される（docs/コンパイラプラグイン設計00.md §5.3 #8）。
     // IC ラウンドは階層の部分集合ビューを持つため、報告はそのラウンドでコンパイルされる末端
     // （= 追加したファイル）のみに出る（衝突相手は既存末端としてメッセージが示す）
     @Test

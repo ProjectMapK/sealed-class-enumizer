@@ -4,7 +4,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 
-// IC 回帰マトリクス（companion・手動実装・dirty 税）: 設計00 §5.3 #7/#7-b/#7-c・#12 と P3 の
+// IC 回帰マトリクス（companion・手動実装・dirty 税）: docs/コンパイラプラグイン設計00.md §5.3 #7/#7-b/#7-c・#12 と P3 の
 // dirty 税なし（docs/テストケース管理.md TC-IC-018〜022・028・042、TC-GAP-002）
 class IcRegressionCompanionTest {
     private val fooCompanionClass = "${IcBasicFixture.CLASS_PREFIX}/Foo\$Companion.class"
@@ -77,7 +77,8 @@ class IcRegressionCompanionTest {
     // #7-c companion の可視性変更（TC-IC-020）: public ⇔ internal で asEnumish の返り値型が
     // 規則 1（Foo.Companion）⇔ 規則 2（SI.Enumish）で切り替わり、ABI 差分として利用側へ伝播する。
     // private 化は kind の名指し（利用側 when 枝）を言語が拒否する別事象で、entries 構築（IR-only アクセサ）
-    // 側の成立は producer-jvm / mpp-producer の KindAccessorTest が固定する（概要 §8・設計02 §4.3）
+    // 側の成立は producer-jvm / mpp-producer の KindAccessorTest が固定する
+    // （docs/概要.md §8・docs/コンパイラプラグイン設計02.md §4.3）
     @Test
     fun case7cCompanionVisibilityChangesReturnType() {
         val dir = IcTestSupport.prepare(IcBasicFixture.NAME, "ic7c-")
@@ -173,7 +174,7 @@ class IcRegressionCompanionTest {
             dir,
             IcBasicFixture.ROGUE_FILE,
             "package org.wrongwrong.icfix\n\nimport kotlin.reflect.KClass\n\n" +
-                "// 階層外の手動実装（設計00 §5.3 #12 = TC-IC-028。単体ファイルでの発火を観測する）\n" +
+                "// 階層外の手動実装（docs/コンパイラプラグイン設計00.md §5.3 #12 = TC-IC-028。単体ファイルでの発火を観測する）\n" +
                 "object Rogue : SI.Enumish {\n" +
                 "    override val label: String get() = \"Rogue\"\n\n" +
                 "    override val enumizedClass: KClass<out SI> get() = SI::class\n" +
@@ -191,7 +192,7 @@ class IcRegressionCompanionTest {
     }
 
     // 階層内手動実装（TC-IC-048・V1-(e)）: 末端 class 自身が生成 Enumish を直接実装する許容形
-    // （概要 §8）へ切り替えると、inheritors へ手動実装分（Foo 自身）が加わり kind-when に is Foo 枝が
+    // （docs/概要.md §8）へ切り替えると、inheritors へ手動実装分（Foo 自身）が加わり kind-when に is Foo 枝が
     // 必要になる一方、entries は kind（Foo.Companion）のみで不変。手動実装ファイルの ABI 非変更編集でも
     // 実行時挙動と Si.kt 帰属生成物のバイトが安定している（階層共連れで inheritors 再計算）
     @Test
@@ -214,7 +215,7 @@ class IcRegressionCompanionTest {
                 "    override val enumizedClass: KClass<out SI> get() = Foo::class\n" +
                 "}\n",
         )
-        // 手動実装が inheritors に載るため kind-when へ is Foo 枝が要る（概要 §3・§8）
+        // 手動実装が inheritors に載るため kind-when へ is Foo 枝が要る（docs/概要.md §3・§8）
         TestKitHarness.replaceInFile(
             dir,
             IcBasicFixture.USE_FILE,

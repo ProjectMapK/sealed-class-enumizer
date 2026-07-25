@@ -21,7 +21,7 @@ class SweepMppTest : DiagTestBase() {
 
     // TC-MPP-051: 中間ソースセット（webMain）の基底 × 派生ソースセット（jsMain）の末端。
     // sealed は「同一ソースセット」を要求し「可視な派生ソースセット」では不足するため言語エラー。
-    // common↔platform（TC-DIAG-061）と同様、プラグイン側の補足診断は持たない（設計01 §7.2）
+    // common↔platform（TC-DIAG-061）と同様、プラグイン側の補足診断は持たない（docs/コンパイラプラグイン設計01.md §7.2）
     @Test
     fun hmppDerivedSourceSetLeafFailsBuild() {
         val output = failOutput("sweep-mpp-hmpp", "compileKotlinJs")

@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 
-// 設計00 §6.1 実測形（混在階層）の entries 順序 box テスト
+// docs/コンパイラプラグイン設計00.md §6.1 実測形（混在階層）の entries 順序 box テスト
 // （docs/テストケース管理.md TC-ORD-004 / TC-ORD-005 / TC-ORD-007 / TC-ORD-020 / TC-ORD-022 / TC-ORD-045 /
 // TC-BOX-005）
 class MixedOrderTest {

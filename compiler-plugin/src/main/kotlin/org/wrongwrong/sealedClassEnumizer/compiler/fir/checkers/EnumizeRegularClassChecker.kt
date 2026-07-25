@@ -32,8 +32,8 @@ import org.wrongwrong.sealedClassEnumizer.compiler.fir.EnumizeMembership
 import org.wrongwrong.sealedClassEnumizer.compiler.fir.EnumizePredicates
 import org.wrongwrong.sealedClassEnumizer.compiler.fir.enumizeHierarchyResolver
 
-// 診断カタログの検査ロジック（設計01 §7.2）。マルチラウンド IC の部分集合ビューで偽陽性を出さないよう、
-// すべての検査を「見えている宣言の性質に対する条件検査」として実装する（単調性。設計01 §7.1）。
+// 診断カタログの検査ロジック（docs/コンパイラプラグイン設計01.md §7.2）。マルチラウンド IC の部分集合ビューで偽陽性を出さないよう、
+// すべての検査を「見えている宣言の性質に対する条件検査」として実装する（単調性。docs/コンパイラプラグイン設計01.md §7.1）。
 // 検査対象クラスの所属（EnumizeMembership）は入口で一度だけ resolver から読み、各検査へ引数で受け渡す
 object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
@@ -124,7 +124,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     // 型引数の異なる手動継承 `: Enumized<別の型>`。declaring の直接 supertype を検査し、
     // declaring が報告対象自身でない場合（間接継承）は報告対象側の宣言へ位置づける。
     // 照合は supertype の頭・型引数とも typealias 展開後で行う（別名は同一の型であり、
-    // 表記の違いで扱いを変えてはならない。設計01 §4・§6.2）
+    // 表記の違いで扱いを変えてはならない。docs/コンパイラプラグイン設計01.md §4・§6.2）
     private fun checkManualEnumizedSupertype(
         reportTarget: FirRegularClassSymbol,
         declaring: FirRegularClassSymbol,
@@ -157,12 +157,12 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
 
     // 継承者の別ソースセット逸脱に対する補足診断は持たない。別ソースセットの継承者は基底の
     // sealed 継承者一覧に載らず（載らないからこそ言語エラーになる）検査対象になりえないため、
-    // コンパイラ本体の診断（sealed の同一モジュール制約）に委ねる（設計00 §7・設計01 §7.2）
+    // コンパイラ本体の診断（sealed の同一モジュール制約）に委ねる（docs/コンパイラプラグイン設計00.md §7・docs/コンパイラプラグイン設計01.md §7.2）
 
     // ---- 生成 Enumish の直接実装（階層内・kind に限る）----
 
     // 階層外の実装は sealed の継承者一覧へ反映する経路が無く、JVM では PermittedSubclasses により
-    // 実行時拒否になるためコンパイル時にエラーとする（V1-(e) の帰結。設計00 §5.2）
+    // 実行時拒否になるためコンパイル時にエラーとする（V1-(e) の帰結。docs/コンパイラプラグイン設計00.md §5.2）
     private fun checkManualEnumishImplementation(
         declaration: FirRegularClass,
         membership: EnumizeMembership?,
@@ -228,7 +228,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
 
     // label 衝突は「検査中の末端が衝突当事者か」を末端ごとに判定し、自分の宣言へ報告する。
     // 診断の座標系は検査中のファイルに紐づくため、基底の検査中に別ファイルの末端の source で
-    // 報告してはならない（設計01 §7.1 の報告先規則）
+    // 報告してはならない（docs/コンパイラプラグイン設計01.md §7.1 の報告先規則）
     private fun checkLabelClash(
         declaration: FirRegularClass,
         base: FirRegularClassSymbol,
@@ -248,7 +248,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         )
     }
 
-    // companion は末端 class に必ず存在する（手動宣言か、無ければ候補判定による自動生成。設計01 §6.2）。
+    // companion は末端 class に必ず存在する（手動宣言か、無ければ候補判定による自動生成。docs/コンパイラプラグイン設計01.md §6.2）。
     // 生成が届かない構成は所属判定ごと成立せず、この検査には到達しない
     private fun checkCompanionOfLeafClass(
         declaration: FirRegularClass,
@@ -280,7 +280,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         }
     }
 
-    // 生成対象メンバーの手動宣言・階層外 interface からの具象実装の継承（toString は対象外 = 設計01 §7.2）
+    // 生成対象メンバーの手動宣言・階層外 interface からの具象実装の継承（toString は対象外 = docs/コンパイラプラグイン設計01.md §7.2）
     private fun checkManualMemberConflicts(
         declaration: FirRegularClass,
         base: FirRegularClassSymbol,
@@ -424,7 +424,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
 
     // ---- 拡張シャドーイング警告 ----
 
-    // label という可視メンバーは、宣言でも継承でも呼び出し点で Enumized<T>.label 拡張を隠す（概要 §8）。
+    // label という可視メンバーは、宣言でも継承でも呼び出し点で Enumized<T>.label 拡張を隠す（docs/概要.md §8）。
     // 自クラスの宣言はその位置へ、継承のみの構成は宣言元を添えてクラスの位置へ報告する（§7.1 の報告先規則）
     private fun checkLabelShadowing(
         declaration: FirRegularClass,

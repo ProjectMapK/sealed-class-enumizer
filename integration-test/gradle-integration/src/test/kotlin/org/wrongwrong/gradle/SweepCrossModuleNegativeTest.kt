@@ -8,7 +8,7 @@ import org.gradle.testkit.runner.TaskOutcome
 
 // 残ケース掃討: 跨モジュール可視性の負値（sweep-xm-negative フィクスチャ = producer + consumer）。
 // producer は正常にコンパイルされ、consumer 側の参照だけが言語の可視性・網羅性エラーで壊れることを
-// 1 回の buildAndFail で観測する（docs/エッジケースへの対応方針.md §1.2・設計00 §5.2）
+// 1 回の buildAndFail で観測する（docs/エッジケースへの対応方針.md §1.2・docs/コンパイラプラグイン設計00.md §5.2）
 class SweepCrossModuleNegativeTest : DiagTestBase() {
     private var cached: BuildResult? = null
 

@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.fir.types.constructClassLikeType
 import org.jetbrains.kotlin.name.ClassId
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
-// supertype 注入（設計01 §4）:
+// supertype 注入（docs/コンパイラプラグイン設計01.md §4）:
 //   @Enumize 対象（基底）        += Enumized<SI.Enumish>
 //   末端 object / data object    += SI.Enumish
 //   末端の companion（既存・生成） += SI.Enumish
@@ -38,7 +38,7 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) :
 
     // 判定材料は raw な情報に限る（このコールバックは supertype 解決前に呼ばれうる）。
     // companion は「外側が末端（kind を担う）」と「companion 自身が末端（階層外クラスの companion が
-    // 単独で末端になる許容構成 — 設計01 §7.2 COMPANION_LEAF_CONFLICT の注記）」の両方を candidate にする。
+    // 単独で末端になる許容構成 — docs/コンパイラプラグイン設計01.md §7.2 COMPANION_LEAF_CONFLICT の注記）」の両方を candidate にする。
     // supertype の表記（typealias・import エイリアス等）は raw 追跡が展開して候補を拾い、
     // 実際の階層判定は computeAdditionalSupertypes の解決済み ref を展開して行う
     override fun needTransformSupertypes(declaration: FirClassLikeDeclaration): Boolean {
@@ -89,8 +89,8 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) :
     ): List<ConeKotlinType> {
         // 既存のネスト宣言 Enumish がある場合は生成自体をスキップするため注入もしない（ENUMIZE_RESERVED_NAME_CLASH）
         if (resolver.hasUserDeclaredNestedEnumish(base.symbol)) return emptyList()
-        // 手動の Enumized<K> がある場合（間接継承経由を含む — エッジ §2）は注入しない。型引数一致なら
-        // 重複回避、不一致なら ENUMIZE_MANUAL_SUPERTYPE_MISMATCH をチェッカーが報告する（設計01 §4）
+        // 手動の Enumized<K> がある場合（間接継承経由を含む — docs/エッジケースへの対応方針.md §2）は注入しない。型引数一致なら
+        // 重複回避、不一致なら ENUMIZE_MANUAL_SUPERTYPE_MISMATCH をチェッカーが報告する（docs/コンパイラプラグイン設計01.md §4）
         if (hasEnumizedSupertype(resolvedSupertypes)) return emptyList()
         val enumishType =
             base.symbol.classId
@@ -148,7 +148,7 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) :
         resolvedSupertypes.any(::declaresOrInheritsEnumized)
 
     // 展開後が Enumized 自身である場合を先に判定し、そうでなければ間接継承
-    // （interface MyBase : Enumized<K> 経由 — エッジ §2）を supertype グラフで探す
+    // （interface MyBase : Enumized<K> 経由 — docs/エッジケースへの対応方針.md §2）を supertype グラフで探す
     private fun declaresOrInheritsEnumized(ref: FirResolvedTypeRef): Boolean {
         val classId = expandedClassIdOf(ref) ?: return false
         if (classId == EnumizeNames.ENUMIZED_CLASS_ID) return true
@@ -157,7 +157,7 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) :
     }
 
     // このコールバックが受け取る解決済み型は typealias が未展開のことがあるため、照合の前に展開する
-    // （型の同一性は表記に依らない — 設計01 §4・§6.2）
+    // （型の同一性は表記に依らない — docs/コンパイラプラグイン設計01.md §4・§6.2）
     private fun expandedClassIdOf(ref: FirResolvedTypeRef): ClassId? =
         tracker.expandedClassId(ref.coneType)
 

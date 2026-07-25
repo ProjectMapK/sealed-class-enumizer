@@ -7,7 +7,7 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 // （このファイルのみ 1 ファイル 1 クラス規約の例外。ケースの意味上の要請）
 @Enumize private sealed interface PrivateWide
 
-// 基底（private）より広い public 末端。露出検査は interface 実装に働かないため成立する（エッジ §1.1 #2）
+// 基底（private）より広い public 末端。露出検査は interface 実装に働かないため成立する（docs/エッジケースへの対応方針.md §1.1 #2）
 class WideLeaf(val v: Int) : PrivateWide {
     companion object
 }

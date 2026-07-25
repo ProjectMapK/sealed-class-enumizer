@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 
-// 旧バイナリ差し替え（概要 §7・docs/テストケース管理.md TC-XM-023/024/025/053）:
+// 旧バイナリ差し替え（docs/概要.md §7・docs/テストケース管理.md TC-XM-023/024/025/053）:
 // v1（2 末端）でコンパイルした consumer を、実行時のみ v2（3 末端）の jar と組み合わせると、
 // entries は「実行時に存在する版の集合」を返す（entries アクセサ非 inline の帰結）。
 // v1 網羅の else 無し kind-when へ実行時の未知 kind を通すと NoWhenBranchMatchedException になる
