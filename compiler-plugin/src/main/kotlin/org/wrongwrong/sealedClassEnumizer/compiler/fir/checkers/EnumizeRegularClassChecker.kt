@@ -67,7 +67,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             )
         }
         if (annotated || familyBases.isNotEmpty()) {
-            checkLabelShadowing(declaration, resolver, context, reporter)
+            checkLabelShadowing(declaration, membership, resolver, context, reporter)
         }
         checkAmbiguousKind(declaration, membership, resolver, context, reporter)
         checkManualEnumishImplementation(declaration, membership, resolver, context, reporter)
@@ -403,23 +403,62 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
 
     // ---- 拡張シャドーイング警告 ----
 
+    // label という可視メンバーは、宣言でも継承でも呼び出し点で Enumized<T>.label 拡張を隠す（概要 §8）。
+    // 自クラスの宣言はその位置へ、継承のみの構成は宣言元を添えてクラスの位置へ報告する（§7.1 の報告先規則）
     private fun checkLabelShadowing(
         declaration: FirRegularClass,
+        membership: EnumizeMembership?,
         resolver: EnumizeHierarchyResolver,
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
-        for (member in declaration.declarations) {
-            val name = memberNameOf(member) ?: continue
-            if (name != EnumizeNames.LABEL) continue
-            if (resolver.isOurGeneratedDeclaration(member)) continue
-            val visibility = when (member) {
-                is FirNamedFunction -> member.status.visibility
-                is FirProperty -> member.status.visibility
-                else -> continue
-            }
-            if (visibility == Visibilities.Private) continue
-            reporter.reportOn(member.source, EnumizeErrors.ENUMIZE_EXTENSION_SHADOWED, context)
+        val symbol = declaration.symbol
+        val declared = visibleLabelMembers(declaration, resolver)
+        for (member in declared) {
+            reporter.reportOn(
+                member.source,
+                EnumizeErrors.ENUMIZE_EXTENSION_SHADOWED,
+                symbol.classId.asFqNameString(),
+                context,
+            )
         }
+        if (declared.isNotEmpty()) return
+        // kind（末端 object）には label が生成され、継承した label を必ず override するため実害が無い
+        if (membership?.isLeaf == true && symbol.classKind == ClassKind.OBJECT) return
+        val owner = inheritedLabelOwner(symbol, resolver) ?: return
+        reporter.reportOn(
+            declaration.source,
+            EnumizeErrors.ENUMIZE_EXTENSION_SHADOWED,
+            owner.classId.asFqNameString(),
+            context,
+        )
+    }
+
+    // 継承経路上で label を宣言している最初のクラス。Enumish 由来（runtime-api Enumish・生成 Enumish）の
+    // label は kind の値そのものを返すためシャドーイングの実害が無く、対象から外す
+    private fun inheritedLabelOwner(
+        symbol: FirRegularClassSymbol,
+        resolver: EnumizeHierarchyResolver,
+    ): FirRegularClassSymbol? = resolver.supertypeClosure(symbol).firstOrNull { superSymbol ->
+        superSymbol.classId != EnumizeNames.ENUMISH_CLASS_ID &&
+            !resolver.representsGeneratedEnumish(superSymbol) &&
+            superSymbol.fir.declarations.any { member -> isVisibleLabelMember(member, resolver) }
+    }
+
+    private fun visibleLabelMembers(
+        declaration: FirRegularClass,
+        resolver: EnumizeHierarchyResolver,
+    ): List<FirDeclaration> = declaration.declarations.filter { member -> isVisibleLabelMember(member, resolver) }
+
+    // private メンバーはクラス外の呼び出し点の解決に参加せず継承もされないため、シャドーイングの対象から外す
+    private fun isVisibleLabelMember(declaration: FirDeclaration, resolver: EnumizeHierarchyResolver): Boolean {
+        if (memberNameOf(declaration) != EnumizeNames.LABEL) return false
+        if (resolver.isOurGeneratedDeclaration(declaration)) return false
+        val visibility = when (declaration) {
+            is FirNamedFunction -> declaration.status.visibility
+            is FirProperty -> declaration.status.visibility
+            else -> return false
+        }
+        return visibility != Visibilities.Private
     }
 }

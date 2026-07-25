@@ -93,8 +93,9 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
         )
         map.put(
             EnumizeErrors.ENUMIZE_EXTENSION_SHADOWED,
-            "This member named 'label' shadows the 'Enumized.label' extension property at call sites. " +
-                "Use 'asEnumish().label' to reliably read the kind label.",
+            "A visible member named 'label' declared in ''{0}'' shadows the 'Enumized.label' " +
+                "extension property at call sites. Use 'asEnumish().label' to reliably read the kind label.",
+            CommonRenderers.STRING,
         )
         map.put(
             EnumizeErrors.ENUMIZE_ENUM_LEAF_UNSUPPORTED,
