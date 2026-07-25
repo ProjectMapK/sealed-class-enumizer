@@ -92,12 +92,6 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
                 "which clashes with the generated declaration. Rename the existing nested declaration.",
         )
         map.put(
-            EnumizeErrors.ENUMIZE_CROSS_SOURCE_SET,
-            "Inheritor ''{0}'' of the '@Enumize' hierarchy is declared in a different source set. " +
-                "A sealed hierarchy must be contained in a single source set; move the inheritor.",
-            CommonRenderers.STRING,
-        )
-        map.put(
             EnumizeErrors.ENUMIZE_EXTENSION_SHADOWED,
             "This member named 'label' shadows the 'Enumized.label' extension property at call sites. " +
                 "Use 'asEnumish().label' to reliably read the kind label.",

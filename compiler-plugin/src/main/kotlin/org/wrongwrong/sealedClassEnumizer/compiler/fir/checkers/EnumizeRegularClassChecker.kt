@@ -14,7 +14,6 @@ import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirNamedFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
-import org.jetbrains.kotlin.fir.declarations.getSealedClassInheritors
 import org.jetbrains.kotlin.fir.declarations.utils.isActual
 import org.jetbrains.kotlin.fir.declarations.utils.isExpect
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
@@ -104,7 +103,6 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             if (resolver.isEnumizeBase(superSymbol)) continue
             checkManualEnumizedSupertype(symbol, superSymbol, symbol, resolver, context, reporter)
         }
-        checkCrossSourceSet(declaration, resolver, context, reporter)
     }
 
     private fun checkReservedNestedName(
@@ -150,25 +148,9 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         }
     }
 
-    // コンパイラ本体の診断（継承者の別ソースセット逸脱）への補足説明
-    private fun checkCrossSourceSet(
-        declaration: FirRegularClass,
-        resolver: EnumizeHierarchyResolver,
-        context: CheckerContext,
-        reporter: DiagnosticReporter,
-    ) {
-        for (inheritorId in declaration.getSealedClassInheritors(context.session)) {
-            val inheritor = resolver.tracker.resolveClassSymbol(inheritorId) ?: continue
-            if (inheritor.moduleData != declaration.moduleData) {
-                reporter.reportOn(
-                    declaration.source,
-                    EnumizeErrors.ENUMIZE_CROSS_SOURCE_SET,
-                    inheritorId.asFqNameString(),
-                    context,
-                )
-            }
-        }
-    }
+    // 継承者の別ソースセット逸脱に対する補足診断は持たない。別ソースセットの継承者は基底の
+    // sealed 継承者一覧に載らず（載らないからこそ言語エラーになる）検査対象になりえないため、
+    // コンパイラ本体の診断（sealed の同一モジュール制約）に委ねる（設計00 §7・設計01 §7.2）
 
     // ---- 生成 Enumish の直接実装（階層内・kind に限る）----
 
