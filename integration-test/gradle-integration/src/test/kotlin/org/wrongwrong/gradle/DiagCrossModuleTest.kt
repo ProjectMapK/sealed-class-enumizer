@@ -42,8 +42,7 @@ class DiagCrossModuleTest : DiagTestBase() {
     }
 
     // TC-DIAG-071: 生成 Enumish は sealed（V1）のため別モジュールからの手動実装は言語側で不可。
-    // プラグイン適用側では ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY も先回り報告される（現行仕様 = docs/概要.md §8。
-    // docs/テストケース管理.md MI-04 行の「非発火」は V1-(e) 反映前の記述）
+    // プラグイン適用側では ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY も先回り報告される（docs/概要.md §8）
     @Test
     fun crossModuleRogueImplementationFailsBySealedRule() {
         val output = failOutput("diag-cross-rogue", ":app:compileKotlin")

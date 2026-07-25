@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test
 // runtime-api を明示宣言しなくても生成 API（supertype = runtime-api の Enumish / Enumized）を解決できる。
 // 併せて、自動追加をオプトアウトし implementation で「隠した」縮退では消費側が supertype 解決に失敗すること
 // （api 公開が必須であること = runtime-api を api 公開しない場合の NG 形）を 1 対で観測する。
-// この対比は api 公開が既定になって初めて成立する（api 公開が既定になる前は正側が構成できなかった）。
 class RuntimeApiExposureTest {
     private val fixture = "runtime-api-exposure"
 

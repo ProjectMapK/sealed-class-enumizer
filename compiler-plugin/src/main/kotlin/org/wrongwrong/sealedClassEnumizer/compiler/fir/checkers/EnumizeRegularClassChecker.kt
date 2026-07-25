@@ -425,7 +425,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     // ---- 拡張シャドーイング警告 ----
 
     // label という可視メンバーは、宣言でも継承でも呼び出し点で Enumized<T>.label 拡張を隠す（docs/概要.md §8）。
-    // 自クラスの宣言はその位置へ、継承のみの構成は宣言元を添えてクラスの位置へ報告する（§7.1 の報告先規則）
+    // 自クラスの宣言はその位置へ、継承のみの構成は宣言元を添えてクラスの位置へ報告する（docs/コンパイラプラグイン設計01.md §7.1 の報告先規則）
     private fun checkLabelShadowing(
         declaration: FirRegularClass,
         membership: EnumizeMembership?,

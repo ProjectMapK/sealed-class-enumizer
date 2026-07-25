@@ -10,8 +10,8 @@ import org.wrongwrong.sealedClassEnumizer.label
 
 // 可視性が混在する階層の box テスト（docs/エッジケースへの対応方針.md §1）
 class VisibilityTest {
-    // 規則 2 フォールバック構成（internal companion）でも実行時機能は完全に提供される。
-    // asEnumish() の静的型は Mixed.Enumish へフォールバックしている（型が付くこと自体が検査）
+    // 規則 2 フォールバック構成（internal companion）でも実行時機能は完全に提供される
+    // （asEnumish() の静的型は Mixed.Enumish へフォールバックする。検査するのは kind と entries の実行時挙動）
     @Test
     fun internalCompanionFallsBackToEnumishType() {
         val kind: Mixed.Enumish = Mixed.Half(1).asEnumish()

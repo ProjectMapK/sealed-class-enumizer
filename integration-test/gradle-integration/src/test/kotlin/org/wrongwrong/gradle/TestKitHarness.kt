@@ -20,9 +20,9 @@ import org.gradle.testkit.runner.GradleRunner
 // 併せて全フィクスチャ共通のデーモン設定を gradle.properties へ追記する。
 // プラグイン一式はローカル Maven から座標で解決するため、親ビルドの composite 参照は持たない
 object TestKitHarness {
-    // Gradle の既定（-Xmx512m / MaxMetaspaceSize=384m）は composite 参照した親ビルドの KGP を
-    // 載せるには不足する。全フィクスチャへ同一値を与えることで TestKit のデーモンが 1 種類に揃い、
-    // 並行実行するフォークの間でも使い回される（docs/テストケース管理.md 並行実行方針）。
+    // Gradle の既定（-Xmx512m / MaxMetaspaceSize=384m）はフィクスチャビルドの KGP を載せるには不足する。
+    // 全フィクスチャへ同一値を与えることで TestKit のデーモンが 1 種類に揃い、
+    // 並行実行するフォークの間でも使い回される（docs/テストケース管理.md Gradle TestKit 方針）。
     // ワーカー数の既定はホストのコア数であり、フィクスチャ（1〜3 プロジェクト）には過大で、
     // 並行実行すると デーモン数 × コア数 だけ多重化されて CPU を奪い合う
     private val daemonSettings =

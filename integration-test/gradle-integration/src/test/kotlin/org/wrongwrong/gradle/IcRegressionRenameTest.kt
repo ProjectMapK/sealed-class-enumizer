@@ -4,8 +4,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 
-// IC 回帰マトリクス後半（改名・構造変更）: docs/コンパイラプラグイン設計00.md §5.3 #6（末端・外側クラスの改名）・#9（中間 sealed の
-// 増減）と、§5.3 表に無い基底自身の改名（docs/テストケース管理.md TC-IC-016/017/024/055）。
+// IC 回帰マトリクス後半（改名・構造変更）: docs/コンパイラプラグイン設計00.md §5.3 #6（末端・外側クラスの改名）・#8（label 衝突の
+// 導入・解消）・#9（中間 sealed の増減）と、§5.3 表に無い基底自身の改名・多段中間チェーン・空階層境界
+// （docs/テストケース管理.md TC-IC-016/017/023/024/055/060/061）。
 // #5（配置変更で不変）との対比 — 宣言の改名は entries の並び・label を変える — が本クラスの重点
 class IcRegressionRenameTest {
     // #6a 末端自身の改名（TC-IC-016）: ClassId 変化で entries の FQN 順が再配置され、label も変わる。

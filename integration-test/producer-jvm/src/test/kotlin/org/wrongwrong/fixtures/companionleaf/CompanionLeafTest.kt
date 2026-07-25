@@ -32,9 +32,7 @@ class CompanionLeafTest {
 
     // TC-ORD-058: companion 自身が末端の場合、宣言名（Zzz）は label と末端 ClassId の両方に効く。
     // 順序は末端 ClassId の FQN 序数順であり、p.Holder2.Zzz は共通接頭辞 "Holder2" の後
-    // '.'(46) < 'A'(65) の比較で p.Holder2A より先行する（宣言名の 'Z' は比較位置に現れない。
-    // ※ docs/テストケース管理.md の当該行は 'Z'90 > 'A'65 で後になるとするが、これは比較位置の算術誤りであり、
-    //    docs/概要.md §5 の FQN 序数順に従うとこの並びになる）
+    // '.'(46) < 'A'(65) の比較で p.Holder2A より先行する（宣言名の 'Z' は比較位置に現れない）
     @Test
     fun namedCompanionLeafOrderFollowsFqnOfDeclaredName() {
         assertEquals(listOf("Zzz", "Holder2A"), Badge.Enumish.entries.map { it.label })

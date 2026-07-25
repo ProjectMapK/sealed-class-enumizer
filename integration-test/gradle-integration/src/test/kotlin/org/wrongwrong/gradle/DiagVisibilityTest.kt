@@ -19,7 +19,8 @@ class DiagVisibilityTest : DiagTestBase() {
         assertDiagnosticAt(kindAccess(), "InnerHost.kt", 5, DiagFragments.INNER_LEAF)
     }
 
-    // TC-DIAG-032: 基底より広い末端 + internal companion → 規則 3 で DENOTABLE（報告位置 = 末端）
+    // TC-DIAG-032: 基底より広い末端 + internal companion → 規則 3 で返り値型が構成できず
+    // KIND_TYPE_NOT_DENOTABLE（報告位置 = 末端）
     @Test
     fun widerLeafWithInternalCompanionIsNotDenotable() {
         assertDiagnosticAt(

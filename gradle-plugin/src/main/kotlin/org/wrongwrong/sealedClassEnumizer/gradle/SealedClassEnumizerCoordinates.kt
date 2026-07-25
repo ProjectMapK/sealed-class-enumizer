@@ -1,6 +1,7 @@
 package org.wrongwrong.sealedClassEnumizer.gradle
 
-// 各値はビルドスクリプト（group / version / モジュール名 / gradlePlugin.id）と一致していなければならない
+// GROUP / VERSION / アーティファクト名はビルドスクリプト（group / version / モジュール名）と、
+// COMPILER_PLUGIN_ID は compiler-plugin の EnumizeCommandLineProcessor.PLUGIN_ID と一致していなければならない
 object SealedClassEnumizerCoordinates {
     const val GROUP: String = "org.wrongwrong"
     const val VERSION: String = "1.0-SNAPSHOT"

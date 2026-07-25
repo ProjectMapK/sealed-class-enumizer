@@ -6,7 +6,6 @@ import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
 
 // 残ケース掃討: 軸間重複の写像先が未確定のまま残った発火系ケースを sweep-diag-fail フィクスチャ
 // （複数の独立階層を 1 モジュールへ収容）へ集約して検証する。対象 TC は各メソッドのコメントに記す
-// （docs/テストケース管理.md 残ケース掃討・docs/修正方針案.md の既知 NG 対応）
 class SweepDiagFailTest : DiagTestBase() {
     private fun sweep(): String = failOutput("sweep-diag-fail", "compileKotlin")
 
@@ -140,7 +139,7 @@ class SweepDiagFailTest : DiagTestBase() {
     }
 
     // TC-GAP-004(a): @Enumize 無しの sealed fun interface 自体を言語が拒否する
-    // （(b) = @Enumize 付きの合流は TC-DIAG-007 が実証済み。V9 は言語不許容側で確定）
+    // （(b) = @Enumize 付きの合流は TC-DIAG-007 が実証済み）
     @Test
     fun sealedFunInterfaceIsRejectedByLanguageItself() {
         assertDiagnosticInFile(sweep(), "SwSfi.kt", DiagFragments.LANG_SEALED_FUN_INTERFACE)

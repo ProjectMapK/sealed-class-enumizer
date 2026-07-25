@@ -3,7 +3,8 @@ package org.wrongwrong.sealedClassEnumizer.compiler.fir
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 
 // メンバー生成の対象クラスの役割（docs/コンパイラプラグイン設計01.md §5.3 の表の行に対応）。
-// 判定は解決済み supertype による「正式判定」で行う（docs/コンパイラプラグイン設計01.md §6 の 2 段判定の後段）
+// 判定は EnumizeHierarchyResolver.membershipOf が行う。名前集合の確定は SUPER_TYPES 中で
+// 自身の supertype が未解決のため、raw / 解決済みのどちらの ref からも同じ答えを返す追跡を用いる（docs/コンパイラプラグイン設計01.md §6.1）
 sealed interface EnumizeGenerationRole {
     // 生成 Enumish（SI.Enumish）: enumishCompanion / enumizedClass の共変 override を宣言する
     class GeneratedEnumish(val base: FirRegularClassSymbol) : EnumizeGenerationRole

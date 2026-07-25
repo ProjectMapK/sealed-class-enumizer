@@ -12,8 +12,8 @@ sealed interface Sec {
 
     data object Aaa : Sec
 
-    // TC-ORD-059 の配置は「internal object Mmm をネスト」とするが、interface 本体のメンバーに internal は
-    // 言語上付けられない（e: Modifier 'internal' is not applicable inside 'interface'）ため private で代替する。
+    // interface 本体のメンバーに internal は言語上付けられない（e: Modifier 'internal' is not applicable
+    // inside 'interface'）ため、TC-ORD-059 の Mmm は private で構成する。
     // ケースの本質（可視性が順序・掲載に影響しない）は private / public の混在で保たれる
     private data object Mmm : Sec
 

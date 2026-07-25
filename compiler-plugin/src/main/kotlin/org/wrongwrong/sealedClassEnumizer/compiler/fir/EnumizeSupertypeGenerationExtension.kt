@@ -24,7 +24,8 @@ import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 // supertype 注入（docs/コンパイラプラグイン設計01.md §4）:
 //   @Enumize 対象（基底）        += Enumized<SI.Enumish>
 //   末端 object / data object    += SI.Enumish
-//   末端の companion（既存・生成） += SI.Enumish
+//   末端の既存 companion         += SI.Enumish
+// プラグイン生成の companion は本拡張が訪問しないため対象外であり、supertype は生成時に直接指定する（docs/コンパイラプラグイン設計01.md §5.1）
 class EnumizeSupertypeGenerationExtension(session: FirSession) :
     FirSupertypeGenerationExtension(session) {
     // コンポーネント群の生成順に依存しないよう、初回コールバック時に解決する
@@ -123,7 +124,7 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) :
         return enumishInjectionFor(base, resolvedSupertypes)
     }
 
-    // 外側（末端）の supertype 解決は companion より先に走るため、解決済み ref を tracker 経由で辿れる
+    // 処理中の宣言に与えられた解決済み supertype を展開して辿り、階層の基底を探す
     private fun findBaseFromResolved(
         resolvedSupertypes: List<FirResolvedTypeRef>
     ): FirRegularClassSymbol? {

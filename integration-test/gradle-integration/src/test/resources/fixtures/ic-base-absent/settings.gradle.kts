@@ -1,5 +1,5 @@
 // TestKit フィクスチャ: 多ファイル sealed × プラグイン生成 × IC の連続編集と基底不在ラウンド
-// docs/コンパイラプラグイン設計00.md §5.4・§9-4・docs/テストケース管理.md TC-IC-039/040
+// docs/コンパイラプラグイン設計00.md §5・§9-4・docs/テストケース管理.md TC-IC-039/040
 pluginManagement {
     repositories {
         mavenLocal()

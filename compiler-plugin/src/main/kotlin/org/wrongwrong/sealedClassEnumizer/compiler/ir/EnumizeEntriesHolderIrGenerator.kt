@@ -155,7 +155,7 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
             }
     }
 
-    // createDefaultPrivateConstructor 由来のボディが Fir2Ir で欠けた場合の保険も兼ねた共通処理
+    // IR-only で新規に作るコンストラクタのため、super 委譲とインスタンス初期化のボディをここで組み立てる
     private fun fillObjectConstructorBody(
         constructor: IrConstructor,
         owner: IrClass,

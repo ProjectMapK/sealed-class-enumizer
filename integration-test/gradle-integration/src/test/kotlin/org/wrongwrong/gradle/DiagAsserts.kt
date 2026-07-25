@@ -16,8 +16,8 @@ object DiagAsserts {
         )
     }
 
-    // 位置を問わず、指定断片をすべて含む診断行があることを検査する（報告位置が仕様と食い違う
-    // 既知 NG のケースで、発火の事実だけを検証する用途）
+    // 位置を問わず、指定断片をすべて含む出力行があることを検査する（ICE のように診断の座標を
+    // 持たない出力や、報告位置を検証対象にしないケースで発火の事実だけを見る用途）
     fun assertDiagnosticAnywhere(output: String, vararg fragments: String) {
         val hit = output.lineSequence().any { candidate -> fragments.all(candidate::contains) }
         assertTrue(hit, "期待した診断が出力に無い: ${fragments.toList()}\n診断行一覧:\n${diagnosticSummary(output)}")

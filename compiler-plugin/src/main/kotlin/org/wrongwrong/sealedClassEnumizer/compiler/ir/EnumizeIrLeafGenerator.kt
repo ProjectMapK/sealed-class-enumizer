@@ -56,7 +56,8 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
         function.body =
             ctx.builder(function.symbol).run {
                 irBlockBody {
-                    // 末端 object は自身が kind であり、レシーバをそのまま返す。末端 class は自身の companion を返す
+                    // 末端 object は自身が kind であり、レシーバをそのまま返す。
+                    // それ以外の末端（class / enum class / interface）は自身の companion を返す
                     if (leaf.kind == ClassKind.OBJECT) {
                         val receiver =
                             function.dispatchReceiverParameter

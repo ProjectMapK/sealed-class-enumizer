@@ -92,7 +92,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         }
     }
 
-    // ---- メンバーシグネチャ（STATUS 以降。解決済み supertype でガードする「正式判定」） ----
+    // ---- メンバー生成（名前集合の確定は SUPER_TYPES・シグネチャ構築は STATUS 以降。docs/コンパイラプラグイン設計01.md §3） ----
 
     override fun getCallableNamesForClass(
         classSymbol: FirClassSymbol<*>,
@@ -323,10 +323,9 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         return companion.symbol
     }
 
-    // docs/コンパイラプラグイン設計01.md §5.1 は supertype を §4 の注入に任せる方針だったが、supertype transformer は
-    // プラグイン生成の companion を訪問しない（実測）ため、生成 Enumish と同様に生成時へ直接指定する。
-    // 候補判定の誤検知時は解決済み supertype による正式判定が効かないままだが、その構成は
-    // チェッカーの後続診断で顕在化する
+    // supertype transformer はプラグイン生成の companion を訪問しないため、生成 Enumish と同様に
+    // supertype を生成時へ直接指定する（docs/コンパイラプラグイン設計01.md §5.1）。候補判定の誤検知時は解決済み supertype による
+    // 正式判定が効かないままだが、その構成はチェッカーの後続診断で顕在化する
     private fun generateLeafCompanion(leaf: FirRegularClassSymbol): FirClassLikeSymbol<*> {
         val base = tracker.findEnumizeBase(leaf)
         val companion =

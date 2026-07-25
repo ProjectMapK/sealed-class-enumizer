@@ -1,5 +1,7 @@
-// referenceClass / referenceFunctions 等は 2.4 系で deprecated だが後継（finderForSource 等）は
-// まだ安定しておらず、ClassId / CallableId からの静的参照という設計意図（docs/コンパイラプラグイン設計02.md §4.2）に合致するため使用を続ける
+// referenceClass / referenceFunctions 等は 2.4 系で deprecated（後継は finderForBuiltins() /
+// finderForSource(fromFile) が返す DeclarationFinder で、引数は同じ ClassId / CallableId。差は参照を
+// IC の lookup へ記録する点にある）。参照先は runtime-api と stdlib の固定シンボルに限られ（docs/コンパイラプラグイン設計02.md §4.2）、
+// ファイル単位の lookup 記録を必要としないため、旧 API のまま DEPRECATION を抑止する
 @file:OptIn(UnsafeDuringIrConstructionAPI::class)
 @file:Suppress("DEPRECATION")
 

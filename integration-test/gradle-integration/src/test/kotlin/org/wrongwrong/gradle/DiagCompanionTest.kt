@@ -30,7 +30,7 @@ class DiagCompanionTest : DiagTestBase() {
 
     // TC-DIAG-037/041/060/102 の near-miss は DiagNearMissTest、TC-DIAG-038/059 は producer-jvm が実証済み
     // （Labeled.Styled = SI 非実装の通常 companion・SI.Foo = 直接名参照での companion 自動生成）。
-    // ENUMIZE_COMPANION_REQUIRED は候補判定が supertype の全表記を扱うようになり削除済み（docs/コンパイラプラグイン設計01.md §6.2）。
-    // 旧発火ケース TC-DIAG-057/058 は「表記に依らず kind が揃う」検証として DiagNearMissTest が持つ。
+    // ENUMIZE_COMPANION_REQUIRED は持たない（候補判定が supertype の全表記を扱うため。docs/コンパイラプラグイン設計01.md §6.2）。
+    // TC-DIAG-057/058 は「表記に依らず kind が揃う」検証として DiagNearMissTest が持つ。
     // TC-DIAG-101（V3 全滅縮退時の常時要求）は縮退モードを駆動する機構がプラグインに無いため保留
 }

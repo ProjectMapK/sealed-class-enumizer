@@ -5,7 +5,7 @@ import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 
 // IC 回帰マトリクス（companion・手動実装・dirty 税）: docs/コンパイラプラグイン設計00.md §5.3 #7/#7-b/#7-c・#12 と P3 の
-// dirty 税なし（docs/テストケース管理.md TC-IC-018〜022・028・042、TC-GAP-002）
+// dirty 税なし（docs/テストケース管理.md TC-IC-018〜022・028・042・048、TC-GAP-002）
 class IcRegressionCompanionTest {
     private val fooCompanionClass = "${IcBasicFixture.CLASS_PREFIX}/Foo\$Companion.class"
     private val fooFactoryClass = "${IcBasicFixture.CLASS_PREFIX}/Foo\$Factory.class"
@@ -161,8 +161,8 @@ class IcRegressionCompanionTest {
     }
 
     // #12 階層外の手動実装の追加・削除（TC-IC-028・TC-GAP-002）: 追加は当該ファイル単体で
-    // ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY のコンパイルエラーとして顕在化し（= V1-(e) の TODO は
-    // エラー化路線で実装済み）、削除で復帰し生成物は clean とバイト一致する
+    // ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY のコンパイルエラーとして顕在化し（docs/コンパイラプラグイン設計00.md §5.2）、
+    // 削除で復帰し生成物は clean とバイト一致する
     @Test
     fun case12OutsideManualImplIsRejectedAndRemovalRestoresBytes() {
         val dir = IcTestSupport.prepare(IcBasicFixture.NAME, "ic12-")

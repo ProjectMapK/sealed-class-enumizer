@@ -11,8 +11,8 @@ import org.wrongwrong.sealedClassEnumizer.Enumish
 // docs/テストケース管理.md TC-XM-045 / TC-MAN-009）。sealed 制約の対象は生成 Enumish のみで
 // 基底 Enumish には及ばない
 class BaseEnumishFreeImplTest {
-    // MyThing（このモジュールの手動実装）は SI 階層と無関係で、entries / valueOf には一切現れない
-    // （enum 的 API の保証は kind に閉じる）
+    // MyThing（このモジュールの手動実装）は SI 階層の kind ではないため、enumishCompanion に SI 階層の
+    // ものを借用していても entries / valueOf には現れない（enum 的 API の保証は kind に閉じる）
     @Test
     fun baseEnumishImplementationIsUnrestrictedAcrossModule() {
         val thing: Enumish = MyThing

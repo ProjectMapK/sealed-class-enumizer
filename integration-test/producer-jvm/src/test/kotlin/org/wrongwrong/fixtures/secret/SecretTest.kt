@@ -22,7 +22,7 @@ class SecretTest {
         assertEquals(listOf("Aaa", "Cls", "Mmm", "Zzz"), Sec.Enumish.entries.map { it.label })
     }
 
-    // 可視範囲の外（このテストファイル）からも label は entries 経由で観測される（docs/エッジケースへの対応方針.md §1.2 の帰結）
+    // 可視範囲の外（このテストファイル）からも private 末端を含む全 kind が entries に載る（docs/エッジケースへの対応方針.md §1.2 の帰結）
     @Test
     fun labelsAreObservableOutsideVisibilityScope() {
         assertEquals(4, Sec.Enumish.entries.size)

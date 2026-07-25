@@ -4,8 +4,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 
-// IC 回帰マトリクス前半: docs/コンパイラプラグイン設計00.md §5.3 の編集ケース #1〜#5 と @Enumize の付与・除去
-// （docs/テストケース管理.md C 軸 TC-IC-009〜015・029〜031・038・041・043）。
+// IC 回帰マトリクス前半: docs/コンパイラプラグイン設計00.md §5.3 の編集ケース #1〜#5・#10 と @Enumize の付与・除去
+// （docs/テストケース管理.md C 軸 TC-IC-009〜015・026・029〜031・038・041・043）。
 // 各ケースは「ビルド → 編集 → 再ビルド」で、実行時 OUT: 行・生成 .class のバイト・
 // 出力タイムスタンプ（= 再コンパイル追跡）を clean 基準値と比較する
 class IcRegressionTest {

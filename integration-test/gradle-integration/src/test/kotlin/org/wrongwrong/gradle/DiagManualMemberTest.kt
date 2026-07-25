@@ -112,8 +112,7 @@ class DiagManualMemberTest : DiagTestBase() {
         assertDiagnosticAt(reservedName(), "Rn4.kt", 8, DiagFragments.RESERVED_NAME_CLASH)
     }
 
-    // TC-DIAG-068: 階層外クラスによる生成 Enumish の直接実装はエラー（docs/概要.md §8・docs/コンパイラプラグイン設計01.md §7.2 の現行仕様。
-    // docs/テストケース管理.md MI-01 行の「非発火」は V1-(e) 反映前の記述であり doc 側の更新が必要）
+    // TC-DIAG-068: 階層外クラスによる生成 Enumish の直接実装はエラー（docs/概要.md §8・docs/コンパイラプラグイン設計01.md §7.2）
     @Test
     fun manualImplementationOutsideHierarchyIsReported() {
         assertDiagnosticAt(
