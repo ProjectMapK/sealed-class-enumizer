@@ -8,5 +8,8 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 sealed interface Command {
     data class Custom(val raw: String) : Command
 
-    enum class Builtin : Command { HELP, VERSION }
+    enum class Builtin : Command {
+        HELP,
+        VERSION,
+    }
 }

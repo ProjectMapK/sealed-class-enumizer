@@ -1,9 +1,9 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Test
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Test
 
 // 基底不在ラウンドのシナリオ（設計00 §5.4・§9-4、docs/テストケース管理.md TC-IC-039/040・TC-ORD-050）:
 // 多ファイル sealed 階層 × プラグイン生成コード × IC。基底ファイルが IC ラウンドへ入らない編集
@@ -20,8 +20,9 @@ class IcBaseAbsentRoundTest {
     private val generatedPrefix = "org/wrongwrong/baseabsent/SI\$"
     private val expectedOut = listOf("ENTRIES=LeafA,LeafB,LeafC", "DESCRIBE=a,b,c")
     private val expectedOutWithD = listOf("ENTRIES=LeafA,LeafB,LeafC,LeafD", "DESCRIBE=a,b,c")
-    private val newLeafSource = "package org.wrongwrong.baseabsent\n\n" +
-        "// 新規ファイルで追加される末端（基底不在ラウンドの引き金）\ndata object LeafD : SI\n"
+    private val newLeafSource =
+        "package org.wrongwrong.baseabsent\n\n" +
+            "// 新規ファイルで追加される末端（基底不在ラウンドの引き金）\ndata object LeafD : SI\n"
 
     // 既存 kind を宣言するファイルの連続編集（R1〜R4）では基底ファイルが同一ラウンドへ共連れされる。
     // 新規ファイルでの末端追加（R5）は共連れが起きず基底不在ラウンドになるが、成果物は clean と一致する
@@ -33,7 +34,8 @@ class IcBaseAbsentRoundTest {
 
         // R1: 末端 class のコメントのみ編集（ABI 不変）
         TestKitHarness.replaceInFile(
-            dir, leafAFile,
+            dir,
+            leafAFile,
             "// 末端 class（companion はプラグイン自動生成）。連続編集ラウンドの主対象",
             "// 末端 class（companion はプラグイン自動生成）。連続編集ラウンドの主対象（R1 編集）",
         )
@@ -41,7 +43,8 @@ class IcBaseAbsentRoundTest {
 
         // R2: 同じ末端へ private メンバーを追加（ABI 不変の宣言追加）
         TestKitHarness.replaceInFile(
-            dir, leafAFile,
+            dir,
+            leafAFile,
             "class LeafA(val v: Int) : SI",
             "class LeafA(val v: Int) : SI {\n    // R2: private メンバー追加\n    private fun r2(): Int = v\n}",
         )
@@ -53,7 +56,8 @@ class IcBaseAbsentRoundTest {
 
         // R4: 基底ファイルを編集
         TestKitHarness.replaceInFile(
-            dir, siFile,
+            dir,
+            siFile,
             "// 多ファイル sealed 階層の基底（連続編集ラウンドで毎回共連れ再コンパイルされる）",
             "// 多ファイル sealed 階層の基底（連続編集ラウンドで毎回共連れ再コンパイルされる。R4 編集）",
         )
@@ -62,15 +66,28 @@ class IcBaseAbsentRoundTest {
         // R5: 末端の「新規ファイル」追加 = 基底不在ラウンド。entries へ反映され、
         // 全生成物が同一ソースの clean ビルドとバイト一致する（合否条件そのもの）
         TestKitHarness.writeFile(dir, leafDFile, newLeafSource)
-        TestKitHarness.replaceInFile(dir, useFile, "    LeafB -> \"b\"", "    LeafB -> \"b\"\n    LeafD -> \"d\"")
+        TestKitHarness.replaceInFile(
+            dir,
+            useFile,
+            "    LeafB -> \"b\"",
+            "    LeafB -> \"b\"\n    LeafD -> \"d\"",
+        )
         assertEquals(expectedOutWithD, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
         val incremental = IcTestSupport.classDigests(dir)
-        assertEquals(expectedOutWithD, IcTestSupport.outLines(TestKitHarness.build(dir, "clean", "runMain")))
+        assertEquals(
+            expectedOutWithD,
+            IcTestSupport.outLines(TestKitHarness.build(dir, "clean", "runMain")),
+        )
         assertEquals(IcTestSupport.classDigests(dir), incremental, "基底不在ラウンドの成果物が clean と一致すること")
 
         // R6: 末端ファイルの削除も IC 直行で成立し、基準状態の生成物とバイト一致まで復帰する
         TestKitHarness.deleteFile(dir, leafDFile)
-        TestKitHarness.replaceInFile(dir, useFile, "    LeafB -> \"b\"\n    LeafD -> \"d\"", "    LeafB -> \"b\"")
+        TestKitHarness.replaceInFile(
+            dir,
+            useFile,
+            "    LeafB -> \"b\"\n    LeafD -> \"d\"",
+            "    LeafB -> \"b\"",
+        )
         assertRoundIsGreen(dir, generated0)
     }
 
@@ -91,11 +108,13 @@ class IcBaseAbsentRoundTest {
 
         // 同一ラウンドで追加した 2 つの新規末端が同じ label を持つ構成
         TestKitHarness.writeFile(
-            dir, "src/main/kotlin/org/wrongwrong/baseabsent/Dup1.kt",
+            dir,
+            "src/main/kotlin/org/wrongwrong/baseabsent/Dup1.kt",
             "package org.wrongwrong.baseabsent\n\nobject H1 {\n    data object Dup : SI\n}\n",
         )
         TestKitHarness.writeFile(
-            dir, "src/main/kotlin/org/wrongwrong/baseabsent/Dup2.kt",
+            dir,
+            "src/main/kotlin/org/wrongwrong/baseabsent/Dup2.kt",
             "package org.wrongwrong.baseabsent\n\nobject H2 {\n    data object Dup : SI\n}\n",
         )
         val clash = TestKitHarness.buildAndFail(dir, "compileKotlin")

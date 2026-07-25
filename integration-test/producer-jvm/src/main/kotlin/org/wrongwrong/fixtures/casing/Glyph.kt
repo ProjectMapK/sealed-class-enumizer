@@ -7,8 +7,7 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 sealed interface Glyph {
     data object Az : Glyph
 
-    @Suppress("ClassName")
-    data object A_ : Glyph
+    @Suppress("ClassName") data object A_ : Glyph
 
     data object AA : Glyph
 

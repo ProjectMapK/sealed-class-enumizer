@@ -21,8 +21,9 @@ class KindAccessorTest {
     fun inaccessibleKindsAreResolvableByLabel() {
         assertEquals(
             listOf("Leaf", "KaIface", "KaPrivComp", "KaPrivTop", "KaProtComp"),
-            listOf("Leaf", "KaIface", "KaPrivComp", "KaPrivTop", "KaProtComp")
-                .map { KaRoot.Enumish.valueOf(it).label },
+            listOf("Leaf", "KaIface", "KaPrivComp", "KaPrivTop", "KaProtComp").map {
+                KaRoot.Enumish.valueOf(it).label
+            },
         )
     }
 }

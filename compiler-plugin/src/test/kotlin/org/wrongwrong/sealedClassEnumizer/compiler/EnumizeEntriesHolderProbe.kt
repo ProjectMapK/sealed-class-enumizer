@@ -1,9 +1,9 @@
 package org.wrongwrong.sealedClassEnumizer.compiler
 
+import kotlin.reflect.KClass
 import org.wrongwrong.sealedClassEnumizer.Enumish
 import org.wrongwrong.sealedClassEnumizer.EnumishEntriesHolder
 import org.wrongwrong.sealedClassEnumizer.Enumized
-import kotlin.reflect.KClass
 
 // EnumishEntriesHolder の protected メンバーは宣言元の外から参照できないため、可視性を広げた
 // abstract override の宣言だけを置き、EnumizeNamesTest の参照元とする。

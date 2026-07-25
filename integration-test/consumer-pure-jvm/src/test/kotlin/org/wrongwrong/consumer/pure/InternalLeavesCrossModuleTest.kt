@@ -1,11 +1,11 @@
 package org.wrongwrong.consumer.pure
 
-import org.wrongwrong.fixtures.internalleaves.InternalLeaves
-import org.wrongwrong.fixtures.internalleaves.PubOb
-import org.wrongwrong.fixtures.secret.Sec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.fixtures.internalleaves.InternalLeaves
+import org.wrongwrong.fixtures.internalleaves.PubOb
+import org.wrongwrong.fixtures.secret.Sec
 
 // public 基底 + internal / private 末端の跨モジュール観測（docs/エッジケースへの対応方針.md §1.2、
 // docs/テストケース管理.md TC-XM-030 / TC-BOX-072 / TC-GAP-015 / TC-VIS-011 / TC-VIS-013 / TC-XM-010 正値側）
@@ -42,12 +42,13 @@ class InternalLeavesCrossModuleTest {
     // else 省略が網羅性エラーになる負値側はコンパイル失敗を要するため gradle-integration 担当
     @Test
     fun kindWhenOutsideVisibilityUsesElseBranch() {
-        val branches = InternalLeaves.Enumish.entries.map { kind ->
-            when (kind) {
-                PubOb -> "pub"
-                else -> "invisible:${kind.label}"
+        val branches =
+            InternalLeaves.Enumish.entries.map { kind ->
+                when (kind) {
+                    PubOb -> "pub"
+                    else -> "invisible:${kind.label}"
+                }
             }
-        }
         assertEquals(
             listOf(
                 "invisible:AutoLeaf",

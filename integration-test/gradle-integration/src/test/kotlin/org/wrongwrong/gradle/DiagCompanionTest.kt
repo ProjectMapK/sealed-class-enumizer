@@ -1,7 +1,7 @@
 package org.wrongwrong.gradle
 
-import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import kotlin.test.Test
+import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 
 // G 軸: companion 系診断（ENUMIZE_COMPANION_LEAF_CONFLICT。
 // docs/テストケース管理.md TC-DIAG-036・108、設計01 §6・§7.2）

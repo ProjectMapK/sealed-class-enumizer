@@ -1,9 +1,9 @@
 package org.wrongwrong.gradle
 
-import org.gradle.testkit.runner.TaskOutcome
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.Test
 
 // runtime-api 依存露出（docs/テストケース管理.md TC-XM-006 / TC-XM-056）。
 // gradle-plugin が runtime-api を api スコープで自動追加するため、プラグイン未適用の消費側は

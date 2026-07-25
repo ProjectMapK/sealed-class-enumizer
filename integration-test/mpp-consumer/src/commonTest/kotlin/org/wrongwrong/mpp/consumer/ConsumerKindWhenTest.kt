@@ -1,5 +1,7 @@
 package org.wrongwrong.mpp.consumer
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import org.wrongwrong.mpp.fixtures.Command
 import org.wrongwrong.mpp.fixtures.SI
 import org.wrongwrong.mpp.fixtures.order.Box
@@ -8,8 +10,6 @@ import org.wrongwrong.mpp.fixtures.order.Mmm
 import org.wrongwrong.mpp.fixtures.order.S
 import org.wrongwrong.mpp.fixtures.order.Zzz
 import org.wrongwrong.mpp.fixtures.order.aLower
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 // 跨モジュール網羅 when（V1-a の MPP 版。docs/テストケース管理.md TC-MPP-042/047）。
 // else 無しでコンパイルが通ること自体が「生成 Enumish の inheritors が metadata / klib へ
@@ -19,15 +19,16 @@ class ConsumerKindWhenTest {
     // （object の kind は source 宣言そのもの = 生成 companion を介さない経路）
     @Test
     fun objectLeafKindWhenNeedsNoElseAcrossModules() {
-        val branches = FqnOrder.Enumish.entries.map { kind ->
-            when (kind) {
-                Box.Bbb -> "bbb"
-                Mmm -> "mmm"
-                S.Aaa -> "aaa"
-                Zzz -> "zzz"
-                aLower -> "alower"
+        val branches =
+            FqnOrder.Enumish.entries.map { kind ->
+                when (kind) {
+                    Box.Bbb -> "bbb"
+                    Mmm -> "mmm"
+                    S.Aaa -> "aaa"
+                    Zzz -> "zzz"
+                    aLower -> "alower"
+                }
             }
-        }
         assertEquals(listOf("bbb", "mmm", "aaa", "zzz", "alower"), branches)
     }
 
@@ -35,24 +36,26 @@ class ConsumerKindWhenTest {
     // 共通ソース由来の生成 companion が跨モジュールで解決できることの実証でもある
     @Test
     fun classLeafKindWhenNeedsNoElseAcrossModules() {
-        val branches = SI.Enumish.entries.map { kind ->
-            when (kind) {
-                SI.Foo.Companion -> "foo"
-                SI.Bar -> "bar"
+        val branches =
+            SI.Enumish.entries.map { kind ->
+                when (kind) {
+                    SI.Foo.Companion -> "foo"
+                    SI.Bar -> "bar"
+                }
             }
-        }
         assertEquals(listOf("bar", "foo"), branches)
     }
 
     // TC-MPP-044 の跨モジュール面: enum 末端・data class 末端の kind はいずれも生成 companion
     @Test
     fun enumLeafHierarchyKindWhenNeedsNoElse() {
-        val branches = Command.Enumish.entries.map { kind ->
-            when (kind) {
-                Command.Builtin.Companion -> "builtin"
-                Command.Custom.Companion -> "custom"
+        val branches =
+            Command.Enumish.entries.map { kind ->
+                when (kind) {
+                    Command.Builtin.Companion -> "builtin"
+                    Command.Custom.Companion -> "custom"
+                }
             }
-        }
         assertEquals(listOf("builtin", "custom"), branches)
     }
 }

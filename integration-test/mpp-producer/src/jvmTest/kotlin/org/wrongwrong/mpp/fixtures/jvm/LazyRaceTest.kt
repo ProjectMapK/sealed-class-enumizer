@@ -14,12 +14,13 @@ class LazyRaceTest {
         val workers = 8
         val barrier = CyclicBarrier(workers)
         val seen = arrayOfNulls<List<Raced.Enumish>>(workers)
-        val threads = (0 until workers).map { index ->
-            thread {
-                barrier.await()
-                seen[index] = Raced.Enumish.entries
+        val threads =
+            (0 until workers).map { index ->
+                thread {
+                    barrier.await()
+                    seen[index] = Raced.Enumish.entries
+                }
             }
-        }
         threads.forEach { it.join() }
         seen.forEach { assertSame(seen[0], it) }
     }

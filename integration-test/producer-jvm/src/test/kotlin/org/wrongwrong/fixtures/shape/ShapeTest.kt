@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures.shape
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 非 final 末端（V10）の box テスト（docs/概要.md §3「拡張点を開いたまま使える」）
 class ShapeTest {

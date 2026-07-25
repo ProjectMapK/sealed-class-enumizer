@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
+import kotlin.test.assertEquals
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
 
 // 参照不能 kind 用 IR-only アクセサの IC 決定性（概要 §8・設計02 §4.3・docs/テストケース管理.md）:
 // createEntries はトップレベルアクセサ（KaHidden.Leaf）とネストアクセサ（KaPriv の private companion）を
@@ -44,15 +44,15 @@ class IcKindAccessorTest {
     fun leafFileEditKeepsAccessorBasedEntriesStable() {
         val dir = IcTestSupport.prepare(fixtureName, "ickacc2-")
         assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
-        val siGenerated0 = IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) }
+        val siGenerated0 =
+            IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) }
 
-        TestKitHarness.replaceInFile(
-            dir, hiddenFile,
-            "IR-only アクセサ経由で load",
-            "IR-only アクセサ経由で取得",
-        )
+        TestKitHarness.replaceInFile(dir, hiddenFile, "IR-only アクセサ経由で load", "IR-only アクセサ経由で取得")
         assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
-        assertEquals(siGenerated0, IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) })
+        assertEquals(
+            siGenerated0,
+            IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) },
+        )
     }
 
     // 新規ファイルでの末端追加（基底不在ラウンド）を、参照不能 kind を含む階層で行う。1 巡目は基底不在、
@@ -64,7 +64,8 @@ class IcKindAccessorTest {
         assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
 
         TestKitHarness.writeFile(
-            dir, "src/main/kotlin/org/wrongwrong/ickacc/KaNew.kt",
+            dir,
+            "src/main/kotlin/org/wrongwrong/ickacc/KaNew.kt",
             "package org.wrongwrong.ickacc\n\n// 基底不在ラウンドの引き金となる新規末端\ndata object KaNew : KaSi\n",
         )
         val added = listOf("ENTRIES=Leaf,KaNew,KaPriv,Visible", "VALUEOF=Leaf,KaPriv")

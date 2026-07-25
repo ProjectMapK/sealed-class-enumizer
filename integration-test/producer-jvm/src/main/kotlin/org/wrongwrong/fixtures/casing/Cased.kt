@@ -9,11 +9,9 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 // 末尾に数字を足して FS 上の一意性を保ちつつ、比較が数字に到達する前に大小境界で決着する名前へ変更している
 @Enumize
 sealed interface Cased {
-    @Suppress("ClassName")
-    data object ab4 : Cased
+    @Suppress("ClassName") data object ab4 : Cased
 
-    @Suppress("ClassName")
-    data object aB3 : Cased
+    @Suppress("ClassName") data object aB3 : Cased
 
     data object Ab2 : Cased
 

@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures.classmid
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 中間 sealed 経由の raw-ref 再帰追跡（V3）の box テスト
 // （docs/テストケース管理.md TC-LEAF-023 = sealed interface 経由 / TC-LEAF-079 = sealed class 経由）

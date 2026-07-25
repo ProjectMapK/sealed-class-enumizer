@@ -5,7 +5,8 @@ package org.wrongwrong.fixtures.widerleaf
 // （エッジ §1.1 #5 と #2 の対比。実測: Kotlin 2.4.20-Beta1）。
 // 最小再現（コメントアウト解除でコンパイルエラー）:
 //
-//   interface Wide : InternalBase {   // e: 'public' sub-interface exposes its 'internal' supertype 'InternalBase'
+//   interface Wide : InternalBase {   // e: 'public' sub-interface exposes its 'internal' supertype
+// 'InternalBase'
 //       companion object
 //   }
 //

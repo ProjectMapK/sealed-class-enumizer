@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
-import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
 import kotlin.test.Test
 import kotlin.test.assertTrue
+import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
 
 // 残ケース掃討: 軸間重複の写像先が未確定のまま残った発火系ケースを sweep-diag-fail フィクスチャ
 // （複数の独立階層を 1 モジュールへ収容）へ集約して検証する。対象 TC は各メソッドのコメントに記す
@@ -12,9 +12,11 @@ class SweepDiagFailTest : DiagTestBase() {
 
     // 指定ファイルの診断行（e:/w:）に、指定断片をすべて含む行があることを検査する（行番号は問わない）
     private fun assertDiagnosticInFile(output: String, file: String, vararg fragments: String) {
-        val lines = output.lineSequence()
-            .filter { it.contains("$file:") && (it.contains("e: ") || it.contains("w: ")) }
-            .toList()
+        val lines =
+            output
+                .lineSequence()
+                .filter { it.contains("$file:") && (it.contains("e: ") || it.contains("w: ")) }
+                .toList()
         assertTrue(
             lines.any { candidate -> fragments.all(candidate::contains) },
             "期待した診断が $file に無い: ${fragments.toList()}\n$file の診断行: $lines",
@@ -89,7 +91,11 @@ class SweepDiagFailTest : DiagTestBase() {
     // ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY も併発する（階層外直接実装の現行仕様）
     @Test
     fun alienPackageManualImplementationFails() {
-        assertDiagnosticInFile(sweep(), "SwAlienPkg.kt", DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY)
+        assertDiagnosticInFile(
+            sweep(),
+            "SwAlienPkg.kt",
+            DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY,
+        )
     }
 
     // TC-VIS-045: public メンバー override の internal 化は CANNOT_WEAKEN_ACCESS_PRIVILEGE。

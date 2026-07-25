@@ -1,8 +1,8 @@
 package org.wrongwrong.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import org.wrongwrong.sealedClassEnumizer.label
 
 // toString の 2 原則（docs/概要.md §4）と label シャドーイング（同 §2 の注意）の box テスト
 class LabeledTest {
@@ -34,9 +34,6 @@ class LabeledTest {
     // シャドーイング構成でも entries / valueOf は kind の label で解決される
     @Test
     fun valueOfUsesKindLabelNotMemberValue() {
-        assertEquals(
-            listOf("Manual", "Styled", "Tagged"),
-            Labeled.Enumish.entries.map { it.label },
-        )
+        assertEquals(listOf("Manual", "Styled", "Tagged"), Labeled.Enumish.entries.map { it.label })
     }
 }

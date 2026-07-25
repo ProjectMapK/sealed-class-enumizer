@@ -1,7 +1,7 @@
 package org.wrongwrong.gradle
 
-import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import kotlin.test.Test
+import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 
 // G 軸: 単一モジュールの near-miss（非発火）集約フィクスチャ。互いに独立な階層を 1 ビルドにまとめて
 // 「ビルド成功 + 診断断片の不在」で非発火を検証する（docs/テストケース管理.md TC-DIAG-017・037・041・

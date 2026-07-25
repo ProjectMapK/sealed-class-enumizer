@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures.sealedbase
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // sealed class 基底の box テスト（docs/テストケース管理.md TC-LEAF-076 / TC-LEAF-078）
 class TaskTest {
@@ -11,7 +11,10 @@ class TaskTest {
     @Test
     fun constructorCallSupertypeLeafGetsAutoCompanion() {
         assertSame(Task.Run.Companion, Task.Run(1).asEnumish())
-        assertEquals(listOf("Run", Task.Run::class), listOf(Task.Run.Companion.label, Task.Run.Companion.enumizedClass))
+        assertEquals(
+            listOf("Run", Task.Run::class),
+            listOf(Task.Run.Companion.label, Task.Run.Companion.enumizedClass),
+        )
         assertEquals("Run", Task.Run.Companion.toString())
     }
 

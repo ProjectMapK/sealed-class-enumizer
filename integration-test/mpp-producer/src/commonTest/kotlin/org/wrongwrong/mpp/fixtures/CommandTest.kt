@@ -1,9 +1,9 @@
 package org.wrongwrong.mpp.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // enum 末端の label と Enum.name の併存が全ターゲットで一致することの box テスト
 // （docs/テストケース管理.md TC-MPP-044・V4・docs/概要.md §1）

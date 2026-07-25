@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Test
 
 // MPP（klib を含む）の増分ビルド（docs/テストケース管理.md TC-IC-069 = V8 の klib IC）。
 // KGP は MPP のコンパイルを既定で非 incremental にする（ビルドレポートが
@@ -12,7 +12,12 @@ import kotlin.test.assertTrue
 // 成果物が同一ソースの clean ビルドとバイト一致することを固定する
 class MppIcTest {
     private val tasks =
-        arrayOf("runMain", "compileKotlinJs", "compileKotlinWasmJs", "compileCommonMainKotlinMetadata")
+        arrayOf(
+            "runMain",
+            "compileKotlinJs",
+            "compileKotlinWasmJs",
+            "compileCommonMainKotlinMetadata",
+        )
     private val outputDir = "build/classes/kotlin"
     private val leafCFile = "src/commonMain/kotlin/org/wrongwrong/icmpp/LeafC.kt"
     private val useFile = "src/commonMain/kotlin/org/wrongwrong/icmpp/Use.kt"
@@ -27,11 +32,17 @@ class MppIcTest {
         assertEquals(baselineOut, IcTestSupport.outLines(TestKitHarness.build(dir, *tasks)))
 
         TestKitHarness.writeFile(dir, leafCFile, leafCSource)
-        TestKitHarness.replaceInFile(dir, useFile, "    LeafB -> \"b\"", "    LeafB -> \"b\"\n    LeafC -> \"c\"")
+        TestKitHarness.replaceInFile(
+            dir,
+            useFile,
+            "    LeafB -> \"b\"",
+            "    LeafB -> \"b\"\n    LeafC -> \"c\"",
+        )
         assertEquals(addedOut, IcTestSupport.outLines(TestKitHarness.build(dir, *tasks)))
         val incremental = IcTestSupport.outputDigests(dir, outputDir)
         assertTrue(
-            incremental.keys.any { it.startsWith("js/") } && incremental.keys.any { it.startsWith("wasmJs/") },
+            incremental.keys.any { it.startsWith("js/") } &&
+                incremental.keys.any { it.startsWith("wasmJs/") },
             "klib 出力が観測対象に含まれること: ${incremental.keys}",
         )
 

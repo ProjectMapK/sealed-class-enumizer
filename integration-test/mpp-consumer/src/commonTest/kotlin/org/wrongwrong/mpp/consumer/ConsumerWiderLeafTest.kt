@@ -1,10 +1,10 @@
 package org.wrongwrong.mpp.consumer
 
-import org.wrongwrong.mpp.fixtures.wider.Wide
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.mpp.fixtures.wider.Wide
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 基底（internal）より広い public 末端の外部観測面（E-2 の MPP 版。docs/テストケース管理.md
 // TC-GAP-017 の外部観測・エッジ §1.2）。階層 API（entries / valueOf / WideBase.Enumish の名指し）は

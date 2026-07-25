@@ -1,10 +1,10 @@
 package org.wrongwrong.mpp.fixtures.jvm
 
-import org.wrongwrong.mpp.fixtures.SI
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.wrongwrong.mpp.fixtures.SI
 
 // JVM 固有のバイトコード観測（docs/テストケース管理.md TC-MPP-031/035/036 と TC-MPP-010 の
 // bridge 半面）。テストコードからの java.lang.reflect 利用は no-reflection 原則
@@ -15,10 +15,7 @@ class JvmBytecodeTest {
     fun sealedBaseHasPermittedSubclasses() {
         val si = SI::class.java
         assertTrue(si.isSealed)
-        assertEquals(
-            setOf(SI.Foo::class.java, SI.Bar::class.java),
-            si.permittedSubclasses.toSet(),
-        )
+        assertEquals(setOf(SI.Foo::class.java, SI.Bar::class.java), si.permittedSubclasses.toSet())
     }
 
     // TC-MPP-031: 生成 Enumish（sealed。V1 成立）にも PermittedSubclasses が出る
@@ -36,7 +33,8 @@ class JvmBytecodeTest {
     // $ 入り出力名のネストクラスとして Java から見える（ABI 保証外）
     @Test
     fun entriesHolderIsJavaVisibleWithDollarName() {
-        val holder = SI.Enumish::class.java.declaredClasses.firstOrNull { it.name.contains("EntriesHolder") }
+        val holder =
+            SI.Enumish::class.java.declaredClasses.firstOrNull { it.name.contains("EntriesHolder") }
         assertNotNull(
             holder,
             "declaredClasses=${SI.Enumish::class.java.declaredClasses.map { it.name }}",
@@ -50,9 +48,12 @@ class JvmBytecodeTest {
     // 実装クラス側（Bar）へは delegation stub が bridge として生成される（実測形）
     @Test
     fun covariantOverridesHaveBridges() {
-        val interfaceGetters = SI.Enumish::class.java.methods.filter { it.name == "getEnumishCompanion" }
+        val interfaceGetters =
+            SI.Enumish::class.java.methods.filter { it.name == "getEnumishCompanion" }
         assertTrue(
-            interfaceGetters.any { !it.isBridge && it.returnType == SI.Enumish.Companion::class.java },
+            interfaceGetters.any {
+                !it.isBridge && it.returnType == SI.Enumish.Companion::class.java
+            },
             "methods=$interfaceGetters",
         )
         val barGetters = SI.Bar::class.java.methods.filter { it.name == "getEnumishCompanion" }

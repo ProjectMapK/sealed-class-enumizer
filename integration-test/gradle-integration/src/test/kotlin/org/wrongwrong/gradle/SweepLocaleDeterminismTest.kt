@@ -23,9 +23,6 @@ class SweepLocaleDeterminismTest {
         TestKitHarness.build(defaultDir, "compileKotlin")
         TestKitHarness.build(turkishDir, "compileKotlin")
 
-        assertEquals(
-            IcTestSupport.classDigests(defaultDir),
-            IcTestSupport.classDigests(turkishDir),
-        )
+        assertEquals(IcTestSupport.classDigests(defaultDir), IcTestSupport.classDigests(turkishDir))
     }
 }

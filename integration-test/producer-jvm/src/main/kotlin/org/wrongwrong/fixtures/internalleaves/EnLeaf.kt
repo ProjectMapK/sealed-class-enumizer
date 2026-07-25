@@ -4,8 +4,7 @@ package org.wrongwrong.fixtures.internalleaves
 // label は enum class 宣言名・name は定数名で管轄分離（docs/概要.md §4）
 internal enum class EnLeaf : InternalLeaves {
     A,
-    B,
-    ;
+    B;
 
     internal companion object
 }

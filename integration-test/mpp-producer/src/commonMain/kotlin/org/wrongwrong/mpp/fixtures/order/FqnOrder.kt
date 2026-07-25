@@ -6,5 +6,4 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 // docs/テストケース管理.md TC-MPP-006）。ネスト末端 S.Aaa / Box.Bbb とトップレベル末端
 // Mmm / Zzz / aLower を混在させ、entries = [Bbb, Mmm, Aaa, Zzz, aLower]（FQN 序数順）が
 // 全ターゲットで一致することを観測する。継承者はファイル分散で定義する
-@Enumize
-sealed interface FqnOrder
+@Enumize sealed interface FqnOrder

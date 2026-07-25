@@ -5,6 +5,8 @@ package org.wrongwrong.sealedClassEnumizer
 // List<EnumishCompanion<Enumish>> として射影なしで束ねられる（docs/概要.md §2）
 interface EnumishCompanion<out T : Enumish> {
     val entries: List<T>
+
     fun valueOf(value: String): T
+
     fun valueOfOrNull(value: String): T?
 }

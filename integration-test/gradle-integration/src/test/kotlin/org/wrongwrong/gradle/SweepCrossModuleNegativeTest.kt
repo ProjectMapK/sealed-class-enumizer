@@ -1,10 +1,10 @@
 package org.wrongwrong.gradle
 
-import org.gradle.testkit.runner.BuildResult
-import org.gradle.testkit.runner.TaskOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.gradle.testkit.runner.BuildResult
+import org.gradle.testkit.runner.TaskOutcome
 
 // 残ケース掃討: 跨モジュール可視性の負値（sweep-xm-negative フィクスチャ = producer + consumer）。
 // producer は正常にコンパイルされ、consumer 側の参照だけが言語の可視性・網羅性エラーで壊れることを
@@ -17,15 +17,19 @@ class SweepCrossModuleNegativeTest : DiagTestBase() {
         if (current != null) {
             return current
         }
-        val built = TestKitHarness.buildAndFail(prepare("sweep-xm-negative"), ":consumer:compileKotlin")
+        val built =
+            TestKitHarness.buildAndFail(prepare("sweep-xm-negative"), ":consumer:compileKotlin")
         cached = built
         return built
     }
 
     private fun assertErrorInFile(file: String, vararg fragments: String) {
-        val lines = result().output.lineSequence()
-            .filter { it.contains("$file:") && it.contains("e: ") }
-            .toList()
+        val lines =
+            result()
+                .output
+                .lineSequence()
+                .filter { it.contains("$file:") && it.contains("e: ") }
+                .toList()
         assertTrue(
             lines.any { candidate -> fragments.all(candidate::contains) },
             "期待したエラーが $file に無い: ${fragments.toList()}\n$file の診断行: $lines",

@@ -10,7 +10,8 @@ fun consumerLabels(): List<String> = SI.Enumish.entries.map { it.label }
 
 // else 無し kind-when（TC-MPP-047 の跨モジュール面）。共通ソース由来の生成 companion
 // （SI.Foo.Companion）を跨モジュールで名指しでき、網羅性検査も else なしで満たされる
-fun consumerClassify(si: SI): String = when (si.asEnumish()) {
-    SI.Foo.Companion -> "foo"
-    SI.Bar -> "bar"
-}
+fun consumerClassify(si: SI): String =
+    when (si.asEnumish()) {
+        SI.Foo.Companion -> "foo"
+        SI.Bar -> "bar"
+    }

@@ -1,16 +1,13 @@
 // Gradle TestKit ホスト（docs/テストケース管理.md モジュール一覧）。
 // resources/fixtures 配下の合成ビルドを GradleRunner で駆動し、IC 回帰・決定性・
 // 跨モジュール負値診断・ABI 伝播・旧バイナリ差し替え・基底不在ラウンドを検証する
-plugins {
-    kotlin("jvm")
-}
+plugins { kotlin("jvm") }
 
 group = "org.wrongwrong"
+
 version = "1.0-SNAPSHOT"
 
-kotlin {
-    jvmToolchain(17)
-}
+kotlin { jvmToolchain(17) }
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -30,12 +27,11 @@ val testKitForks = (Runtime.getRuntime().availableProcessors() / 3).coerceIn(1, 
 // 展開先の作り直しはテスト本体と分けて前段のタスクで行う（test の出力準備と混ざらないようにする）。
 // 直前の実行が残した TestKit のデーモンが Windows でファイルを掴んだままのことがあるため、
 // 削除は best-effort とする（掴まれた分は次回以降の実行で回収される）
-val cleanFixtureWorkRoot = tasks.register("cleanFixtureWorkRoot") {
-    val workRoot = fixtureWorkRoot
-    doLast {
-        workRoot.get().asFile.deleteRecursively()
+val cleanFixtureWorkRoot =
+    tasks.register("cleanFixtureWorkRoot") {
+        val workRoot = fixtureWorkRoot
+        doLast { workRoot.get().asFile.deleteRecursively() }
     }
-}
 
 tasks.test {
     dependsOn(cleanFixtureWorkRoot)

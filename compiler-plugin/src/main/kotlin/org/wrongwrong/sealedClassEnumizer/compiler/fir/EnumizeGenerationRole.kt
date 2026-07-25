@@ -12,7 +12,8 @@ sealed interface EnumizeGenerationRole {
     class GeneratedEnumishCompanion(val enumish: FirRegularClassSymbol) : EnumizeGenerationRole
 
     // kind となる companion（既存・生成とも）: label / enumizedClass を宣言する
-    class KindCompanion(val leaf: FirRegularClassSymbol, val base: FirRegularClassSymbol) : EnumizeGenerationRole
+    class KindCompanion(val leaf: FirRegularClassSymbol, val base: FirRegularClassSymbol) :
+        EnumizeGenerationRole
 
     // 末端 object / data object（kind 自身）: label / enumizedClass / asEnumish を宣言する
     class LeafObject(val base: FirRegularClassSymbol) : EnumizeGenerationRole

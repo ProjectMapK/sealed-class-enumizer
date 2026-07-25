@@ -1,10 +1,10 @@
 package org.wrongwrong.mpp.consumer
 
-import org.wrongwrong.mpp.fixtures.shape.Shape
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.mpp.fixtures.shape.Shape
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 非 final 末端のサブタイプを別モジュールに置く構成の box テスト
 // （docs/テストケース管理.md TC-MPP-045/053・V10。サブタイプ定義に @Enumize は不要）

@@ -50,16 +50,17 @@ class InternalLeavesTest {
     // TC-VIS-039: internal 末端を含む階層でも、モジュール内（全 kind 可視）の kind-when は else 不要
     @Test
     fun kindWhenIsExhaustiveInsideModule() {
-        val branches = InternalLeaves.Enumish.entries.map { kind ->
-            when (kind) {
-                AutoLeaf.Companion -> "auto"
-                ClsLeaf.Companion -> "cls"
-                EnLeaf.Companion -> "enum"
-                ObLeaf -> "ob"
-                PubOb -> "pub"
-                VvLeaf.Companion -> "value"
+        val branches =
+            InternalLeaves.Enumish.entries.map { kind ->
+                when (kind) {
+                    AutoLeaf.Companion -> "auto"
+                    ClsLeaf.Companion -> "cls"
+                    EnLeaf.Companion -> "enum"
+                    ObLeaf -> "ob"
+                    PubOb -> "pub"
+                    VvLeaf.Companion -> "value"
+                }
             }
-        }
         assertEquals(listOf("auto", "cls", "enum", "ob", "pub", "value"), branches)
     }
 }

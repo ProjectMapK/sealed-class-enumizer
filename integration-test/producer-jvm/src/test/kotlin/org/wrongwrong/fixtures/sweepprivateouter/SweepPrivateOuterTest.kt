@@ -10,10 +10,7 @@ class SweepPrivateOuterTest {
     // 名前参照できない kind（HiddenHost.Leaf）も IR-only アクセサ経由で entries に載り、label / valueOf で観測できる
     @Test
     fun hiddenOuterLeafIsServedThroughEntries() {
-        assertEquals(
-            listOf("Leaf", "Visible"),
-            PrivateOuterRoot.Enumish.entries.map { it.label },
-        )
+        assertEquals(listOf("Leaf", "Visible"), PrivateOuterRoot.Enumish.entries.map { it.label })
         assertEquals("Leaf", PrivateOuterRoot.Enumish.valueOf("Leaf").label)
     }
 }

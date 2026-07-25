@@ -25,10 +25,12 @@ import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 //   @Enumize 対象（基底）        += Enumized<SI.Enumish>
 //   末端 object / data object    += SI.Enumish
 //   末端の companion（既存・生成） += SI.Enumish
-class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGenerationExtension(session) {
+class EnumizeSupertypeGenerationExtension(session: FirSession) :
+    FirSupertypeGenerationExtension(session) {
     // コンポーネント群の生成順に依存しないよう、初回コールバック時に解決する
     private val resolver: EnumizeHierarchyResolver by lazy { session.enumizeHierarchyResolver }
-    private val tracker: EnumizeRawSupertypeTracker get() = resolver.tracker
+    private val tracker: EnumizeRawSupertypeTracker
+        get() = resolver.tracker
 
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(EnumizePredicates.ENUMIZE)
@@ -46,8 +48,9 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
             session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, regularClass) -> true
             regularClass.classKind != ClassKind.OBJECT -> false
             !regularClass.status.isCompanion -> couldBeHierarchyMember(regularClass.symbol)
-            else -> couldBeHierarchyMember(regularClass.symbol) ||
-                outerSymbolOf(regularClass)?.let(::couldBeHierarchyMember) == true
+            else ->
+                couldBeHierarchyMember(regularClass.symbol) ||
+                    outerSymbolOf(regularClass)?.let(::couldBeHierarchyMember) == true
         }
     }
 
@@ -63,7 +66,8 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
         return when {
             session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, regularClass) ->
                 supertypesForBase(regularClass, resolvedSupertypes)
-            regularClass.status.isCompanion -> supertypesForCompanion(regularClass, resolvedSupertypes)
+            regularClass.status.isCompanion ->
+                supertypesForCompanion(regularClass, resolvedSupertypes)
             else -> supertypesForLeafObject(regularClass, resolvedSupertypes)
         }
     }
@@ -88,11 +92,14 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
         // 手動の Enumized<K> がある場合（間接継承経由を含む — エッジ §2）は注入しない。型引数一致なら
         // 重複回避、不一致なら ENUMIZE_MANUAL_SUPERTYPE_MISMATCH をチェッカーが報告する（設計01 §4）
         if (hasEnumizedSupertype(resolvedSupertypes)) return emptyList()
-        val enumishType = base.symbol.classId
-            .createNestedClassId(EnumizeNames.ENUMISH_NAME)
-            .constructClassLikeType()
+        val enumishType =
+            base.symbol.classId
+                .createNestedClassId(EnumizeNames.ENUMISH_NAME)
+                .constructClassLikeType()
         return listOf(
-            EnumizeNames.ENUMIZED_CLASS_ID.constructClassLikeType(arrayOf<ConeTypeProjection>(enumishType))
+            EnumizeNames.ENUMIZED_CLASS_ID.constructClassLikeType(
+                arrayOf<ConeTypeProjection>(enumishType)
+            )
         )
     }
 
@@ -117,8 +124,12 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
     }
 
     // 外側（末端）の supertype 解決は companion より先に走るため、解決済み ref を tracker 経由で辿れる
-    private fun findBaseFromResolved(resolvedSupertypes: List<FirResolvedTypeRef>): FirRegularClassSymbol? {
-        val superSymbols = resolvedSupertypes.mapNotNull { tracker.resolveExpandedClassSymbol(it.coneType) }
+    private fun findBaseFromResolved(
+        resolvedSupertypes: List<FirResolvedTypeRef>
+    ): FirRegularClassSymbol? {
+        val superSymbols = resolvedSupertypes.mapNotNull {
+            tracker.resolveExpandedClassSymbol(it.coneType)
+        }
         return tracker.findEnumizeBaseAmong(superSymbols)
     }
 
@@ -137,7 +148,7 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
         resolvedSupertypes.any(::declaresOrInheritsEnumized)
 
     // 展開後が Enumized 自身である場合を先に判定し、そうでなければ間接継承
-    //（interface MyBase : Enumized<K> 経由 — エッジ §2）を supertype グラフで探す
+    // （interface MyBase : Enumized<K> 経由 — エッジ §2）を supertype グラフで探す
     private fun declaresOrInheritsEnumized(ref: FirResolvedTypeRef): Boolean {
         val classId = expandedClassIdOf(ref) ?: return false
         if (classId == EnumizeNames.ENUMIZED_CLASS_ID) return true
@@ -147,7 +158,8 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
 
     // このコールバックが受け取る解決済み型は typealias が未展開のことがあるため、照合の前に展開する
     // （型の同一性は表記に依らない — 設計01 §4・§6.2）
-    private fun expandedClassIdOf(ref: FirResolvedTypeRef): ClassId? = tracker.expandedClassId(ref.coneType)
+    private fun expandedClassIdOf(ref: FirResolvedTypeRef): ClassId? =
+        tracker.expandedClassId(ref.coneType)
 
     private fun outerSymbolOf(regularClass: FirRegularClass): FirRegularClassSymbol? =
         tracker.resolveClassSymbol(regularClass.symbol.classId.outerClassId)

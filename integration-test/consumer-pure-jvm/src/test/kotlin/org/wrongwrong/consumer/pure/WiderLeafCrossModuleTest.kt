@@ -1,12 +1,12 @@
 package org.wrongwrong.consumer.pure
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import org.wrongwrong.fixtures.widerleaf.AutoWide
 import org.wrongwrong.fixtures.widerleaf.PublicLeaf
 import org.wrongwrong.sealedClassEnumizer.Enumish
 import org.wrongwrong.sealedClassEnumizer.label
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertSame
 
 // 基底より広い末端（internal 基底 + public class 末端）の外部観測面 = E-2
 // （docs/エッジケースへの対応方針.md §1.2・§4、docs/テストケース管理.md TC-XM-031 / TC-VIS-015 /
@@ -40,7 +40,8 @@ class WiderLeafCrossModuleTest {
     //   enumishCompanion 経由で実行時に階層の entries へ到達できる（階層 API の「名指し」は internal のまま）
     // - 不成立: 具体型 PublicLeaf.Companion からの enumishCompanion 直接参照。共変 override の返り値型が
     //   internal な InternalBase.Enumish.Companion のため、以下はコンパイルエラーになる
-    //   （e: Cannot access 'interface InternalBase : Any, Enumized<InternalBase.Enumish>': it is internal in file.）:
+    //   （e: Cannot access 'interface InternalBase : Any, Enumized<InternalBase.Enumish>': it is
+    // internal in file.）:
     //
     //     val direct = PublicLeaf.Companion.enumishCompanion
     //     assertEquals(listOf("PublicLeaf"), direct.entries.map { it.label })

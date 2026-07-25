@@ -1,13 +1,13 @@
 package org.wrongwrong.consumer.plugin
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import org.wrongwrong.fixtures.SI
 import org.wrongwrong.sealedClassEnumizer.Enumish
 import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
 import org.wrongwrong.sealedClassEnumizer.Enumized
 import org.wrongwrong.sealedClassEnumizer.label
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertSame
 
 // 自前 @Enumize 階層（TI）と他モジュール生成 API（SI）の併用（docs/テストケース管理.md TC-XM-040 / TC-XM-056）
 class OwnHierarchyCoexistTest {
@@ -31,16 +31,17 @@ class OwnHierarchyCoexistTest {
 
     // TC-XM-056（正値側）: gradle-plugin 適用側は runtime-api が自動追加されるため、
     // build.gradle.kts に明示宣言が無くても基底型（Enumized）・label 拡張が解決できる
-    //（オプトアウト縮退・producer 側 implementation 隠しの比較は gradle-integration の RuntimeApiExposureTest が担当）
+    // （オプトアウト縮退・producer 側 implementation 隠しの比較は gradle-integration の RuntimeApiExposureTest が担当）
     @Test
     fun runtimeApiIsAutoSuppliedToPluginConsumer() {
         val value: Enumized<TI.Enumish> = TI.Alpha(7)
         assertEquals("Alpha", value.label)
         val beta: TI = TI.Beta
-        val branch = when (beta.asEnumish()) {
-            TI.Alpha.Companion -> "alpha"
-            TI.Beta -> "beta"
-        }
+        val branch =
+            when (beta.asEnumish()) {
+                TI.Alpha.Companion -> "alpha"
+                TI.Beta -> "beta"
+            }
         assertEquals("beta", branch)
     }
 }

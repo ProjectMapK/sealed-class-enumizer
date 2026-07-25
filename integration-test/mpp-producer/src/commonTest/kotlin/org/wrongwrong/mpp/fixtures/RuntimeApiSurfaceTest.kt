@@ -1,11 +1,11 @@
 package org.wrongwrong.mpp.fixtures
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import org.wrongwrong.sealedClassEnumizer.Enumish
 import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
 import org.wrongwrong.sealedClassEnumizer.Enumized
 import org.wrongwrong.sealedClassEnumizer.label
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 // runtime-api の基底型が common から解決され全ターゲットでリンクすること（TC-MPP-057）と、
 // 複数階層の Companion を宣言側共変で束ねられること（TC-MPP-058）の box テスト

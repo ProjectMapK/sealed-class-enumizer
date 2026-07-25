@@ -1,8 +1,8 @@
 package org.wrongwrong.sealedClassEnumizer.compiler.fir
 
+import java.lang.reflect.Method
 import org.jetbrains.kotlin.fir.declarations.FirClassLikeDeclaration
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationGenerationExtension
-import java.lang.reflect.Method
 
 // 生成クラス（Enumish）の companion を replaceCompanionObjectSymbol で自前連結すると、
 // symbol provider を経由しないため内部属性 ownerGenerator（FirGeneratedDeclarationsUtils.kt・internal）が
@@ -11,12 +11,15 @@ import java.lang.reflect.Method
 // この属性を自前で刻印するしかない。internal API へのリフレクションは、Kotlin のマイナーバージョン毎に
 // アーティファクトを分割する方針（docs/概要.md §7）の下でバージョンに固定される。
 internal object EnumizeOwnerGeneratorPatch {
-    private val setter: Method? = runCatching {
-        Class.forName("org.jetbrains.kotlin.fir.FirGeneratedDeclarationsUtilsKt")
-            .methods.firstOrNull { method ->
-                method.name.startsWith("setOwnerGenerator") && method.parameterCount == 2
+    private val setter: Method? =
+        runCatching {
+                Class.forName("org.jetbrains.kotlin.fir.FirGeneratedDeclarationsUtilsKt")
+                    .methods
+                    .firstOrNull { method ->
+                        method.name.startsWith("setOwnerGenerator") && method.parameterCount == 2
+                    }
             }
-    }.getOrNull()
+            .getOrNull()
 
     fun stamp(declaration: FirClassLikeDeclaration, extension: FirDeclarationGenerationExtension) {
         setter?.invoke(null, declaration, extension)

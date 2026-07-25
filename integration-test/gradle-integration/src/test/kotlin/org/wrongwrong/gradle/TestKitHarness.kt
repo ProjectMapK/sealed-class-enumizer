@@ -1,7 +1,5 @@
 package org.wrongwrong.gradle
 
-import org.gradle.testkit.runner.BuildResult
-import org.gradle.testkit.runner.GradleRunner
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -12,6 +10,8 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.readText
 import kotlin.io.path.relativeTo
 import kotlin.io.path.writeText
+import org.gradle.testkit.runner.BuildResult
+import org.gradle.testkit.runner.GradleRunner
 
 // TestKit フィクスチャの展開と GradleRunner の起動を集約するハーネス（docs/テストケース管理.md
 // Gradle TestKit 方針）。フィクスチャは src/test/resources/fixtures/<name> に置き、
@@ -25,16 +25,20 @@ object TestKitHarness {
     // 並行実行するフォークの間でも使い回される（docs/テストケース管理.md 並行実行方針）。
     // ワーカー数の既定はホストのコア数であり、フィクスチャ（1〜3 プロジェクト）には過大で、
     // 並行実行すると デーモン数 × コア数 だけ多重化されて CPU を奪い合う
-    private val daemonSettings = listOf(
-        "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=1g",
-        "kotlin.daemon.jvmargs=-Xmx2g",
-        "org.gradle.workers.max=2",
-    )
+    private val daemonSettings =
+        listOf(
+            "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=1g",
+            "kotlin.daemon.jvmargs=-Xmx2g",
+            "org.gradle.workers.max=2",
+        )
 
     private val fixturesRoot: Path =
-        Path.of(requireNotNull(javaClass.classLoader.getResource("fixtures")) {
-            "src/test/resources/fixtures が見つからない"
-        }.toURI())
+        Path.of(
+            requireNotNull(javaClass.classLoader.getResource("fixtures")) {
+                    "src/test/resources/fixtures が見つからない"
+                }
+                .toURI()
+        )
 
     // フィクスチャ一式を projectDir へ展開し、テキストファイルのプレースホルダを置換する
     fun prepareFixture(name: String, projectDir: Path) {
@@ -49,8 +53,12 @@ object TestKitHarness {
                     isTextFile(path) -> {
                         target.parent.createDirectories()
                         target.writeText(
-                            path.readText()
-                                .replace("%%BUILD_CACHE_DIR%%", cacheDir.toString().replace('\\', '/'))
+                            path
+                                .readText()
+                                .replace(
+                                    "%%BUILD_CACHE_DIR%%",
+                                    cacheDir.toString().replace('\\', '/'),
+                                )
                         )
                     }
                     else -> {
@@ -73,8 +81,11 @@ object TestKitHarness {
 
     private fun isTextFile(path: Path): Boolean {
         val name = path.fileName.toString()
-        return name.endsWith(".kts") || name.endsWith(".kt") || name.endsWith(".properties") ||
-            name.endsWith(".java") || name.endsWith(".txt")
+        return name.endsWith(".kts") ||
+            name.endsWith(".kt") ||
+            name.endsWith(".properties") ||
+            name.endsWith(".java") ||
+            name.endsWith(".txt")
     }
 
     fun build(projectDir: Path, vararg arguments: String): BuildResult =

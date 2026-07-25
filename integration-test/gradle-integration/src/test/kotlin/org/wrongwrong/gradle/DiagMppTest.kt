@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
+import kotlin.test.Test
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
-import kotlin.test.Test
 
 // G 軸: MPP 負値（ENUMIZE_ON_EXPECT / ENUMIZE_ON_ACTUAL / 別ソースセット継承者の言語エラー）と MPP near-miss
 // （docs/テストケース管理.md TC-DIAG-009〜012・061〜062、docs/概要.md §7・§8）。

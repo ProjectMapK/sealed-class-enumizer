@@ -1,9 +1,9 @@
 package org.wrongwrong.gradle
 
+import kotlin.test.Test
 import org.junit.jupiter.api.Disabled
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAnywhere
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
-import kotlin.test.Test
 
 // supertype の頭そのものを typealias で書いた形の掃討（型引数だけを別名にする TC-MAN-069 =
 // SweepDiagOkTest との対比）。注入抑止の照合は解決済み型を展開してから行い、展開が届かない配置
@@ -20,7 +20,7 @@ class SweepTypealiasSupertypeTest : DiagTestBase() {
     }
 
     // TC-MAN-082: 末端 object による生成 Enumish の冗長宣言を typealias で書く形
-    //（明示形の TC-DIAG-049 は注入スキップで受容される）
+    // （明示形の TC-DIAG-049 は注入スキップで受容される）
     @Test
     fun typealiasedEnumishHeadIsAcceptedBySkip() {
         val output = successOutput("sweep-typealias-leaf", "compileKotlin")
@@ -60,7 +60,17 @@ class SweepTypealiasSupertypeTest : DiagTestBase() {
     @Test
     fun typealiasedManualImplementationIsListedAsInheritor() {
         val output = failOutput("sweep-typealias-impl", "compileKotlin")
-        assertDiagnosticAnywhere(output, "UseSwTiAl.kt", DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE, "is SwTiAlLeaf")
-        assertDiagnosticAnywhere(output, "UseSwTiEx.kt", DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE, "is SwTiExLeaf")
+        assertDiagnosticAnywhere(
+            output,
+            "UseSwTiAl.kt",
+            DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE,
+            "is SwTiAlLeaf",
+        )
+        assertDiagnosticAnywhere(
+            output,
+            "UseSwTiEx.kt",
+            DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE,
+            "is SwTiExLeaf",
+        )
     }
 }

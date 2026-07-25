@@ -1,9 +1,9 @@
 package org.wrongwrong.gradle
 
-import org.gradle.testkit.runner.TaskOutcome
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.Test
 
 // 決定性検証（設計00 §9-3・設計02 §6・docs/テストケース管理.md TC-IC-031〜034 など）:
 // (a) clean、(b) 無編集の再ビルド、(c) clean 後の from-cache 復元、(d) 別ディレクトリへの relocated
@@ -21,21 +21,23 @@ class DeterminismTest {
 
     // 実行時基準値。ENTRIES は FQN 序数順の途中に Mid の入れ子展開（Bbb）が挟まる形
     // （docs/概要.md §5。可視性違い Inn / Priv も並びへ通常どおり算入される = TC-ORD-059）
-    private val expectedOut = listOf(
-        "ENTRIES=Nested,Inherited,Inn,Bbb,PlainObj,Aaa,Custom,Priv,Zzz",
-        "TOSTR=PlainObj,parent,custom!,Aaa",
-        "NOLABEL=IAE:No enumish entry with label 'X' in S",
-    )
+    private val expectedOut =
+        listOf(
+            "ENTRIES=Nested,Inherited,Inn,Bbb,PlainObj,Aaa,Custom,Priv,Zzz",
+            "TOSTR=PlainObj,parent,custom!,Aaa",
+            "NOLABEL=IAE:No enumish entry with label 'X' in S",
+        )
 
-    private val aaaBlock = "    // 2 原則-c: data object は言語合成の toString を保つ（生成しない）\n" +
-        "    data object Aaa : S"
+    private val aaaBlock =
+        "    // 2 原則-c: data object は言語合成の toString を保つ（生成しない）\n" + "    data object Aaa : S"
 
-    private val customBlock = "    // 2 原則-a: kind（companion）の手動 toString には生成しない\n" +
-        "    data class Custom(val raw: String) : S {\n" +
-        "        companion object {\n" +
-        "            override fun toString(): String = \"custom!\"\n" +
-        "        }\n" +
-        "    }"
+    private val customBlock =
+        "    // 2 原則-a: kind（companion）の手動 toString には生成しない\n" +
+            "    data class Custom(val raw: String) : S {\n" +
+            "        companion object {\n" +
+            "            override fun toString(): String = \"custom!\"\n" +
+            "        }\n" +
+            "    }"
 
     // (a)(b)(c)(e): clean 基準 → 無編集再ビルド（UP-TO-DATE）→ clean 後の FROM-CACHE 復元 →
     // 宣言順入れ替え後の incremental、のすべてで生成物バイトと実行時挙動が一致する
@@ -61,7 +63,12 @@ class DeterminismTest {
         assertEquals(digests0, IcTestSupport.classDigests(dir))
 
         // (e) 宣言順の入れ替え（ORD-006/023/065）: entries の並びも生成物のバイトも変わらない
-        TestKitHarness.replaceInFile(dir, sFile, "$aaaBlock\n\n$customBlock", "$customBlock\n\n$aaaBlock")
+        TestKitHarness.replaceInFile(
+            dir,
+            sFile,
+            "$aaaBlock\n\n$customBlock",
+            "$customBlock\n\n$aaaBlock",
+        )
         val fourth = TestKitHarness.build(dir, "runMain")
         assertEquals(expectedOut, IcTestSupport.outLines(fourth))
         assertEquals(
@@ -99,7 +106,8 @@ class DeterminismTest {
 
         // 親クラスの具象 toString を除去 → Inherited の kind へ label を返す toString が生成される
         TestKitHarness.replaceInFile(
-            dir, withToStringFile,
+            dir,
+            withToStringFile,
             "    override fun toString(): String = \"parent\"",
             "    fun placeholderNote(): Int = 1",
         )
@@ -114,7 +122,8 @@ class DeterminismTest {
 
         // 復元 → 継承採用（生成しない）へ戻り、基準値と一致する
         TestKitHarness.replaceInFile(
-            dir, withToStringFile,
+            dir,
+            withToStringFile,
             "    fun placeholderNote(): Int = 1",
             "    override fun toString(): String = \"parent\"",
         )
@@ -129,16 +138,30 @@ class DeterminismTest {
         val dir = IcTestSupport.prepare("ic-shared-file", "det62-")
         val twoFile = "src/main/kotlin/org/wrongwrong/shared/Two.kt"
         val sbPrefix = "org/wrongwrong/shared/SB\$Enumish"
-        assertEquals(listOf("SA=A1", "SB=B1"), IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+        assertEquals(
+            listOf("SA=A1", "SB=B1"),
+            IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")),
+        )
         val sbGenerated0 = IcTestSupport.classDigests(dir).filterKeys { it.startsWith(sbPrefix) }
         val times0 = IcTestSupport.classTimes(dir)
 
         // SA 側だけを編集（末端の改名 = 行数を変えない編集。行がずれると未編集側 SB の生成クラスも
         // LineNumberTable 差分でバイトが揺れるため、バイト一致の主張は行数保存編集で検証する）
-        TestKitHarness.replaceInFile(dir, twoFile, "    data object A1 : SA", "    data object A9 : SA")
-        assertEquals(listOf("SA=A9", "SB=B1"), IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+        TestKitHarness.replaceInFile(
+            dir,
+            twoFile,
+            "    data object A1 : SA",
+            "    data object A9 : SA",
+        )
+        assertEquals(
+            listOf("SA=A9", "SB=B1"),
+            IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")),
+        )
         val changed = IcTestSupport.changedKeys(times0, IcTestSupport.classTimes(dir))
         assertTrue(changed.any { it.startsWith(sbPrefix) }, "未編集側もファイル単位で再生成されること: $changed")
-        assertEquals(sbGenerated0, IcTestSupport.classDigests(dir).filterKeys { it.startsWith(sbPrefix) })
+        assertEquals(
+            sbGenerated0,
+            IcTestSupport.classDigests(dir).filterKeys { it.startsWith(sbPrefix) },
+        )
     }
 }

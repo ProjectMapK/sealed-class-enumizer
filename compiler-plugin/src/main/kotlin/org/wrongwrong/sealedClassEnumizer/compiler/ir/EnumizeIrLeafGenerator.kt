@@ -53,27 +53,31 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
 
     private fun fillAsEnumish(leaf: IrClass) {
         val function = ctx.ourFunction(leaf, EnumizeNames.AS_ENUMISH) ?: return
-        function.body = ctx.builder(function.symbol).run {
-            irBlockBody {
-                // 末端 object は自身が kind であり、レシーバをそのまま返す。末端 class は自身の companion を返す
-                if (leaf.kind == ClassKind.OBJECT) {
-                    val receiver = function.dispatchReceiverParameter
-                        ?: error("dispatch receiver missing for asEnumish of ${leaf.name}")
-                    +irReturn(irGet(receiver))
-                } else {
-                    val kind = leaf.companionObject()
-                        ?: error("companion object missing for asEnumish of ${leaf.name}")
-                    +irReturn(irGetObjectValue(kind.defaultType, kind.symbol))
+        function.body =
+            ctx.builder(function.symbol).run {
+                irBlockBody {
+                    // 末端 object は自身が kind であり、レシーバをそのまま返す。末端 class は自身の companion を返す
+                    if (leaf.kind == ClassKind.OBJECT) {
+                        val receiver =
+                            function.dispatchReceiverParameter
+                                ?: error("dispatch receiver missing for asEnumish of ${leaf.name}")
+                        +irReturn(irGet(receiver))
+                    } else {
+                        val kind =
+                            leaf.companionObject()
+                                ?: error("companion object missing for asEnumish of ${leaf.name}")
+                        +irReturn(irGetObjectValue(kind.defaultType, kind.symbol))
+                    }
                 }
             }
-        }
     }
 
     // ---- kind に属するメンバー ----
 
     // 生成 enumizedClass を持つクラスが kind であり、その宣言型が対応する末端を一意に決める
     private fun fillKindMembers(kind: IrClass) {
-        val enumizedClassGetter = ctx.ourPropertyGetter(kind, EnumizeNames.ENUMIZED_CLASS_PROPERTY) ?: return
+        val enumizedClassGetter =
+            ctx.ourPropertyGetter(kind, EnumizeNames.ENUMIZED_CLASS_PROPERTY) ?: return
         val leaf = leafOf(enumizedClassGetter)
         fillEnumizedClass(enumizedClassGetter, leaf)
         fillLabel(kind, leaf)
@@ -83,40 +87,45 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
     private fun leafOf(enumizedClassGetter: IrSimpleFunction): IrClass {
         val argument = (enumizedClassGetter.returnType as? IrSimpleType)?.arguments?.singleOrNull()
         return argument?.typeOrNull?.classOrNull?.owner
-            ?: error("enumizedClass of ${enumizedClassGetter.parentAsClass.name} does not denote KClass<leaf>")
+            ?: error(
+                "enumizedClass of ${enumizedClassGetter.parentAsClass.name} does not denote KClass<leaf>"
+            )
     }
 
     private fun fillEnumizedClass(getter: IrSimpleFunction, leaf: IrClass) {
         val leafStarType = leaf.symbol.starProjectedType
-        getter.body = ctx.builder(getter.symbol).run {
-            irBlockBody {
-                +irReturn(
-                    IrClassReferenceImpl(
-                        UNDEFINED_OFFSET,
-                        UNDEFINED_OFFSET,
-                        ctx.kClassTypeOf(leafStarType),
-                        leaf.symbol,
-                        leafStarType,
+        getter.body =
+            ctx.builder(getter.symbol).run {
+                irBlockBody {
+                    +irReturn(
+                        IrClassReferenceImpl(
+                            UNDEFINED_OFFSET,
+                            UNDEFINED_OFFSET,
+                            ctx.kClassTypeOf(leafStarType),
+                            leaf.symbol,
+                            leafStarType,
+                        )
                     )
-                )
+                }
             }
-        }
     }
 
     private fun fillLabel(kind: IrClass, leaf: IrClass) {
         val getter = ctx.ourPropertyGetter(kind, EnumizeNames.LABEL) ?: return
-        getter.body = ctx.builder(getter.symbol).run {
-            irBlockBody {
-                // label は末端宣言の単純名（companion 自身が末端の場合はその宣言名 = leaf 自身）
-                +irReturn(irString(leaf.name.asString()))
+        getter.body =
+            ctx.builder(getter.symbol).run {
+                irBlockBody {
+                    // label は末端宣言の単純名（companion 自身が末端の場合はその宣言名 = leaf 自身）
+                    +irReturn(irString(leaf.name.asString()))
+                }
             }
-        }
     }
 
     // ---- kind の toString（IR-only・宣言ごと生成。設計02 §5.3） ----
 
     private fun generateToStringIfNeeded(kind: IrClass) {
-        val toStrings = kind.declarations.filterIsInstance<IrSimpleFunction>().filter(::isPlainToString)
+        val toStrings =
+            kind.declarations.filterIsInstance<IrSimpleFunction>().filter(::isPlainToString)
         // kind 自身の手動宣言・data object の言語合成（fake でない宣言）があれば生成しない（原則 1）
         if (toStrings.any { !it.isFakeOverride }) return
         // 継承経路上の最も派生側の toString が Any 以外の具象実装なら生成しない（原則 1）
@@ -125,24 +134,27 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
         val fakeOverrides = toStrings.filter { it.isFakeOverride }
         val overridden = fakeOverrides.firstOrNull()?.overriddenSymbols ?: listOf(ctx.anyToString)
         kind.declarations.removeAll(fakeOverrides)
-        val function = kind.addFunction(
-            name = EnumizeNames.TO_STRING.asString(),
-            returnType = ctx.stringType,
-            modality = Modality.OPEN,
-            origin = ctx.generatedOrigin,
-        )
+        val function =
+            kind.addFunction(
+                name = EnumizeNames.TO_STRING.asString(),
+                returnType = ctx.stringType,
+                modality = Modality.OPEN,
+                origin = ctx.generatedOrigin,
+            )
         function.overriddenSymbols = overridden
-        function.body = ctx.builder(function.symbol).run {
-            irBlockBody {
-                val receiver = function.dispatchReceiverParameter
-                    ?: error("dispatch receiver missing for toString of ${kind.name}")
-                +irReturn(
-                    irCall(labelGetter.symbol, ctx.stringType).apply {
-                        dispatchReceiver = irGet(receiver)
-                    }
-                )
+        function.body =
+            ctx.builder(function.symbol).run {
+                irBlockBody {
+                    val receiver =
+                        function.dispatchReceiverParameter
+                            ?: error("dispatch receiver missing for toString of ${kind.name}")
+                    +irReturn(
+                        irCall(labelGetter.symbol, ctx.stringType).apply {
+                            dispatchReceiver = irGet(receiver)
+                        }
+                    )
+                }
             }
-        }
     }
 
     private fun isPlainToString(function: IrSimpleFunction): Boolean =
@@ -154,8 +166,10 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
     private fun findInheritedConcreteToString(kind: IrClass): IrSimpleFunction? {
         var current = superclassOf(kind)
         while (current != null && current.symbol != ctx.anyClass) {
-            val declared = current.declarations.filterIsInstance<IrSimpleFunction>()
-                .firstOrNull { isPlainToString(it) && !it.isFakeOverride }
+            val declared =
+                current.declarations.filterIsInstance<IrSimpleFunction>().firstOrNull {
+                    isPlainToString(it) && !it.isFakeOverride
+                }
             if (declared != null) {
                 return declared.takeIf { it.modality != Modality.ABSTRACT }
             }
@@ -165,5 +179,7 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
     }
 
     private fun superclassOf(irClass: IrClass): IrClass? =
-        irClass.superTypes.mapNotNull { it.classOrNull?.owner }.firstOrNull { it.kind == ClassKind.CLASS }
+        irClass.superTypes
+            .mapNotNull { it.classOrNull?.owner }
+            .firstOrNull { it.kind == ClassKind.CLASS }
 }

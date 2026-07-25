@@ -1,9 +1,9 @@
 package org.wrongwrong.gradle
 
-import org.gradle.testkit.runner.TaskOutcome
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.Test
 
 // 跨モジュール ABI 伝播（設計00 §5.3 #11・概要 §7・docs/テストケース管理.md TC-XM-013〜015・
 // TC-IC-027/044/046/056・TC-XM-044）: producer の sealed リスト変化が ABI 差分として未編集の
@@ -32,7 +32,8 @@ class AbiPropagationTest {
         assertEquals(TaskOutcome.UP_TO_DATE, noEdit.task(":consumer:compileKotlin")?.outcome)
 
         TestKitHarness.writeFile(
-            dir, bazFile,
+            dir,
+            bazFile,
             "package org.wrongwrong.abifix\n\n// #11 で追加される末端（docs/テストケース管理.md TC-XM-013）\ndata object Baz : SI\n",
         )
         // producer 側は基底不在ラウンド（新規ファイルでの末端追加）を IC 直行で通り、
@@ -40,16 +41,28 @@ class AbiPropagationTest {
         val failure = TestKitHarness.buildAndFail(dir, ":consumer:compileKotlin")
         assertEquals(TaskOutcome.SUCCESS, failure.task(":producer:compileKotlin")?.outcome)
         assertEquals(TaskOutcome.FAILED, failure.task(":consumer:compileKotlin")?.outcome)
-        assertTrue("exhaustive" in failure.output, "未編集 consumer の kind-when が再検査されること:\n${failure.output}")
+        assertTrue(
+            "exhaustive" in failure.output,
+            "未編集 consumer の kind-when が再検査されること:\n${failure.output}",
+        )
 
         TestKitHarness.replaceInFile(
-            dir, useFile,
+            dir,
+            useFile,
             "import org.wrongwrong.abifix.Bar",
             "import org.wrongwrong.abifix.Bar\nimport org.wrongwrong.abifix.Baz",
         )
-        TestKitHarness.replaceInFile(dir, useFile, "    Bar -> \"bar\"", "    Bar -> \"bar\"\n    Baz -> \"baz\"")
+        TestKitHarness.replaceInFile(
+            dir,
+            useFile,
+            "    Bar -> \"bar\"",
+            "    Bar -> \"bar\"\n    Baz -> \"baz\"",
+        )
         val fixed = TestKitHarness.build(dir, ":consumer:runMain")
-        assertEquals(listOf("ENTRIES=Bar,Baz,Foo", "KINDS=bar,baz,foo"), IcTestSupport.outLines(fixed))
+        assertEquals(
+            listOf("ENTRIES=Bar,Baz,Foo", "KINDS=bar,baz,foo"),
+            IcTestSupport.outLines(fixed),
+        )
     }
 
     // 末端削除（TC-XM-014 = TC-IC-046）・@Enumize 除去（TC-IC-056）・跨モジュール手動実装
@@ -61,7 +74,8 @@ class AbiPropagationTest {
 
         // TC-XM-044: 別モジュールの object Rogue : SI.Enumish は sealed の言語制約でコンパイル不能
         TestKitHarness.writeFile(
-            dir, rogueFile,
+            dir,
+            rogueFile,
             "package org.wrongwrong.abiuse\n\nimport kotlin.reflect.KClass\nimport org.wrongwrong.abifix.SI\n\n" +
                 "// 跨モジュールの手動実装（sealed 制約により不可 = docs/テストケース管理.md TC-XM-044）\n" +
                 "object Rogue : SI.Enumish {\n" +
@@ -70,7 +84,10 @@ class AbiPropagationTest {
                 "}\n",
         )
         val sealedViolation = TestKitHarness.buildAndFail(dir, ":consumer:compileKotlin")
-        assertTrue("Rogue.kt" in sealedViolation.output, "跨モジュール手動実装の拒否:\n${sealedViolation.output}")
+        assertTrue(
+            "Rogue.kt" in sealedViolation.output,
+            "跨モジュール手動実装の拒否:\n${sealedViolation.output}",
+        )
         TestKitHarness.deleteFile(dir, rogueFile)
 
         // TC-XM-014: 末端削除で、削除 kind を名指しする consumer がコンパイルエラーになる
@@ -86,7 +103,12 @@ class AbiPropagationTest {
         TestKitHarness.build(dir, ":consumer:compileKotlin")
 
         // TC-IC-056: @Enumize 除去で生成 API が消え、consumer の参照が未解決・producer の stale が掃除される
-        TestKitHarness.replaceInFile(dir, siFile, "@Enumize\nsealed interface SI", "sealed interface SI")
+        TestKitHarness.replaceInFile(
+            dir,
+            siFile,
+            "@Enumize\nsealed interface SI",
+            "sealed interface SI",
+        )
         val removal = TestKitHarness.buildAndFail(dir, ":consumer:compileKotlin")
         assertEquals(TaskOutcome.SUCCESS, removal.task(":producer:compileKotlin")?.outcome)
         assertTrue(
@@ -94,6 +116,9 @@ class AbiPropagationTest {
             "生成 API の消失が未解決参照になること:\n${removal.output}",
         )
         val producerKeys = IcTestSupport.classDigests(dir, "producer").keys
-        assertTrue(producerKeys.none { it.startsWith("org/wrongwrong/abifix/SI\$") }, "生成物の stale 掃除: $producerKeys")
+        assertTrue(
+            producerKeys.none { it.startsWith("org/wrongwrong/abifix/SI\$") },
+            "生成物の stale 掃除: $producerKeys",
+        )
     }
 }

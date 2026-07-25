@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
+import kotlin.test.Test
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
-import kotlin.test.Test
 
 // 残ケース掃討: 非発火 near-miss 側（sweep-diag-ok / sweep-typealias フィクスチャ）。
 // いずれもビルド成功そのものが検証の主体で、対象診断の断片が出力に現れないことを併せて確認する

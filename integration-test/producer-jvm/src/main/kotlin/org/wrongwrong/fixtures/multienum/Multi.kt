@@ -6,9 +6,15 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 // 各 enum が全体で 1 kind になり、定数（X/Y/P/Q）には展開されない
 @Enumize
 sealed interface Multi {
-    enum class Alpha : Multi { X, Y }
+    enum class Alpha : Multi {
+        X,
+        Y,
+    }
 
-    enum class Beta : Multi { P, Q }
+    enum class Beta : Multi {
+        P,
+        Q,
+    }
 
     enum class Gamma : Multi {
         // 定数側の toString override は値側の表示にのみ影響し、kind の label / toString には影響しない

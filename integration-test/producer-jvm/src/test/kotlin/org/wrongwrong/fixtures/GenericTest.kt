@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 型パラメータ付き sealed の box テスト（docs/概要.md §6）
 class GenericTest {

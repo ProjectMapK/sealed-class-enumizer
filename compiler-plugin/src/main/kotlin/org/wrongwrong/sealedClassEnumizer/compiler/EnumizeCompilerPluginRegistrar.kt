@@ -14,7 +14,8 @@ import org.wrongwrong.sealedClassEnumizer.compiler.ir.EnumizeIrGenerationExtensi
 class EnumizeCompilerPluginRegistrar : CompilerPluginRegistrar() {
     override val pluginId: String = EnumizeCommandLineProcessor.PLUGIN_ID
 
-    override val supportsK2: Boolean get() = true
+    override val supportsK2: Boolean
+        get() = true
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         FirExtensionRegistrarAdapter.registerExtension(EnumizeFirExtensionRegistrar())

@@ -7,12 +7,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 
 // 設計00 §6.1 実測形（混在階層）の entries 順序 box テスト
-// （docs/テストケース管理.md TC-ORD-004 / TC-ORD-005 / TC-ORD-007 / TC-ORD-020 / TC-ORD-022 / TC-ORD-045 / TC-BOX-005）
+// （docs/テストケース管理.md TC-ORD-004 / TC-ORD-005 / TC-ORD-007 / TC-ORD-020 / TC-ORD-022 / TC-ORD-045 /
+// TC-BOX-005）
 class MixedOrderTest {
     // TC-ORD-004 / TC-BOX-005: entries = [Box.Bbb, Mmm, S.Aaa, Zzz, aLower]（FQN 序数順）
     @Test
     fun entriesFollowFqnOrdinalOrder() {
-        assertEquals(listOf("Bbb", "Mmm", "Aaa", "Zzz", "aLower"), S.Enumish.entries.map { it.label })
+        assertEquals(
+            listOf("Bbb", "Mmm", "Aaa", "Zzz", "aLower"),
+            S.Enumish.entries.map { it.label },
+        )
     }
 
     // TC-ORD-005: 単純名昇順ではない（単純名順なら Aaa が先頭になるが、実際は Box.Bbb が先頭）
@@ -43,7 +47,10 @@ class MixedOrderTest {
     @Test
     fun enumizedClassListFollowsEntriesOrder() {
         val classes: List<KClass<out S>> = S.Enumish.entries.map { it.enumizedClass }
-        assertEquals(listOf(Box.Bbb::class, Mmm::class, S.Aaa::class, Zzz::class, aLower::class), classes)
+        assertEquals(
+            listOf(Box.Bbb::class, Mmm::class, S.Aaa::class, Zzz::class, aLower::class),
+            classes,
+        )
     }
 
     // TC-ORD-045: 生成 Enumish / kind は ordinal 相当も Comparable も公開しない。

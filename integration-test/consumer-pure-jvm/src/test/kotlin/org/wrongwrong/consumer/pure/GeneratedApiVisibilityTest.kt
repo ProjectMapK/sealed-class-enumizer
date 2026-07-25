@@ -1,17 +1,17 @@
 package org.wrongwrong.consumer.pure
 
-import org.wrongwrong.fixtures.Command
-import org.wrongwrong.fixtures.SI
-import org.wrongwrong.sealedClassEnumizer.Enumish
-import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
-import org.wrongwrong.sealedClassEnumizer.Enumized
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import org.wrongwrong.fixtures.Command
+import org.wrongwrong.fixtures.SI
+import org.wrongwrong.sealedClassEnumizer.Enumish
+import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
+import org.wrongwrong.sealedClassEnumizer.Enumized
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 生成 API がプラグイン未適用モジュールから普通に参照できること（docs/概要.md §7「モジュールを跨いだ利用」・
 // docs/テストケース管理.md TC-XM-001〜007 / TC-BOX-061）
@@ -67,7 +67,8 @@ class GeneratedApiVisibilityTest {
 
     // TC-XM-006: 未適用消費側は producer-jvm の api 依存（runtime-api）を推移取得し、明示宣言なしで
     // 基底型（Enumish / Enumized）・label 拡張・Companion 束ねが解決できることの正値観測。
-    // implementation 縮退（producer が runtime-api を隠す）との比較は gradle-integration の RuntimeApiExposureTest が担当（コンパイル失敗を要するため通常モジュールに置けない）
+    // implementation 縮退（producer が runtime-api を隠す）との比較は gradle-integration の
+    // RuntimeApiExposureTest が担当（コンパイル失敗を要するため通常モジュールに置けない）
     @Test
     fun runtimeApiTypesResolveViaTransitiveApi() {
         val companions: List<EnumishCompanion<Enumish>> = listOf(SI.Enumish, Command.Enumish)

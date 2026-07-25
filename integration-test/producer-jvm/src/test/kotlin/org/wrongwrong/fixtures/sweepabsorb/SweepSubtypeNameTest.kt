@@ -18,6 +18,9 @@ class SweepSubtypeNameTest {
     fun sameNamedSubtypeIsAbsorbedIntoLeafKind() {
         val subtype: SweepRoot = Twin()
         assertSame(SweepRoot.Wide.Companion, subtype.asEnumish())
-        assertEquals(listOf("Wide", "Twin"), listOf(subtype.asEnumish().label, SweepRoot.Twin.label))
+        assertEquals(
+            listOf("Wide", "Twin"),
+            listOf(subtype.asEnumish().label, SweepRoot.Twin.label),
+        )
     }
 }

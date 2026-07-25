@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures.explicitenum
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 明示 companion 付き enum 末端の box テスト（docs/テストケース管理.md TC-LEAF-100）
 class ProtocolTest {

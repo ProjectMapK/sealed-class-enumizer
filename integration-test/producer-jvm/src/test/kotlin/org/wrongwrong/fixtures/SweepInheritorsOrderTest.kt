@@ -12,9 +12,6 @@ class SweepInheritorsOrderTest {
     // 集合・並びとも一致する（SI.Bar < SI.Foo.Companion の FQN 順）
     @Test
     fun inheritorsOrderMatchesEntriesOrderInFlatSiblingLayout() {
-        assertEquals(
-            SI.Enumish.entries.map { it::class },
-            SI.Enumish::class.sealedSubclasses,
-        )
+        assertEquals(SI.Enumish.entries.map { it::class }, SI.Enumish::class.sealedSubclasses)
     }
 }

@@ -1,9 +1,9 @@
 package org.wrongwrong.mpp.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // value class 末端の boxing 挙動が全ターゲットで整合することの box テスト
 // （docs/テストケース管理.md TC-MPP-012）

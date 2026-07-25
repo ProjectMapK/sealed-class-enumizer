@@ -1,9 +1,9 @@
 package org.wrongwrong.mpp.fixtures.shape
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 非 final 末端のサブタイプ吸収が全ターゲットで成立することの box テスト
 // （docs/テストケース管理.md TC-MPP-045/053・V10）。サブタイプはこのテストクラスに

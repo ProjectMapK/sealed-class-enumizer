@@ -11,7 +11,8 @@ private sealed interface PrivateRule1 {
     }
 }
 
-internal fun observePrivateRule1Labels(): List<String> = PrivateRule1.Enumish.entries.map { it.label }
+internal fun observePrivateRule1Labels(): List<String> =
+    PrivateRule1.Enumish.entries.map { it.label }
 
 internal fun privateRule1KindIsConcrete(): Boolean {
     // 規則 1: asEnumish() の返り値型は具体型（Leaf.Companion）のまま — 具体型で受けられること自体が検査

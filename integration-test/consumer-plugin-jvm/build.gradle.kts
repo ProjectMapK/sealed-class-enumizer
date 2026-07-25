@@ -6,17 +6,14 @@ plugins {
 }
 
 group = "org.wrongwrong"
+
 version = "1.0-SNAPSHOT"
 
-kotlin {
-    jvmToolchain(17)
-}
+kotlin { jvmToolchain(17) }
 
 dependencies {
     implementation(project(":producer-jvm"))
     testImplementation(kotlin("test"))
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
+tasks.test { useJUnitPlatform() }

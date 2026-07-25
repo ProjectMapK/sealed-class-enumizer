@@ -40,12 +40,20 @@ typealias EnumizeKindProvider = IrBuilderWithScope.() -> IrExpression
 class EnumizeKindAccessorIrGenerator(private val ctx: EnumizeIrContext) {
 
     // kind ごとに「取得式ビルダ」を返す。参照不能な kind に対してはここでアクセサ宣言を生成する（副作用）
-    fun buildKindProviders(base: IrClass, enumish: IrClass, kinds: List<IrClass>): List<EnumizeKindProvider> {
+    fun buildKindProviders(
+        base: IrClass,
+        enumish: IrClass,
+        kinds: List<IrClass>,
+    ): List<EnumizeKindProvider> {
         val enumishType = enumish.defaultType
         return kinds.map { kind -> providerFor(kind, base, enumishType) }
     }
 
-    private fun providerFor(kind: IrClass, base: IrClass, enumishType: IrType): EnumizeKindProvider {
+    private fun providerFor(
+        kind: IrClass,
+        base: IrClass,
+        enumishType: IrType,
+    ): EnumizeKindProvider {
         val wall = outermostWall(kind, base) ?: return directProvider(kind)
         val container = wall.parent
         return if (container is IrClass) {
@@ -57,10 +65,15 @@ class EnumizeKindAccessorIrGenerator(private val ctx: EnumizeIrContext) {
 
     // ---- 取得式ビルダ ----
 
-    private fun directProvider(kind: IrClass): EnumizeKindProvider =
-        { irGetObjectValue(kind.defaultType, kind.symbol) }
+    private fun directProvider(kind: IrClass): EnumizeKindProvider = {
+        irGetObjectValue(kind.defaultType, kind.symbol)
+    }
 
-    private fun nestedAccessorProvider(kind: IrClass, container: IrClass, enumishType: IrType): EnumizeKindProvider {
+    private fun nestedAccessorProvider(
+        kind: IrClass,
+        container: IrClass,
+        enumishType: IrType,
+    ): EnumizeKindProvider {
         val getter = createNestedAccessor(kind, container, enumishType)
         val accessor = getter.parent as IrClass
         return {
@@ -70,7 +83,11 @@ class EnumizeKindAccessorIrGenerator(private val ctx: EnumizeIrContext) {
         }
     }
 
-    private fun topLevelAccessorProvider(kind: IrClass, wall: IrClass, enumishType: IrType): EnumizeKindProvider {
+    private fun topLevelAccessorProvider(
+        kind: IrClass,
+        wall: IrClass,
+        enumishType: IrType,
+    ): EnumizeKindProvider {
         val accessor = createTopLevelAccessor(kind, wall, enumishType)
         return { irCall(accessor.symbol, enumishType) }
     }
@@ -88,12 +105,14 @@ class EnumizeKindAccessorIrGenerator(private val ctx: EnumizeIrContext) {
         return wall
     }
 
-    private fun isReferenceableFromBase(target: IrClass, base: IrClass): Boolean = when (target.visibility) {
-        DescriptorVisibilities.PRIVATE, DescriptorVisibilities.PRIVATE_TO_THIS, DescriptorVisibilities.PROTECTED ->
-            declaringScopeContainsBase(target, base)
-        DescriptorVisibilities.LOCAL -> false
-        else -> true // public / internal は同一モジュールから参照可
-    }
+    private fun isReferenceableFromBase(target: IrClass, base: IrClass): Boolean =
+        when (target.visibility) {
+            DescriptorVisibilities.PRIVATE,
+            DescriptorVisibilities.PRIVATE_TO_THIS,
+            DescriptorVisibilities.PROTECTED -> declaringScopeContainsBase(target, base)
+            DescriptorVisibilities.LOCAL -> false
+            else -> true // public / internal は同一モジュールから参照可
+        }
 
     // private / protected な target が基底から見えるのは、基底が target の宣言スコープの内側にある場合。
     // ネストなら基底が外側クラスの subtree 内、file-private なトップレベルなら基底が同一ファイル内
@@ -119,14 +138,19 @@ class EnumizeKindAccessorIrGenerator(private val ctx: EnumizeIrContext) {
     // ---- アクセサ宣言の生成 ----
 
     // 末端クラス内にネストした IR-only object。外側クラスの private / protected companion を intra-scope で参照する
-    private fun createNestedAccessor(target: IrClass, container: IrClass, enumishType: IrType): IrSimpleFunction {
-        val accessor = ctx.pluginContext.irFactory.buildClass {
-            name = EnumizeNames.KIND_ACCESSOR_NAME
-            kind = ClassKind.OBJECT
-            modality = Modality.FINAL
-            visibility = DescriptorVisibilities.INTERNAL
-            origin = ctx.generatedOrigin
-        }
+    private fun createNestedAccessor(
+        target: IrClass,
+        container: IrClass,
+        enumishType: IrType,
+    ): IrSimpleFunction {
+        val accessor =
+            ctx.pluginContext.irFactory.buildClass {
+                name = EnumizeNames.KIND_ACCESSOR_NAME
+                kind = ClassKind.OBJECT
+                modality = Modality.FINAL
+                visibility = DescriptorVisibilities.INTERNAL
+                origin = ctx.generatedOrigin
+            }
         accessor.parent = container
         container.declarations.add(accessor)
         accessor.createThisReceiverParameter()
@@ -141,48 +165,62 @@ class EnumizeKindAccessorIrGenerator(private val ctx: EnumizeIrContext) {
             visibility = DescriptorVisibilities.PRIVATE
             origin = ctx.generatedOrigin
         }
-        constructor.body = ctx.builder(constructor.symbol).run {
-            irBlockBody {
-                +irDelegatingConstructorCall(ctx.anyConstructor.owner)
-                +IrInstanceInitializerCallImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, accessor.symbol, ctx.unitType)
+        constructor.body =
+            ctx.builder(constructor.symbol).run {
+                irBlockBody {
+                    +irDelegatingConstructorCall(ctx.anyConstructor.owner)
+                    +IrInstanceInitializerCallImpl(
+                        UNDEFINED_OFFSET,
+                        UNDEFINED_OFFSET,
+                        accessor.symbol,
+                        ctx.unitType,
+                    )
+                }
             }
-        }
     }
 
-    private fun generateAccessorGetter(accessor: IrClass, kind: IrClass, enumishType: IrType): IrSimpleFunction {
-        val getter = accessor.addFunction(
-            name = EnumizeNames.KIND_ACCESSOR_GET.asString(),
-            returnType = enumishType,
-            modality = Modality.FINAL,
-            visibility = DescriptorVisibilities.INTERNAL,
-            origin = ctx.generatedOrigin,
-        )
-        getter.body = ctx.builder(getter.symbol).run {
-            irBlockBody {
-                +irReturn(irGetObjectValue(kind.defaultType, kind.symbol))
+    private fun generateAccessorGetter(
+        accessor: IrClass,
+        kind: IrClass,
+        enumishType: IrType,
+    ): IrSimpleFunction {
+        val getter =
+            accessor.addFunction(
+                name = EnumizeNames.KIND_ACCESSOR_GET.asString(),
+                returnType = enumishType,
+                modality = Modality.FINAL,
+                visibility = DescriptorVisibilities.INTERNAL,
+                origin = ctx.generatedOrigin,
+            )
+        getter.body =
+            ctx.builder(getter.symbol).run {
+                irBlockBody { +irReturn(irGetObjectValue(kind.defaultType, kind.symbol)) }
             }
-        }
         return getter
     }
 
     // file-private な壁（private トップレベル末端・private 外側クラス）に対しては、
     // 壁と同一ファイルのトップレベル IR-only 関数から kind を参照する（file-private は同一ファイル内から見える）
-    private fun createTopLevelAccessor(kind: IrClass, wall: IrClass, enumishType: IrType): IrSimpleFunction {
+    private fun createTopLevelAccessor(
+        kind: IrClass,
+        wall: IrClass,
+        enumishType: IrType,
+    ): IrSimpleFunction {
         val file = wall.fileOrNull ?: error("file missing for kind accessor of ${kind.name}")
-        val accessor = ctx.pluginContext.irFactory.buildFun {
-            name = topLevelAccessorName(kind)
-            returnType = enumishType
-            modality = Modality.FINAL
-            visibility = DescriptorVisibilities.INTERNAL
-            origin = ctx.generatedOrigin
-        }
+        val accessor =
+            ctx.pluginContext.irFactory.buildFun {
+                name = topLevelAccessorName(kind)
+                returnType = enumishType
+                modality = Modality.FINAL
+                visibility = DescriptorVisibilities.INTERNAL
+                origin = ctx.generatedOrigin
+            }
         accessor.parent = file
         file.declarations.add(accessor)
-        accessor.body = ctx.builder(accessor.symbol).run {
-            irBlockBody {
-                +irReturn(irGetObjectValue(kind.defaultType, kind.symbol))
+        accessor.body =
+            ctx.builder(accessor.symbol).run {
+                irBlockBody { +irReturn(irGetObjectValue(kind.defaultType, kind.symbol)) }
             }
-        }
         return accessor
     }
 

@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
+import kotlin.test.Test
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
-import kotlin.test.Test
 
 // G 軸: 手動宣言と生成の衝突系（ENUMIZE_MANUAL_MEMBER_CONFLICT / ENUMIZE_MANUAL_SUPERTYPE_MISMATCH /
 // ENUMIZE_RESERVED_NAME_CLASH / ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY。docs/テストケース管理.md
@@ -17,25 +17,49 @@ class DiagManualMemberTest : DiagTestBase() {
     // TC-DIAG-044: kind（末端 object）の label 手動宣言（報告位置 = 手動メンバー）
     @Test
     fun manualLabelOnLeafObjectConflicts() {
-        assertDiagnosticAt(manualMember(), "Mm1Si.kt", 9, DiagFragments.MANUAL_MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(
+            manualMember(),
+            "Mm1Si.kt",
+            9,
+            DiagFragments.MANUAL_MEMBER_CONFLICT,
+            "label",
+        )
     }
 
     // TC-DIAG-045: 末端の asEnumish 手動宣言
     @Test
     fun manualAsEnumishOnLeafConflicts() {
-        assertDiagnosticAt(manualMember(), "Mm2Leaf.kt", 7, DiagFragments.MANUAL_MEMBER_CONFLICT, "asEnumish")
+        assertDiagnosticAt(
+            manualMember(),
+            "Mm2Leaf.kt",
+            7,
+            DiagFragments.MANUAL_MEMBER_CONFLICT,
+            "asEnumish",
+        )
     }
 
     // TC-DIAG-046: kind の enumizedClass 手動宣言
     @Test
     fun manualEnumizedClassOnKindConflicts() {
-        assertDiagnosticAt(manualMember(), "Mm3Si.kt", 10, DiagFragments.MANUAL_MEMBER_CONFLICT, "enumizedClass")
+        assertDiagnosticAt(
+            manualMember(),
+            "Mm3Si.kt",
+            10,
+            DiagFragments.MANUAL_MEMBER_CONFLICT,
+            "enumizedClass",
+        )
     }
 
     // TC-DIAG-047: 階層外 interface の label default 実装の継承（報告位置 = 当該末端）
     @Test
     fun inheritedLabelDefaultOnLeafObjectConflicts() {
-        assertDiagnosticAt(manualMember(), "Mm4Leaf.kt", 4, DiagFragments.MANUAL_MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(
+            manualMember(),
+            "Mm4Leaf.kt",
+            4,
+            DiagFragments.MANUAL_MEMBER_CONFLICT,
+            "label",
+        )
     }
 
     // TC-DIAG-050: 基底の手動 Enumized<別の Enumish 型>（型引数込みの照合）
@@ -106,7 +130,12 @@ class DiagManualMemberTest : DiagTestBase() {
     @Test
     fun abstractToStringRedeclarationFailsWithLanguageErrorOnly() {
         val output = failOutput("diag-abstract-tostring", "compileKotlin")
-        assertDiagnosticAt(output, "AtLeaf.kt", 4, DiagFragments.LANG_ABSTRACT_MEMBER_NOT_IMPLEMENTED)
+        assertDiagnosticAt(
+            output,
+            "AtLeaf.kt",
+            4,
+            DiagFragments.LANG_ABSTRACT_MEMBER_NOT_IMPLEMENTED,
+        )
         assertFragmentAbsent(output, DiagFragments.MANUAL_MEMBER_CONFLICT)
     }
 

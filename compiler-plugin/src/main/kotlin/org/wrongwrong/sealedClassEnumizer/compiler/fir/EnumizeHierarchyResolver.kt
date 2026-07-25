@@ -54,7 +54,8 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
 
     // 階層ごとの label 索引（label → その label を持つ末端）。LABEL_CLASH の検査は末端の数だけ走るため、
     // 階層 1 つにつき一度だけ構築する
-    private val labelIndexCache: FirCache<FirRegularClassSymbol, Map<String, List<FirRegularClassSymbol>>, Nothing?> =
+    private val labelIndexCache:
+        FirCache<FirRegularClassSymbol, Map<String, List<FirRegularClassSymbol>>, Nothing?> =
         session.firCachesFactory.createCache { base -> leavesOf(base).groupBy(::labelOf) }
 
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
@@ -70,7 +71,8 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
 
     // 所属する基底の一覧の生読み。家族系診断（MULTIPLE_FAMILIES / NESTED_IN_HIERARCHY）と
     // 「どの階層にも属さない」ことの判定にのみ使い、通常の取り回しには membershipOf を使う
-    fun basesOf(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> = basesCache.getValue(symbol)
+    fun basesOf(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> =
+        basesCache.getValue(symbol)
 
     fun isEnumizeBase(symbol: FirRegularClassSymbol): Boolean =
         tracker.isEnumizeBase(symbol) && tracker.isRawSealed(symbol)
@@ -98,7 +100,8 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
         base.classId.createNestedClassId(EnumizeNames.ENUMISH_NAME)
 
     fun generatedEnumishCompanionClassId(base: FirRegularClassSymbol): ClassId =
-        generatedEnumishClassId(base).createNestedClassId(SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT)
+        generatedEnumishClassId(base)
+            .createNestedClassId(SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT)
 
     // 基底の sealed inheritors 属性を再帰展開した階層の全メンバー（中間 sealed を含む・基底自身を除く）。
     // 並べ替えは行わず、コンパイラが提供する継承者リストの走査順のまま返す（設計00 §6.2）
@@ -113,15 +116,21 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
         hierarchyMembersOf(base).filterNot { tracker.isRawSealed(it) }
 
     fun kindClassIdOf(leaf: FirRegularClassSymbol): ClassId? =
-        if (leaf.classKind == ClassKind.OBJECT) leaf.classId else leaf.companionObjectSymbol?.classId
+        if (leaf.classKind == ClassKind.OBJECT) leaf.classId
+        else leaf.companionObjectSymbol?.classId
 
     // label の既定 = 末端宣言の単純名（companion 自身が末端である場合はその宣言名がそのまま単純名になる）
     fun labelOf(leaf: FirRegularClassSymbol): String = leaf.classId.shortClassName.asString()
 
     // 同じ階層で同じ label を持つ他の末端（LABEL_CLASH の衝突相手）。基底の継承者一覧に自分が
     // まだ載っていない IC ラウンドでも、自分以外との衝突は同じ判定で得られる
-    fun leavesSharingLabel(leaf: FirRegularClassSymbol, base: FirRegularClassSymbol): List<FirRegularClassSymbol> =
-        labelIndexCache.getValue(base)[labelOf(leaf)].orEmpty().filterNot { it.classId == leaf.classId }
+    fun leavesSharingLabel(
+        leaf: FirRegularClassSymbol,
+        base: FirRegularClassSymbol,
+    ): List<FirRegularClassSymbol> =
+        labelIndexCache.getValue(base)[labelOf(leaf)].orEmpty().filterNot {
+            it.classId == leaf.classId
+        }
 
     fun starProjectedType(symbol: FirRegularClassSymbol): ConeClassLikeType =
         symbol.classId.constructClassLikeType(
@@ -130,17 +139,27 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
 
     // asEnumish の返り値型の規則（設計01 §5.4・エッジケースへの対応方針 §1.3）。
     // 規則 3（構成不能）の診断はチェッカーが担い、生成はフォールバック型のまま行う（エッジ §5）
-    fun asEnumishReturnType(leaf: FirRegularClassSymbol, base: FirRegularClassSymbol): ConeClassLikeType {
+    fun asEnumishReturnType(
+        leaf: FirRegularClassSymbol,
+        base: FirRegularClassSymbol,
+    ): ConeClassLikeType {
         val enumishType = generatedEnumishClassId(base).constructClassLikeType()
         if (leaf.classKind == ClassKind.OBJECT) return leaf.defaultType()
         val companion = leaf.companionObjectSymbol ?: return enumishType
         if (isOurGenerated(companion)) return companion.defaultType()
-        return if (effectiveVisibilityAtLeast(companion, leaf)) companion.defaultType() else enumishType
+        return if (effectiveVisibilityAtLeast(companion, leaf)) companion.defaultType()
+        else enumishType
     }
 
-    fun effectiveVisibilityAtLeast(target: FirClassLikeSymbol<*>, reference: FirClassLikeSymbol<*>): Boolean {
-        val relation = target.resolvedStatus.effectiveVisibility
-            .relation(reference.resolvedStatus.effectiveVisibility, session.typeContext)
+    fun effectiveVisibilityAtLeast(
+        target: FirClassLikeSymbol<*>,
+        reference: FirClassLikeSymbol<*>,
+    ): Boolean {
+        val relation =
+            target.resolvedStatus.effectiveVisibility.relation(
+                reference.resolvedStatus.effectiveVisibility,
+                session.typeContext,
+            )
         return relation == EffectiveVisibility.Permissiveness.SAME ||
             relation == EffectiveVisibility.Permissiveness.MORE
     }
@@ -155,7 +174,9 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
             if (!tracker.isRawSealed(member)) {
                 kindClassIdOf(member)?.let(result::add)
             }
-            if (member.classKind != ClassKind.OBJECT && directlyImplements(member, enumishClassId)) {
+            if (
+                member.classKind != ClassKind.OBJECT && directlyImplements(member, enumishClassId)
+            ) {
                 result.add(member.classId)
             }
         }
@@ -219,7 +240,9 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
         if (!visitedSealed.add(current.classId)) return
         for (inheritorId in current.fir.getSealedClassInheritors(session)) {
             val inheritor = tracker.resolveClassSymbol(inheritorId) ?: continue
-            if (result.putIfAbsent(inheritorId, inheritor) == null && tracker.isRawSealed(inheritor)) {
+            if (
+                result.putIfAbsent(inheritorId, inheritor) == null && tracker.isRawSealed(inheritor)
+            ) {
                 collectMembers(inheritor, visitedSealed, result)
             }
         }
@@ -239,4 +262,7 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
 
 // セッション単一の階層照会コンポーネントへの入口（registrar が登録する）
 val FirSession.enumizeHierarchyResolver: EnumizeHierarchyResolver
-    get() = extensionService.extensionSessionComponents.filterIsInstance<EnumizeHierarchyResolver>().single()
+    get() =
+        extensionService.extensionSessionComponents
+            .filterIsInstance<EnumizeHierarchyResolver>()
+            .single()

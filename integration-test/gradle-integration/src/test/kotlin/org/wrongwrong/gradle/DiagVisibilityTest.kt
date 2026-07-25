@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
+import kotlin.test.Test
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
-import kotlin.test.Test
 
 // G 軸: asEnumish 返り値型の構成可能性（ENUMIZE_KIND_TYPE_NOT_DENOTABLE）・inner class 末端
 // （ENUMIZE_INNER_LEAF）と、その near-miss 群（docs/テストケース管理.md TC-DIAG-024〜035・077・088〜093、
@@ -65,10 +65,20 @@ class DiagVisibilityTest : DiagTestBase() {
         val dir = prepare("diag-ic-denotable")
         val leafPath = "src/main/kotlin/org/wrongwrong/diag/icden/IcDenLeaf.kt"
         TestKitHarness.build(dir, "compileKotlin")
-        TestKitHarness.replaceInFile(dir, leafPath, "    companion object", "    internal companion object")
+        TestKitHarness.replaceInFile(
+            dir,
+            leafPath,
+            "    companion object",
+            "    internal companion object",
+        )
         val failed = TestKitHarness.buildAndFail(dir, "compileKotlin")
         assertDiagnosticAt(failed.output, "IcDenLeaf.kt", 4, DiagFragments.KIND_TYPE_NOT_DENOTABLE)
-        TestKitHarness.replaceInFile(dir, leafPath, "    internal companion object", "    companion object")
+        TestKitHarness.replaceInFile(
+            dir,
+            leafPath,
+            "    internal companion object",
+            "    companion object",
+        )
         TestKitHarness.build(dir, "compileKotlin")
     }
 

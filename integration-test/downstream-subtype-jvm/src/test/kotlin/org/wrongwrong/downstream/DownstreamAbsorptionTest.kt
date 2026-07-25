@@ -1,13 +1,13 @@
 package org.wrongwrong.downstream
 
-import org.wrongwrong.fixtures.handler.Event
-import org.wrongwrong.fixtures.shape.Shape
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertSame
+import org.wrongwrong.fixtures.handler.Event
+import org.wrongwrong.fixtures.shape.Shape
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 下流モジュール（プラグイン未適用）でのサブタイプ定義と kind 吸収の box 検証
 // （docs/概要.md §3・§7、docs/テストケース管理.md TC-XM-016〜018 / TC-XM-020 / TC-XM-052 /
@@ -47,7 +47,7 @@ class DownstreamAbsorptionTest {
     }
 
     // TC-XM-020: 値単位 when は is 末端 の枝が下流サブタイプをすべて覆い、else 無しで網羅する
-    //（分類の粒度を固定したまま実装を開けておける設計の跨モジュール成立）
+    // （分類の粒度を固定したまま実装を開けておける設計の跨モジュール成立）
     @Test
     fun valueWhenLeafBranchesCoverDownstreamSubtypes() {
         val shapes: List<Shape> = listOf(Shape.Circle(1.0), Triangle(), MyCustom())
@@ -62,7 +62,7 @@ class DownstreamAbsorptionTest {
     }
 
     // TC-XM-052: fun interface 末端の SAM ラムダ実装も新 kind を作らず Handler の kind に吸収される
-    //（asEnumish は default 実装が埋めるため SAM は handle 1 つに保たれる = V10-c）
+    // （asEnumish は default 実装が埋めるため SAM は handle 1 つに保たれる = V10-c）
     @Test
     fun samLambdaIsAbsorbedIntoFunInterfaceLeafKind() {
         val handler: Event.Handler = Event.Handler { it + 1 }

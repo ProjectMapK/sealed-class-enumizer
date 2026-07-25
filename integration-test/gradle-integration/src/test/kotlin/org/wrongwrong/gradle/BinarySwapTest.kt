@@ -1,10 +1,10 @@
 package org.wrongwrong.gradle
 
-import org.gradle.testkit.runner.TaskOutcome
-import org.junit.jupiter.api.Test
 import kotlin.io.path.readBytes
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.Test
 
 // 旧バイナリ差し替え（概要 §7・docs/テストケース管理.md TC-XM-023/024/025/053）:
 // v1（2 末端）でコンパイルした consumer を、実行時のみ v2（3 末端）の jar と組み合わせると、
@@ -22,12 +22,7 @@ class BinarySwapTest {
         // v1 実行: コンパイル時と同じ 2 末端。valueOf("Baz") は失敗し、kind-when は全 kind を網羅
         val runV1 = TestKitHarness.build(dir, ":consumer:runV1")
         assertEquals(
-            listOf(
-                "COUNT=2",
-                "ENTRIES=Bar,Foo",
-                "PROBE_BAZ=IAE",
-                "WHEN=Bar->bar,Foo->foo",
-            ),
+            listOf("COUNT=2", "ENTRIES=Bar,Foo", "PROBE_BAZ=IAE", "WHEN=Bar->bar,Foo->foo"),
             IcTestSupport.outLines(runV1),
         )
 
@@ -48,7 +43,8 @@ class BinarySwapTest {
 
         // TC-XM-024: entries アクセサが inline されず、getEntries のメンバー呼び出しが
         // consumer の定数プールに残っていること（inline なら v1 の集合が焼き込まれ差し替えが壊れる）
-        val mainClass = dir.resolve("consumer/build/classes/kotlin/main/org/wrongwrong/swapuse/MainKt.class")
+        val mainClass =
+            dir.resolve("consumer/build/classes/kotlin/main/org/wrongwrong/swapuse/MainKt.class")
         val constantPoolText = String(mainClass.readBytes(), Charsets.ISO_8859_1)
         assertTrue("getEntries" in constantPoolText, "entries アクセサ呼び出しがメンバー参照のまま残ること")
     }

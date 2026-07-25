@@ -31,13 +31,14 @@ class ManualImplTest {
     // 手動実装は継承者一覧に載り、kind 単位の網羅 when にはその is 枝が必要になる（概要 §8）
     @Test
     fun kindWhenRequiresManualImplementationBranch() {
-        val branches = WithManual.Enumish.entries.map { kind ->
-            when (kind) {
-                WithManual.Real -> "real"
-                ManualLeaf.Companion -> "leaf-kind"
-                is ManualLeaf -> "manual"
+        val branches =
+            WithManual.Enumish.entries.map { kind ->
+                when (kind) {
+                    WithManual.Real -> "real"
+                    ManualLeaf.Companion -> "leaf-kind"
+                    is ManualLeaf -> "manual"
+                }
             }
-        }
         assertEquals(listOf("leaf-kind", "real"), branches)
     }
 }

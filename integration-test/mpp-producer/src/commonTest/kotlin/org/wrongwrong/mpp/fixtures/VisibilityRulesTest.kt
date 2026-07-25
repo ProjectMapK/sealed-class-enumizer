@@ -1,10 +1,10 @@
 package org.wrongwrong.mpp.fixtures
 
-import org.wrongwrong.mpp.fixtures.wider.Wide
-import org.wrongwrong.mpp.fixtures.wider.WideBase
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.mpp.fixtures.wider.Wide
+import org.wrongwrong.mpp.fixtures.wider.WideBase
 
 // 可視性混在（規則 1 / 規則 2）の判定が全 platform で一致することの box テスト
 // （docs/テストケース管理.md TC-GAP-017 の正値側・エッジ §1.3）。

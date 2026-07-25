@@ -1,10 +1,10 @@
 package org.wrongwrong.consumer.pure
 
-import org.wrongwrong.fixtures.protectedbase.ProtectedHost
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.fixtures.protectedbase.ProtectedHost
+import org.wrongwrong.sealedClassEnumizer.label
 
 // TC-VIS-008: protected ネスト基底を別モジュールのサブクラス文脈から利用する
 // （docs/エッジケースへの対応方針.md §1.2「基底の可視性は制限ではない」の protected 版）。
@@ -23,10 +23,11 @@ class ProtectedBaseSubclassTest : ProtectedHost() {
     @Test
     fun kindWhenIsExhaustiveInSubclassContext() {
         val value: Shielded = Shielded.Off(2)
-        val result = when (value.asEnumish()) {
-            Shielded.Off.Companion -> "off"
-            Shielded.On -> "on"
-        }
+        val result =
+            when (value.asEnumish()) {
+                Shielded.Off.Companion -> "off"
+                Shielded.On -> "on"
+            }
         assertEquals("off", result)
     }
 }

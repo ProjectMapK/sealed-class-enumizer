@@ -41,7 +41,8 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         val symbol = declaration.symbol
         if (symbol.isLocal) return
         val resolver = context.session.enumizeHierarchyResolver
-        val annotated = context.session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, declaration)
+        val annotated =
+            context.session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, declaration)
         // 家族系診断だけは異常状態（非所属・複数所属）の内訳が要るため一覧を生読みする。
         // 以降の検査へ取り回すのは正常な所属（membership。異常時は null）のみ
         val familyBases = resolver.basesOf(symbol)
@@ -111,11 +112,12 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         context: CheckerContext,
         reporter: DiagnosticReporter,
     ) {
-        val userEnumish = declaration.declarations.firstOrNull { nested ->
-            nested is FirRegularClass &&
-                nested.name == EnumizeNames.ENUMISH_NAME &&
-                !resolver.isOurGenerated(nested.symbol)
-        } ?: return
+        val userEnumish =
+            declaration.declarations.firstOrNull { nested ->
+                nested is FirRegularClass &&
+                    nested.name == EnumizeNames.ENUMISH_NAME &&
+                    !resolver.isOurGenerated(nested.symbol)
+            } ?: return
         reporter.reportOn(userEnumish.source, EnumizeErrors.ENUMIZE_RESERVED_NAME_CLASH, context)
     }
 
@@ -133,12 +135,15 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     ) {
         val expectedArgument = resolver.generatedEnumishClassId(base)
         for (ref in declaring.resolvedSuperTypeRefs) {
-            val coneType = resolver.tracker.expandedType(ref.coneType) as? ConeClassLikeType ?: continue
+            val coneType =
+                resolver.tracker.expandedType(ref.coneType) as? ConeClassLikeType ?: continue
             if (coneType.classId != EnumizeNames.ENUMIZED_CLASS_ID) continue
             val argument = coneType.typeArguments.firstOrNull() as? ConeKotlinTypeProjection
             val argumentClassId = argument?.type?.let(resolver.tracker::expandedClassId)
             if (argumentClassId != expectedArgument) {
-                val source = if (declaring === reportTarget) ref.source ?: reportTarget.source else reportTarget.source
+                val source =
+                    if (declaring === reportTarget) ref.source ?: reportTarget.source
+                    else reportTarget.source
                 reporter.reportOn(
                     source,
                     EnumizeErrors.ENUMIZE_MANUAL_SUPERTYPE_MISMATCH,
@@ -169,9 +174,10 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         for (ref in symbol.resolvedSuperTypeRefs) {
             val superSymbol = resolver.tracker.resolveExpandedClassSymbol(ref.coneType) ?: continue
             // 生成 Enumish の認識は origin だけに依らない構造判定を使う
-            //（IC ラウンド外のファイル由来では origin が逆直列化で失われるため）
+            // （IC ラウンド外のファイル由来では origin が逆直列化で失われるため）
             if (!resolver.representsGeneratedEnumish(superSymbol)) continue
-            val base = resolver.tracker.resolveClassSymbol(superSymbol.classId.outerClassId) ?: continue
+            val base =
+                resolver.tracker.resolveClassSymbol(superSymbol.classId.outerClassId) ?: continue
             if (isLegitimateEnumishImplementor(symbol, membership, base, resolver)) continue
             reporter.reportOn(
                 ref.source ?: declaration.source,
@@ -255,10 +261,15 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         val companion = symbol.companionObjectSymbol ?: return
         if (resolver.isOurGenerated(companion)) return
         if (resolver.membershipOf(companion)?.isLeaf == true) {
-            reporter.reportOn(companion.source, EnumizeErrors.ENUMIZE_COMPANION_LEAF_CONFLICT, context)
+            reporter.reportOn(
+                companion.source,
+                EnumizeErrors.ENUMIZE_COMPANION_LEAF_CONFLICT,
+                context,
+            )
         }
-        val denotable = resolver.effectiveVisibilityAtLeast(companion, symbol) ||
-            resolver.effectiveVisibilityAtLeast(base, symbol)
+        val denotable =
+            resolver.effectiveVisibilityAtLeast(companion, symbol) ||
+                resolver.effectiveVisibilityAtLeast(base, symbol)
         if (!denotable) {
             reporter.reportOn(
                 declaration.source,
@@ -279,11 +290,16 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     ) {
         val symbol = declaration.symbol
         val isObjectLeaf = symbol.classKind == ClassKind.OBJECT
-        val leafNames = if (isObjectLeaf) {
-            setOf(EnumizeNames.LABEL, EnumizeNames.ENUMIZED_CLASS_PROPERTY, EnumizeNames.AS_ENUMISH)
-        } else {
-            setOf(EnumizeNames.AS_ENUMISH)
-        }
+        val leafNames =
+            if (isObjectLeaf) {
+                setOf(
+                    EnumizeNames.LABEL,
+                    EnumizeNames.ENUMIZED_CLASS_PROPERTY,
+                    EnumizeNames.AS_ENUMISH,
+                )
+            } else {
+                setOf(EnumizeNames.AS_ENUMISH)
+            }
         reportConflicts(declaration, symbol, leafNames, base, resolver, context, reporter)
         if (isObjectLeaf) return
         val companion = symbol.companionObjectSymbol ?: return
@@ -329,11 +345,12 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             name != null && name in names && !resolver.isOurGeneratedDeclaration(member)
         }
 
-    private fun memberNameOf(declaration: FirDeclaration): Name? = when (declaration) {
-        is FirNamedFunction -> declaration.name
-        is FirProperty -> declaration.name
-        else -> null
-    }
+    private fun memberNameOf(declaration: FirDeclaration): Name? =
+        when (declaration) {
+            is FirNamedFunction -> declaration.name
+            is FirProperty -> declaration.name
+            else -> null
+        }
 
     // 階層外のユーザー interface から同名メンバーの default 実装（具象）を継承している構成の検出
     private fun inheritedConcreteConflicts(
@@ -342,19 +359,21 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         base: FirRegularClassSymbol,
         resolver: EnumizeHierarchyResolver,
     ): List<Name> {
-        val excludedClassIds = setOf(
-            EnumizeNames.ENUMISH_CLASS_ID,
-            EnumizeNames.ENUMISH_COMPANION_CLASS_ID,
-            EnumizeNames.ENUMIZED_CLASS_ID,
-            resolver.generatedEnumishClassId(base),
-            resolver.generatedEnumishCompanionClassId(base),
-        )
-        val foreignInterfaces = resolver.supertypeClosure(symbol).filter { superSymbol ->
-            superSymbol.classKind == ClassKind.INTERFACE &&
-                superSymbol.classId !in excludedClassIds &&
-                resolver.basesOf(superSymbol).isEmpty() &&
-                !resolver.isEnumizeBase(superSymbol)
-        }
+        val excludedClassIds =
+            setOf(
+                EnumizeNames.ENUMISH_CLASS_ID,
+                EnumizeNames.ENUMISH_COMPANION_CLASS_ID,
+                EnumizeNames.ENUMIZED_CLASS_ID,
+                resolver.generatedEnumishClassId(base),
+                resolver.generatedEnumishCompanionClassId(base),
+            )
+        val foreignInterfaces =
+            resolver.supertypeClosure(symbol).filter { superSymbol ->
+                superSymbol.classKind == ClassKind.INTERFACE &&
+                    superSymbol.classId !in excludedClassIds &&
+                    resolver.basesOf(superSymbol).isEmpty() &&
+                    !resolver.isEnumizeBase(superSymbol)
+            }
         return names.filter { name ->
             foreignInterfaces.any { iface -> declaresConcreteMember(iface, name) }
         }
@@ -365,7 +384,8 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             when (member) {
                 is FirNamedFunction -> member.name == name && member.body != null
                 is FirProperty ->
-                    member.name == name && (member.getter?.body != null || member.initializer != null)
+                    member.name == name &&
+                        (member.getter?.body != null || member.initializer != null)
                 else -> false
             }
         }
@@ -388,10 +408,11 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             }
         }
         if (kindCandidates.size < 2) return
-        val sameBaseGroup = kindCandidates
-            .groupBy { (_, candidateMembership) -> candidateMembership.base.classId }
-            .entries.firstOrNull { (_, group) -> group.size >= 2 }
-            ?: return
+        val sameBaseGroup =
+            kindCandidates
+                .groupBy { (_, candidateMembership) -> candidateMembership.base.classId }
+                .entries
+                .firstOrNull { (_, group) -> group.size >= 2 } ?: return
         reporter.reportOn(
             declaration.source,
             EnumizeErrors.ENUMIZE_AMBIGUOUS_KIND,
@@ -439,26 +460,34 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     private fun inheritedLabelOwner(
         symbol: FirRegularClassSymbol,
         resolver: EnumizeHierarchyResolver,
-    ): FirRegularClassSymbol? = resolver.supertypeClosure(symbol).firstOrNull { superSymbol ->
-        superSymbol.classId != EnumizeNames.ENUMISH_CLASS_ID &&
-            !resolver.representsGeneratedEnumish(superSymbol) &&
-            superSymbol.fir.declarations.any { member -> isVisibleLabelMember(member, resolver) }
-    }
+    ): FirRegularClassSymbol? =
+        resolver.supertypeClosure(symbol).firstOrNull { superSymbol ->
+            superSymbol.classId != EnumizeNames.ENUMISH_CLASS_ID &&
+                !resolver.representsGeneratedEnumish(superSymbol) &&
+                superSymbol.fir.declarations.any { member ->
+                    isVisibleLabelMember(member, resolver)
+                }
+        }
 
     private fun visibleLabelMembers(
         declaration: FirRegularClass,
         resolver: EnumizeHierarchyResolver,
-    ): List<FirDeclaration> = declaration.declarations.filter { member -> isVisibleLabelMember(member, resolver) }
+    ): List<FirDeclaration> =
+        declaration.declarations.filter { member -> isVisibleLabelMember(member, resolver) }
 
     // private メンバーはクラス外の呼び出し点の解決に参加せず継承もされないため、シャドーイングの対象から外す
-    private fun isVisibleLabelMember(declaration: FirDeclaration, resolver: EnumizeHierarchyResolver): Boolean {
+    private fun isVisibleLabelMember(
+        declaration: FirDeclaration,
+        resolver: EnumizeHierarchyResolver,
+    ): Boolean {
         if (memberNameOf(declaration) != EnumizeNames.LABEL) return false
         if (resolver.isOurGeneratedDeclaration(declaration)) return false
-        val visibility = when (declaration) {
-            is FirNamedFunction -> declaration.status.visibility
-            is FirProperty -> declaration.status.visibility
-            else -> return false
-        }
+        val visibility =
+            when (declaration) {
+                is FirNamedFunction -> declaration.status.visibility
+                is FirProperty -> declaration.status.visibility
+                else -> return false
+            }
         return visibility != Visibilities.Private
     }
 }

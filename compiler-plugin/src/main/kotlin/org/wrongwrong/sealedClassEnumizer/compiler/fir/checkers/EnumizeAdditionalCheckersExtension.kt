@@ -7,12 +7,15 @@ import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtensi
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
 import org.wrongwrong.sealedClassEnumizer.compiler.fir.EnumizePredicates
 
-class EnumizeAdditionalCheckersExtension(session: FirSession) : FirAdditionalCheckersExtension(session) {
+class EnumizeAdditionalCheckersExtension(session: FirSession) :
+    FirAdditionalCheckersExtension(session) {
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(EnumizePredicates.ENUMIZE)
     }
 
-    override val declarationCheckers: DeclarationCheckers = object : DeclarationCheckers() {
-        override val regularClassCheckers: Set<FirRegularClassChecker> = setOf(EnumizeRegularClassChecker)
-    }
+    override val declarationCheckers: DeclarationCheckers =
+        object : DeclarationCheckers() {
+            override val regularClassCheckers: Set<FirRegularClassChecker> =
+                setOf(EnumizeRegularClassChecker)
+        }
 }

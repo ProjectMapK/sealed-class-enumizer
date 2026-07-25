@@ -1,11 +1,11 @@
 package org.wrongwrong.fixtures
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import org.wrongwrong.fixtures.nested.Aaa
 import org.wrongwrong.fixtures.nested.Bbb
 import org.wrongwrong.fixtures.nested.NestedRoot
 import org.wrongwrong.sealedClassEnumizer.label
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 // entries 順序の box テスト（docs/概要.md §5・docs/コンパイラプラグイン設計00.md §6）
 class EntriesOrderTest {

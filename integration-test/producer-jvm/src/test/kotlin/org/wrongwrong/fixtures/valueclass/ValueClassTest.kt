@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures.valueclass
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // value class 末端の boxing 挙動（docs/エッジケースへの対応方針.md テスト項目のメモ）
 class ValueClassTest {
@@ -31,6 +31,9 @@ class ValueClassTest {
     @Test
     fun kindApiOfValueClassLeaf() {
         assertEquals(Wrapped::class, Wrapped.Companion.enumizedClass)
-        assertEquals(listOf("Wrapped", "Wrapped(v=1)"), listOf(Wrapped.Companion.toString(), Wrapped(1).toString()))
+        assertEquals(
+            listOf("Wrapped", "Wrapped(v=1)"),
+            listOf(Wrapped.Companion.toString(), Wrapped(1).toString()),
+        )
     }
 }

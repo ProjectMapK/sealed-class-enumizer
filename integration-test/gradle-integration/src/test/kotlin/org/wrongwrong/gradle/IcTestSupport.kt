@@ -1,6 +1,5 @@
 package org.wrongwrong.gradle
 
-import org.gradle.testkit.runner.BuildResult
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -12,6 +11,7 @@ import kotlin.io.path.readText
 import kotlin.io.path.relativeTo
 import kotlin.io.path.writeText
 import kotlin.streams.asSequence
+import org.gradle.testkit.runner.BuildResult
 
 // TestKit テスト群の共通観測ヘルパ（docs/テストケース管理.md C 軸の観測手段:
 // 実行時 OUT: 行・生成 .class のバイト比較・出力タイムスタンプによる再コンパイル追跡）。
@@ -23,9 +23,11 @@ object IcTestSupport {
     // モジュールの build 配下（clean で回収され、テスト開始時に作り直される場所）へ展開する。
     // 並行実行するフォークの作業ディレクトリに依存しないよう、絶対パスをテストタスクから注入する
     private val fixtureWorkRoot: Path =
-        Path.of(requireNotNull(System.getProperty("enumizer.fixtureWorkRoot")) {
-            "システムプロパティ enumizer.fixtureWorkRoot が未設定（gradle-integration/build.gradle.kts が注入する)"
-        })
+        Path.of(
+            requireNotNull(System.getProperty("enumizer.fixtureWorkRoot")) {
+                "システムプロパティ enumizer.fixtureWorkRoot が未設定（gradle-integration/build.gradle.kts が注入する)"
+            }
+        )
 
     fun emptyDir(prefix: String): Path {
         val root = fixtureWorkRoot.createDirectories()
@@ -40,7 +42,8 @@ object IcTestSupport {
 
     // フィクスチャ内 Main が出力する OUT: 行を抽出する（実行時挙動の clean 比較用）
     fun outLines(result: BuildResult): List<String> =
-        result.output.lineSequence()
+        result.output
+            .lineSequence()
             .filter { it.startsWith("OUT:") }
             .map { it.removePrefix("OUT:").trim() }
             .toList()
@@ -77,7 +80,8 @@ object IcTestSupport {
     // （settings の buildCache は複製元の絶対パスを指したままになるため、キャッシュは共有される）
     fun copyForRelocation(source: Path, target: Path) {
         Files.walk(source).use { paths ->
-            paths.asSequence()
+            paths
+                .asSequence()
                 .filter { path -> !isExcludedFromRelocation(source, path) }
                 .forEach { path ->
                     val destination = target.resolve(path.relativeTo(source).toString())
@@ -92,28 +96,37 @@ object IcTestSupport {
     }
 
     private fun isExcludedFromRelocation(source: Path, path: Path): Boolean =
-        path.relativeTo(source).map { it.toString() }.any {
-            it == "build" || it == ".gradle" || it == "build-cache" || it == ".kotlin"
-        }
+        path
+            .relativeTo(source)
+            .map { it.toString() }
+            .any { it == "build" || it == ".gradle" || it == "build-cache" || it == ".kotlin" }
 
-    private fun <T> walkClasses(projectDir: Path, subProject: String, value: (Path) -> T): Map<String, T> {
-        val classesRoot = if (subProject.isEmpty()) {
-            projectDir.resolve(CLASSES_DIR)
-        } else {
-            projectDir.resolve(subProject).resolve(CLASSES_DIR)
-        }
+    private fun <T> walkClasses(
+        projectDir: Path,
+        subProject: String,
+        value: (Path) -> T,
+    ): Map<String, T> {
+        val classesRoot =
+            if (subProject.isEmpty()) {
+                projectDir.resolve(CLASSES_DIR)
+            } else {
+                projectDir.resolve(subProject).resolve(CLASSES_DIR)
+            }
         return walkUnder(classesRoot, value)
     }
 
     private fun <T> walkUnder(root: Path, value: (Path) -> T): Map<String, T> {
         if (!root.isDirectory()) return emptyMap()
         return Files.walk(root).use { paths ->
-            paths.asSequence()
+            paths
+                .asSequence()
                 .filter { it.isRegularFile() }
                 .associate { it.relativeTo(root).toString().replace('\\', '/') to value(it) }
         }
     }
 
     private fun Path.sha256(): String =
-        MessageDigest.getInstance("SHA-256").digest(readBytes()).joinToString("") { "%02x".format(it) }
+        MessageDigest.getInstance("SHA-256").digest(readBytes()).joinToString("") {
+            "%02x".format(it)
+        }
 }

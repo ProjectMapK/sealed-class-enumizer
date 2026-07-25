@@ -1,9 +1,9 @@
 package org.wrongwrong.gradle
 
-import org.gradle.testkit.runner.TaskOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.gradle.testkit.runner.TaskOutcome
 
 // 残ケース掃討: 跨モジュール IC・決定性（既存フィクスチャ diag-cross-absorb / abi-propagation を
 // 展開先コピー上の編集で再利用する。docs/テストケース管理.md TC-XM-019/038/055・TC-VIS-047/050・
@@ -26,7 +26,8 @@ class SweepCrossModuleIcTest {
         val libDigests = IcTestSupport.classDigests(dir, "lib")
 
         TestKitHarness.writeFile(
-            dir, ABSORB_APP_SQUARE,
+            dir,
+            ABSORB_APP_SQUARE,
             "package org.wrongwrong.diag.xabapp\n\nimport org.wrongwrong.diag.xab.XabSi\n\n" +
                 "// TC-XM-019: 追加のサブタイプ（階層外。producer の entries / 生成物へ影響しない）\n" +
                 "class Sq : XabSi.Poly()\n",
@@ -46,7 +47,8 @@ class SweepCrossModuleIcTest {
         val producerDigests = IcTestSupport.classDigests(dir, "producer")
 
         TestKitHarness.replaceInFile(
-            dir, ABI_SI,
+            dir,
+            ABI_SI,
             "// 跨モジュール ABI 伝播フィクスチャの基底（末端は別ファイル）",
             "// 跨モジュール ABI 伝播フィクスチャの基底（末端は別ファイル・sweep: コメントのみ編集）",
         )
@@ -64,7 +66,8 @@ class SweepCrossModuleIcTest {
     fun companionVisibilityTogglePropagatesReturnTypeAcrossModules() {
         val dir = IcTestSupport.prepare("abi-propagation", "swxm47-")
         TestKitHarness.writeFile(
-            dir, ABI_TYPED,
+            dir,
+            ABI_TYPED,
             "package org.wrongwrong.abiuse\n\nimport org.wrongwrong.abifix.Foo\n\n" +
                 "// asEnumish の返り値型（規則 1: 具体型 Foo.Companion）へ静的に依存する観測点（TC-VIS-047）\n" +
                 "fun typedProbe(): String {\n" +
@@ -75,18 +78,22 @@ class SweepCrossModuleIcTest {
         TestKitHarness.build(dir, ":consumer:compileKotlin")
 
         TestKitHarness.replaceInFile(
-            dir, ABI_FOO,
+            dir,
+            ABI_FOO,
             "class Foo(val v: Int) : SI",
             "class Foo(val v: Int) : SI {\n    internal companion object\n}",
         )
         val failure = TestKitHarness.buildAndFail(dir, ":consumer:compileKotlin")
         assertTrue(
-            failure.output.lineSequence().any { it.contains("SweepTyped.kt:") && it.contains("e: ") },
+            failure.output.lineSequence().any {
+                it.contains("SweepTyped.kt:") && it.contains("e: ")
+            },
             "規則 2 への切替が consumer の具体型依存を壊すこと:\n${failure.output}",
         )
 
         TestKitHarness.replaceInFile(
-            dir, ABI_FOO,
+            dir,
+            ABI_FOO,
             "class Foo(val v: Int) : SI {\n    internal companion object\n}",
             "class Foo(val v: Int) : SI",
         )
@@ -103,12 +110,18 @@ class SweepCrossModuleIcTest {
         assertEquals(listOf("ENTRIES=Bar,Foo", "KINDS=bar,foo"), baseline)
 
         TestKitHarness.writeFile(
-            dir, ABI_MID,
+            dir,
+            ABI_MID,
             "package org.wrongwrong.abifix\n\n" +
                 "// 非入れ子の internal 中間 sealed（TC-XM-055 / TC-GAP-016。中間には何も生成されない）\n" +
                 "internal sealed interface AMid : SI\n",
         )
-        TestKitHarness.replaceInFile(dir, ABI_FOO, "class Foo(val v: Int) : SI", "class Foo(val v: Int) : AMid")
+        TestKitHarness.replaceInFile(
+            dir,
+            ABI_FOO,
+            "class Foo(val v: Int) : SI",
+            "class Foo(val v: Int) : AMid",
+        )
         val second = TestKitHarness.build(dir, ":consumer:runMain")
 
         // SI 継承者 [AMid, Bar] → AMid を [Foo] へ展開 → entries=[Foo, Bar]（末端集合 FQN 順ではない）

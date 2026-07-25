@@ -1,10 +1,10 @@
 package org.wrongwrong.mpp.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 型パラメータ付き基底 / 末端の kind と enumizedClass（star projection 相当）が
 // 全ターゲットで一致することの box テスト（docs/テストケース管理.md TC-MPP-043）

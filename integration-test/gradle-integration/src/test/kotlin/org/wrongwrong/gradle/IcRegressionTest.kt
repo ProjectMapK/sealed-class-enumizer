@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Test
 
 // IC 回帰マトリクス前半: 設計00 §5.3 の編集ケース #1〜#5 と @Enumize の付与・除去
 // （docs/テストケース管理.md C 軸 TC-IC-009〜015・029〜031・038・041・043）。
@@ -21,7 +21,8 @@ class IcRegressionTest {
         val times0 = IcTestSupport.classTimes(dir)
 
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.FOO_FILE,
+            dir,
+            IcBasicFixture.FOO_FILE,
             "class Foo(val v: Int) : SI",
             "class Foo(val v: Int) : SI {\n    // 編集ケース #1: ABI に影響しない private メンバーの追記\n    private fun note(): Int = v\n}",
         )
@@ -32,10 +33,16 @@ class IcRegressionTest {
         val changed = IcTestSupport.changedKeys(times0, IcTestSupport.classTimes(dir))
         // 階層不変条件: 編集していない Si.kt / Bar.kt の出力も書き直される（共連れ）
         assertTrue(changed.any(IcBasicFixture::isSiGenerated), "SI 生成物が再生成されること: $changed")
-        assertTrue("${IcBasicFixture.CLASS_PREFIX}/Bar.class" in changed, "Bar.class が共連れ再生成されること: $changed")
+        assertTrue(
+            "${IcBasicFixture.CLASS_PREFIX}/Bar.class" in changed,
+            "Bar.class が共連れ再生成されること: $changed",
+        )
         // 逆方向: 独立階層 TI と無関係ファイルは dirty にならない（P3・V7）
         assertTrue(changed.none(IcBasicFixture::isTiOutput), "TI 出力は不変であること: $changed")
-        assertTrue("${IcBasicFixture.CLASS_PREFIX}/UnrelatedKt.class" !in changed, "無関係ファイルは非共連れ: $changed")
+        assertTrue(
+            "${IcBasicFixture.CLASS_PREFIX}/UnrelatedKt.class" !in changed,
+            "無関係ファイルは非共連れ: $changed",
+        )
         // 決定性: 編集した Foo.class 以外はバイト一致（TC-IC-010/031）
         val fooKey = "${IcBasicFixture.CLASS_PREFIX}/Foo.class"
         assertEquals(digests0.filterKeys { it != fooKey }, digests1.filterKeys { it != fooKey })
@@ -47,14 +54,21 @@ class IcRegressionTest {
     @Test
     fun case2AddLeafIncrementallyDetectedByWhenExhaustiveness() {
         val dir = IcTestSupport.prepare(IcBasicFixture.NAME, "ic2-")
-        assertEquals(IcBasicFixture.BASELINE_OUT, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+        assertEquals(
+            IcBasicFixture.BASELINE_OUT,
+            IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")),
+        )
 
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.BAZ_FILE,
+            dir,
+            IcBasicFixture.BAZ_FILE,
             "package org.wrongwrong.icfix\n\n// 編集ケース #2 で追加される末端（docs/テストケース管理.md TC-IC-011）\ndata object Baz : SI\n",
         )
         val addFailure = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertTrue("exhaustive" in addFailure.output, "末端追加で kind-when が非網羅になること:\n${addFailure.output}")
+        assertTrue(
+            "exhaustive" in addFailure.output,
+            "末端追加で kind-when が非網羅になること:\n${addFailure.output}",
+        )
     }
 
     // #2 の意味論（entries への反映）と #3 末端の削除（TC-IC-012）。追加の検出そのものは
@@ -69,14 +83,19 @@ class IcRegressionTest {
 
         // #2 の意味論: 追加された末端は利用側の else 無し kind-when の網羅性エラーで検出される
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.BAZ_FILE,
+            dir,
+            IcBasicFixture.BAZ_FILE,
             "package org.wrongwrong.icfix\n\n// 編集ケース #2 で追加される末端（docs/テストケース管理.md TC-IC-011）\ndata object Baz : SI\n",
         )
         val addFailure = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertTrue("exhaustive" in addFailure.output, "末端追加で kind-when が非網羅になること:\n${addFailure.output}")
+        assertTrue(
+            "exhaustive" in addFailure.output,
+            "末端追加で kind-when が非網羅になること:\n${addFailure.output}",
+        )
 
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.USE_FILE,
+            dir,
+            IcBasicFixture.USE_FILE,
             "    Bar -> \"bar\"",
             "    Bar -> \"bar\"\n    Baz -> \"baz\"",
         )
@@ -97,17 +116,24 @@ class IcRegressionTest {
         // #3: 末端ファイルの削除は IC 直行で成立し、削除 kind を名指しする利用側がエラーになる
         TestKitHarness.deleteFile(dir, IcBasicFixture.BAZ_FILE)
         val removeFailure = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertTrue("Baz" in removeFailure.output, "削除された kind の名指しがエラーになること:\n${removeFailure.output}")
+        assertTrue(
+            "Baz" in removeFailure.output,
+            "削除された kind の名指しがエラーになること:\n${removeFailure.output}",
+        )
 
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.USE_FILE,
+            dir,
+            IcBasicFixture.USE_FILE,
             "    Bar -> \"bar\"\n    Baz -> \"baz\"",
             "    Bar -> \"bar\"",
         )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
         val digestsFinal = IcTestSupport.classDigests(dir)
         // stale 出力（Baz.class）が IC で掃除され、全生成物が clean ビルドとバイト一致する
-        assertTrue("${IcBasicFixture.CLASS_PREFIX}/Baz.class" !in digestsFinal.keys, "Baz.class の stale 掃除")
+        assertTrue(
+            "${IcBasicFixture.CLASS_PREFIX}/Baz.class" !in digestsFinal.keys,
+            "Baz.class の stale 掃除",
+        )
         assertEquals(digests0, digestsFinal)
     }
 
@@ -122,7 +148,8 @@ class IcRegressionTest {
         val times0 = IcTestSupport.classTimes(dir)
 
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.SI_FILE,
+            dir,
+            IcBasicFixture.SI_FILE,
             "// IC 回帰フィクスチャの基底。",
             "// IC 回帰フィクスチャの基底（#4 基底のみ編集）。",
         )
@@ -130,9 +157,15 @@ class IcRegressionTest {
 
         assertEquals(baseline, IcTestSupport.outLines(second))
         val changed = IcTestSupport.changedKeys(times0, IcTestSupport.classTimes(dir))
-        assertTrue("${IcBasicFixture.CLASS_PREFIX}/Bar.class" in changed, "末端出力が共連れ再生成されること: $changed")
+        assertTrue(
+            "${IcBasicFixture.CLASS_PREFIX}/Bar.class" in changed,
+            "末端出力が共連れ再生成されること: $changed",
+        )
         assertTrue(changed.none(IcBasicFixture::isTiOutput), "TI 出力は不変であること: $changed")
-        assertTrue("${IcBasicFixture.CLASS_PREFIX}/UnrelatedKt.class" !in changed, "無関係ファイルは非共連れ: $changed")
+        assertTrue(
+            "${IcBasicFixture.CLASS_PREFIX}/UnrelatedKt.class" !in changed,
+            "無関係ファイルは非共連れ: $changed",
+        )
         // コメントのみの編集（行数不変）のため全出力がバイト一致する
         assertEquals(digests0, IcTestSupport.classDigests(dir))
     }
@@ -162,7 +195,8 @@ class IcRegressionTest {
         val renamedContent = IcTestSupport.readFile(dir, renamedFile)
         TestKitHarness.deleteFile(dir, IcBasicFixture.BAR_FILE)
         TestKitHarness.writeFile(
-            dir, renamedFile,
+            dir,
+            renamedFile,
             renamedContent + "\n// 編集ケース #5b: ファイル間移動してきた末端（宣言内容は不変）\ndata object Bar : SI\n",
         )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
@@ -189,13 +223,17 @@ class IcRegressionTest {
         val times0 = IcTestSupport.classTimes(dir)
 
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.UNRELATED_FILE,
+            dir,
+            IcBasicFixture.UNRELATED_FILE,
             "fun unrelatedHelper(): Int = 41",
             "fun unrelatedHelper(): Int = 42",
         )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
         val changed = IcTestSupport.changedKeys(times0, IcTestSupport.classTimes(dir))
-        assertTrue("${IcBasicFixture.CLASS_PREFIX}/UnrelatedKt.class" in changed, "編集ファイルの出力は書かれる: $changed")
+        assertTrue(
+            "${IcBasicFixture.CLASS_PREFIX}/UnrelatedKt.class" in changed,
+            "編集ファイルの出力は書かれる: $changed",
+        )
         assertTrue(changed.none(IcBasicFixture::isHierarchyOutput), "階層出力は再生成されないこと: $changed")
         assertTrue(changed.none(IcBasicFixture::isTiOutput), "TI 出力は再生成されないこと: $changed")
     }
@@ -213,25 +251,46 @@ class IcRegressionTest {
 
         // 生成 API を参照しないスタブへ差し替え（除去ラウンドを成功ビルドとして観測するため）
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.USE_FILE,
+            dir,
+            IcBasicFixture.USE_FILE,
             "package org.wrongwrong.icfix\n\n// 一時スタブ（@Enumize 除去ラウンド用: 生成 API を参照しない）\nfun describe(value: SI): String = value.toString()\n",
         )
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.MAIN_FILE,
+            dir,
+            IcBasicFixture.MAIN_FILE,
             "package org.wrongwrong.icfix\n\n// 一時スタブ（@Enumize 除去ラウンド用）\nfun main() {\n    println(\"OUT:TI_ENTRIES=\" + TI.Enumish.entries.joinToString(\",\") { it.label })\n}\n",
         )
         TestKitHarness.build(dir, "compileKotlin")
-        assertTrue(IcTestSupport.classDigests(dir).keys.any(IcBasicFixture::isSiGenerated), "除去前は生成物が存在")
+        assertTrue(
+            IcTestSupport.classDigests(dir).keys.any(IcBasicFixture::isSiGenerated),
+            "除去前は生成物が存在",
+        )
 
         // @Enumize を除去 → 生成物（SI$Enumish* と自動生成 companion）の stale が掃除される
-        TestKitHarness.replaceInFile(dir, IcBasicFixture.SI_FILE, "@Enumize\nsealed interface SI", "sealed interface SI")
+        TestKitHarness.replaceInFile(
+            dir,
+            IcBasicFixture.SI_FILE,
+            "@Enumize\nsealed interface SI",
+            "sealed interface SI",
+        )
         TestKitHarness.build(dir, "compileKotlin")
         val sweptKeys = IcTestSupport.classDigests(dir).keys
-        assertTrue(sweptKeys.none(IcBasicFixture::isSiGenerated), "SI\$Enumish* の stale 掃除: $sweptKeys")
-        assertTrue("${IcBasicFixture.CLASS_PREFIX}/Foo\$Companion.class" !in sweptKeys, "自動生成 companion の掃除")
+        assertTrue(
+            sweptKeys.none(IcBasicFixture::isSiGenerated),
+            "SI\$Enumish* の stale 掃除: $sweptKeys",
+        )
+        assertTrue(
+            "${IcBasicFixture.CLASS_PREFIX}/Foo\$Companion.class" !in sweptKeys,
+            "自動生成 companion の掃除",
+        )
 
         // @Enumize を再付与し、参照側も復元 → 実行時・バイトとも clean ビルドと一致する
-        TestKitHarness.replaceInFile(dir, IcBasicFixture.SI_FILE, "sealed interface SI", "@Enumize\nsealed interface SI")
+        TestKitHarness.replaceInFile(
+            dir,
+            IcBasicFixture.SI_FILE,
+            "sealed interface SI",
+            "@Enumize\nsealed interface SI",
+        )
         TestKitHarness.writeFile(dir, IcBasicFixture.USE_FILE, originalUse)
         TestKitHarness.writeFile(dir, IcBasicFixture.MAIN_FILE, originalMain)
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))

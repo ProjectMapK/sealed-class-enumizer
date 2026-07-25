@@ -1,15 +1,12 @@
 // プラグイン未適用の純消費側（docs/テストケース管理.md モジュール一覧）。
 // 生成 API がメタデータ経由で普通に参照できること（docs/概要.md §7）を検証する
-plugins {
-    kotlin("jvm")
-}
+plugins { kotlin("jvm") }
 
 group = "org.wrongwrong"
+
 version = "1.0-SNAPSHOT"
 
-kotlin {
-    jvmToolchain(17)
-}
+kotlin { jvmToolchain(17) }
 
 dependencies {
     implementation(project(":producer-jvm"))
@@ -19,6 +16,4 @@ dependencies {
     testImplementation(kotlin("reflect"))
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
+tasks.test { useJUnitPlatform() }

@@ -29,9 +29,10 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
     private val accessorGenerator = EnumizeKindAccessorIrGenerator(ctx)
 
     fun process(base: IrClass) {
-        val enumish = base.declarations.filterIsInstance<IrClass>()
-            .firstOrNull { it.isGeneratedByEnumize && it.name == EnumizeNames.ENUMISH_NAME }
-            ?: return
+        val enumish =
+            base.declarations.filterIsInstance<IrClass>().firstOrNull {
+                it.isGeneratedByEnumize && it.name == EnumizeNames.ENUMISH_NAME
+            } ?: return
         val companion = enumish.companionObject() ?: return
         val kinds = collectLeaves(base).mapNotNull(::kindOf)
         // 参照不能 kind には IR-only アクセサを生成し、createEntries はその取得式ビルダで組み立てる（設計02 §4.3）
@@ -50,7 +51,11 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
         return result
     }
 
-    private fun collectLeavesInto(current: IrClass, result: MutableList<IrClass>, visited: MutableSet<IrClass>) {
+    private fun collectLeavesInto(
+        current: IrClass,
+        result: MutableList<IrClass>,
+        visited: MutableSet<IrClass>,
+    ) {
         if (!visited.add(current)) return
         for (subclassSymbol in current.sealedSubclasses) {
             val subclass = subclassSymbol.owner
@@ -68,12 +73,12 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
     // ---- 生成 Enumish とその companion のボディ（設計02 §5.1） ----
 
     private fun fillEnumishCompanionProperty(enumish: IrClass, companion: IrClass) {
-        val getter = ctx.ourPropertyGetter(enumish, EnumizeNames.ENUMISH_COMPANION_PROPERTY) ?: return
-        getter.body = ctx.builder(getter.symbol).run {
-            irBlockBody {
-                +irReturn(irGetObjectValue(companion.defaultType, companion.symbol))
+        val getter =
+            ctx.ourPropertyGetter(enumish, EnumizeNames.ENUMISH_COMPANION_PROPERTY) ?: return
+        getter.body =
+            ctx.builder(getter.symbol).run {
+                irBlockBody { +irReturn(irGetObjectValue(companion.defaultType, companion.symbol)) }
             }
-        }
     }
 
     private fun fillCompanionMembers(companion: IrClass, holder: IrClass) {
@@ -89,17 +94,19 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
     }
 
     private fun fillHolderDelegatingGetter(getter: IrSimpleFunction, holder: IrClass) {
-        val holderEntriesGetter = ctx.holderEntriesProperty.owner.getter
-            ?: error("EnumishEntriesHolder.entries getter not found")
-        getter.body = ctx.builder(getter.symbol).run {
-            irBlockBody {
-                +irReturn(
-                    irCall(holderEntriesGetter.symbol, getter.returnType).apply {
-                        dispatchReceiver = irGetObjectValue(holder.defaultType, holder.symbol)
-                    }
-                )
+        val holderEntriesGetter =
+            ctx.holderEntriesProperty.owner.getter
+                ?: error("EnumishEntriesHolder.entries getter not found")
+        getter.body =
+            ctx.builder(getter.symbol).run {
+                irBlockBody {
+                    +irReturn(
+                        irCall(holderEntriesGetter.symbol, getter.returnType).apply {
+                            dispatchReceiver = irGetObjectValue(holder.defaultType, holder.symbol)
+                        }
+                    )
+                }
             }
-        }
     }
 
     private fun fillHolderDelegatingFunction(
@@ -108,16 +115,17 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
         callee: IrSimpleFunctionSymbol,
     ) {
         val valueParameter = function.parameters.first { it.kind == IrParameterKind.Regular }
-        function.body = ctx.builder(function.symbol).run {
-            irBlockBody {
-                +irReturn(
-                    irCall(callee, function.returnType).apply {
-                        dispatchReceiver = irGetObjectValue(holder.defaultType, holder.symbol)
-                        setRegularArgument(callee, irGet(valueParameter))
-                    }
-                )
+        function.body =
+            ctx.builder(function.symbol).run {
+                irBlockBody {
+                    +irReturn(
+                        irCall(callee, function.returnType).apply {
+                            dispatchReceiver = irGetObjectValue(holder.defaultType, holder.symbol)
+                            setRegularArgument(callee, irGet(valueParameter))
+                        }
+                    )
+                }
             }
-        }
     }
 
     private fun IrMemberAccessExpression<*>.setRegularArgument(

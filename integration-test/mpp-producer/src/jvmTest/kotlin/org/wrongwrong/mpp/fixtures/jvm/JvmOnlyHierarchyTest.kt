@@ -1,9 +1,9 @@
 package org.wrongwrong.mpp.fixtures.jvm
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // platform 専用ソースセット（jvmMain）の @Enumize が V5 非依存で正常生成されることの box テスト
 // （docs/テストケース管理.md TC-MPP-062）
@@ -19,12 +19,13 @@ class JvmOnlyHierarchyTest {
     // kind 単位の網羅 when（else 省略）も platform 配置で成立する
     @Test
     fun kindWhenIsExhaustiveWithoutElse() {
-        val branches = JvmOnly.Enumish.entries.map { kind ->
-            when (kind) {
-                JvmOnly.A -> "a"
-                JvmOnly.B.Companion -> "b"
+        val branches =
+            JvmOnly.Enumish.entries.map { kind ->
+                when (kind) {
+                    JvmOnly.A -> "a"
+                    JvmOnly.B.Companion -> "b"
+                }
             }
-        }
         assertEquals(listOf("a", "b"), branches)
     }
 }

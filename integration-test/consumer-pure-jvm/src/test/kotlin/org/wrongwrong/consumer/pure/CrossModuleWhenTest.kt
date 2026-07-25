@@ -1,11 +1,11 @@
 package org.wrongwrong.consumer.pure
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import org.wrongwrong.fixtures.SI
 import org.wrongwrong.fixtures.manualimpl.ManualLeaf
 import org.wrongwrong.fixtures.manualimpl.WithManual
 import org.wrongwrong.fixtures.zoo.Zoo
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 // 跨モジュール網羅 when の正値実証（生成 Enumish の sealed inheritors がメタデータ直列化されている = V1-a/c/e。
 // docs/概要.md §7・docs/テストケース管理.md TC-XM-008 / TC-XM-011 / TC-XM-012 / TC-LEAF-074 / TC-VIS-037 /
@@ -16,10 +16,11 @@ class CrossModuleWhenTest {
     @Test
     fun kindWhenIsExhaustiveWithoutElseAcrossModule() {
         val si: SI = SI.Foo(1)
-        val result = when (si.asEnumish()) {
-            SI.Foo.Companion -> "foo"
-            SI.Bar -> "bar"
-        }
+        val result =
+            when (si.asEnumish()) {
+                SI.Foo.Companion -> "foo"
+                SI.Bar -> "bar"
+            }
         assertEquals("foo", result)
     }
 
@@ -40,19 +41,20 @@ class CrossModuleWhenTest {
     // fun interface / enum / value class）の kind を跨モジュールで名指しし、kind-when が else 無しで網羅する
     @Test
     fun allLeafShapeKindsAreCoveredWithoutElseAcrossModule() {
-        val branches = Zoo.Enumish.entries.map { kind ->
-            when (kind) {
-                Zoo.AbstractLeaf.Companion -> "AbstractLeaf"
-                Zoo.DataLeaf.Companion -> "DataLeaf"
-                Zoo.EnumLeaf.Companion -> "EnumLeaf"
-                Zoo.FunLeaf.Companion -> "FunLeaf"
-                Zoo.IfaceLeaf.Companion -> "IfaceLeaf"
-                Zoo.ObjectLeaf -> "ObjectLeaf"
-                Zoo.OpenLeaf.Companion -> "OpenLeaf"
-                Zoo.PlainObject -> "PlainObject"
-                Zoo.ValueLeaf.Companion -> "ValueLeaf"
+        val branches =
+            Zoo.Enumish.entries.map { kind ->
+                when (kind) {
+                    Zoo.AbstractLeaf.Companion -> "AbstractLeaf"
+                    Zoo.DataLeaf.Companion -> "DataLeaf"
+                    Zoo.EnumLeaf.Companion -> "EnumLeaf"
+                    Zoo.FunLeaf.Companion -> "FunLeaf"
+                    Zoo.IfaceLeaf.Companion -> "IfaceLeaf"
+                    Zoo.ObjectLeaf -> "ObjectLeaf"
+                    Zoo.OpenLeaf.Companion -> "OpenLeaf"
+                    Zoo.PlainObject -> "PlainObject"
+                    Zoo.ValueLeaf.Companion -> "ValueLeaf"
+                }
             }
-        }
         assertEquals(
             listOf(
                 "AbstractLeaf",

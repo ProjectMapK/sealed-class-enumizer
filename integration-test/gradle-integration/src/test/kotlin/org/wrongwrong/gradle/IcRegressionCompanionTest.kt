@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Test
 
 // IC 回帰マトリクス（companion・手動実装・dirty 税）: 設計00 §5.3 #7/#7-b/#7-c・#12 と P3 の
 // dirty 税なし（docs/テストケース管理.md TC-IC-018〜022・028・042、TC-GAP-002）
@@ -21,15 +21,20 @@ class IcRegressionCompanionTest {
         assertTrue(fooCompanionClass in digests0.keys, "自動生成 companion のクラスが存在すること")
 
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.FOO_FILE,
+            dir,
+            IcBasicFixture.FOO_FILE,
             "class Foo(val v: Int) : SI",
             "class Foo(val v: Int) : SI {\n    companion object\n}",
         )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
-        assertTrue(fooCompanionClass in IcTestSupport.classDigests(dir).keys, "手動 companion でもクラス名は不変")
+        assertTrue(
+            fooCompanionClass in IcTestSupport.classDigests(dir).keys,
+            "手動 companion でもクラス名は不変",
+        )
 
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.FOO_FILE,
+            dir,
+            IcBasicFixture.FOO_FILE,
             "class Foo(val v: Int) : SI {\n    companion object\n}",
             "class Foo(val v: Int) : SI",
         )
@@ -46,14 +51,23 @@ class IcRegressionCompanionTest {
         assertEquals(IcBasicFixture.BASELINE_OUT, baseline)
 
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.FOO_FILE,
+            dir,
+            IcBasicFixture.FOO_FILE,
             "class Foo(val v: Int) : SI",
             "class Foo(val v: Int) : SI {\n    companion object Factory\n}",
         )
         val failure = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertTrue("Companion" in failure.output, "修飾名 Foo.Companion の名指しが追従を要すること:\n${failure.output}")
+        assertTrue(
+            "Companion" in failure.output,
+            "修飾名 Foo.Companion の名指しが追従を要すること:\n${failure.output}",
+        )
 
-        TestKitHarness.replaceInFile(dir, IcBasicFixture.USE_FILE, "Foo.Companion -> \"foo\"", "Foo.Factory -> \"foo\"")
+        TestKitHarness.replaceInFile(
+            dir,
+            IcBasicFixture.USE_FILE,
+            "Foo.Companion -> \"foo\"",
+            "Foo.Factory -> \"foo\"",
+        )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
         val keys = IcTestSupport.classDigests(dir).keys
         assertTrue(fooFactoryClass in keys, "Foo\$Factory.class が生成されること")
@@ -71,31 +85,45 @@ class IcRegressionCompanionTest {
         assertEquals(IcBasicFixture.BASELINE_OUT, baseline)
 
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.FOO_FILE,
+            dir,
+            IcBasicFixture.FOO_FILE,
             "class Foo(val v: Int) : SI",
             "class Foo(val v: Int) : SI {\n    companion object\n}",
         )
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.TYPED_USE_FILE,
+            dir,
+            IcBasicFixture.TYPED_USE_FILE,
             "package org.wrongwrong.icfix\n\n// asEnumish の返り値型（規則 1: 具体型 Foo.Companion）へ静的に依存する観測点（TC-IC-020）\nprivate val typedKind: Foo.Companion = Foo(1).asEnumish()\n",
         )
         TestKitHarness.build(dir, "compileKotlin")
 
         // internal 化 → 返り値型が SI.Enumish へフォールバック（規則 2）し、具体型依存が壊れる
-        TestKitHarness.replaceInFile(dir, IcBasicFixture.FOO_FILE, "    companion object\n", "    internal companion object\n")
+        TestKitHarness.replaceInFile(
+            dir,
+            IcBasicFixture.FOO_FILE,
+            "    companion object\n",
+            "    internal companion object\n",
+        )
         val mismatch = TestKitHarness.buildAndFail(dir, "compileKotlin")
         assertTrue("Enumish" in mismatch.output, "返り値型の切替が型不一致として観測されること:\n${mismatch.output}")
 
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.TYPED_USE_FILE,
+            dir,
+            IcBasicFixture.TYPED_USE_FILE,
             "package org.wrongwrong.icfix\n\n// 規則 2 フォールバック後の返り値型（SI.Enumish）に合わせた観測点（TC-IC-020）\nprivate val typedKind: SI.Enumish = Foo(1).asEnumish()\n",
         )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
 
         // 逆編集で public 具体型（規則 1）へ戻る
-        TestKitHarness.replaceInFile(dir, IcBasicFixture.FOO_FILE, "    internal companion object\n", "    companion object\n")
+        TestKitHarness.replaceInFile(
+            dir,
+            IcBasicFixture.FOO_FILE,
+            "    internal companion object\n",
+            "    companion object\n",
+        )
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.TYPED_USE_FILE,
+            dir,
+            IcBasicFixture.TYPED_USE_FILE,
             "package org.wrongwrong.icfix\n\n// asEnumish の返り値型（規則 1: 具体型 Foo.Companion）へ静的に依存する観測点（TC-IC-020）\nprivate val typedKind: Foo.Companion = Foo(1).asEnumish()\n",
         )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
@@ -110,11 +138,24 @@ class IcRegressionCompanionTest {
         val baseline = IcTestSupport.outLines(TestKitHarness.build(dir, "runMain"))
         assertEquals(listOf("WENTRIES=Wide", "WKIND=Wide"), baseline)
 
-        TestKitHarness.replaceInFile(dir, wideFile, "    companion object\n", "    internal companion object\n")
+        TestKitHarness.replaceInFile(
+            dir,
+            wideFile,
+            "    companion object\n",
+            "    internal companion object\n",
+        )
         val failure = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertTrue("cannot be denoted" in failure.output, "ENUMIZE_KIND_TYPE_NOT_DENOTABLE の発火:\n${failure.output}")
+        assertTrue(
+            "cannot be denoted" in failure.output,
+            "ENUMIZE_KIND_TYPE_NOT_DENOTABLE の発火:\n${failure.output}",
+        )
 
-        TestKitHarness.replaceInFile(dir, wideFile, "    internal companion object\n", "    companion object\n")
+        TestKitHarness.replaceInFile(
+            dir,
+            wideFile,
+            "    internal companion object\n",
+            "    companion object\n",
+        )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
     }
 
@@ -129,7 +170,8 @@ class IcRegressionCompanionTest {
         val digests0 = IcTestSupport.classDigests(dir)
 
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.ROGUE_FILE,
+            dir,
+            IcBasicFixture.ROGUE_FILE,
             "package org.wrongwrong.icfix\n\nimport kotlin.reflect.KClass\n\n" +
                 "// 階層外の手動実装（設計00 §5.3 #12 = TC-IC-028。単体ファイルでの発火を観測する）\n" +
                 "object Rogue : SI.Enumish {\n" +
@@ -163,7 +205,8 @@ class IcRegressionCompanionTest {
 
         // 末端 Foo を「末端でもあり手動実装でもある」形へ（label 手動宣言は EXTENSION_SHADOWED 警告のみ）
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.FOO_FILE,
+            dir,
+            IcBasicFixture.FOO_FILE,
             "package org.wrongwrong.icfix\n\nimport kotlin.reflect.KClass\n\n" +
                 "// 階層内の手動実装を兼ねる末端（TC-IC-048。docs/概要.md §8 の許容形）\n" +
                 "class Foo(val v: Int) : SI, SI.Enumish {\n" +
@@ -173,23 +216,29 @@ class IcRegressionCompanionTest {
         )
         // 手動実装が inheritors に載るため kind-when へ is Foo 枝が要る（概要 §3・§8）
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.USE_FILE,
+            dir,
+            IcBasicFixture.USE_FILE,
             "    Outer.Leaf -> \"leaf\"",
             "    Outer.Leaf -> \"leaf\"\n    is Foo -> \"fooManual\"",
         )
         val manual = IcTestSupport.outLines(TestKitHarness.build(dir, "runMain"))
         // 手動実装値は kind でないため entries / valueOf / describe の実行時結果は不変
         assertEquals(baseline, manual)
-        val siGeneratedManual = IcTestSupport.classDigests(dir).filterKeys(IcBasicFixture::isSiGenerated)
+        val siGeneratedManual =
+            IcTestSupport.classDigests(dir).filterKeys(IcBasicFixture::isSiGenerated)
 
         // 手動実装ファイルの ABI 非変更編集 → 階層共連れで inheritors 再計算・結果は安定
         TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.FOO_FILE,
+            dir,
+            IcBasicFixture.FOO_FILE,
             "// 階層内の手動実装を兼ねる末端（TC-IC-048。docs/概要.md §8 の許容形）",
             "// 階層内の手動実装を兼ねる末端（TC-IC-048。docs/概要.md §8 の許容形。編集ラウンド）",
         )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
-        assertEquals(siGeneratedManual, IcTestSupport.classDigests(dir).filterKeys(IcBasicFixture::isSiGenerated))
+        assertEquals(
+            siGeneratedManual,
+            IcTestSupport.classDigests(dir).filterKeys(IcBasicFixture::isSiGenerated),
+        )
 
         // 復元で clean 基準とバイト一致まで戻る
         TestKitHarness.writeFile(dir, IcBasicFixture.FOO_FILE, originalFoo)
@@ -207,7 +256,8 @@ class IcRegressionCompanionTest {
         val times0 = IcTestSupport.classTimes(dir)
 
         TestKitHarness.writeFile(
-            dir, IcBasicFixture.THIRD_FILE,
+            dir,
+            IcBasicFixture.THIRD_FILE,
             "package org.wrongwrong.icfix\n\nimport org.wrongwrong.sealedClassEnumizer.Enumize\n\n" +
                 "// 新規追加される第 3 の @Enumize 階層（TC-IC-042: 既存階層へ dirty 税が及ばないこと）\n" +
                 "@Enumize\nsealed interface SI3 {\n    data object W3 : SI3\n}\n",
@@ -215,10 +265,17 @@ class IcRegressionCompanionTest {
         TestKitHarness.build(dir, "compileKotlin")
         // モジュール単位の成果物（META-INF/*.kotlin_module）はコンパイルの度に書き直されるため、
         // クラス出力（ファイル単位の帰属を持つもの）だけを dirty 税の判定対象にする
-        val changed = IcTestSupport.changedKeys(times0, IcTestSupport.classTimes(dir))
-            .filterTo(mutableSetOf()) { !it.startsWith("META-INF/") }
+        val changed =
+            IcTestSupport.changedKeys(times0, IcTestSupport.classTimes(dir)).filterTo(
+                mutableSetOf()
+            ) {
+                !it.startsWith("META-INF/")
+            }
 
-        assertTrue(changed.isNotEmpty() && changed.all { "/SI3" in it }, "追加階層の出力のみが書かれること: $changed")
+        assertTrue(
+            changed.isNotEmpty() && changed.all { "/SI3" in it },
+            "追加階層の出力のみが書かれること: $changed",
+        )
         assertTrue(changed.none(IcBasicFixture::isTiOutput), "TI 出力は不変であること: $changed")
         assertTrue(changed.none(IcBasicFixture::isSiGenerated), "SI 生成物は不変であること: $changed")
     }

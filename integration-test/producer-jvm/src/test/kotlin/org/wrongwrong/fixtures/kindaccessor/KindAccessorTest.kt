@@ -7,10 +7,7 @@ import kotlin.test.assertEquals
 class KindAccessorTest {
     @Test
     fun inaccessibleKindsAreServedThroughEntries() {
-        assertEquals(
-            listOf("KaPrivComp", "Visible"),
-            KaRoot.Enumish.entries.map { it.label },
-        )
+        assertEquals(listOf("KaPrivComp", "Visible"), KaRoot.Enumish.entries.map { it.label })
         assertEquals("KaPrivComp", KaRoot.Enumish.valueOf("KaPrivComp").label)
     }
 }

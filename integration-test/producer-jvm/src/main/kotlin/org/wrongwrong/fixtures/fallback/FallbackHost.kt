@@ -6,7 +6,8 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 // （TC-GAP-012 = value class / TC-GAP-013 = enum class）。
 //
 // interface / fun interface 末端の「internal companion」は言語上構成できない
-// （e: Modifier 'internal' is not applicable inside 'interface'。interface メンバーの可視性は public / private のみ）:
+// （e: Modifier 'internal' is not applicable inside 'interface'。interface メンバーの可視性は public / private
+// のみ）:
 //
 //   interface Custom : FallbackHost { internal companion object }
 //   fun interface Fn : FallbackHost { fun run(x: Int): Int; internal companion object }
@@ -32,8 +33,7 @@ sealed interface FallbackHost {
 
     enum class Cmd : FallbackHost {
         HELP,
-        VERSION,
-        ;
+        VERSION;
 
         internal companion object
     }

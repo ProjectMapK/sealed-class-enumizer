@@ -4,11 +4,10 @@ plugins {
 }
 
 group = "org.wrongwrong"
+
 version = "1.0-SNAPSHOT"
 
-kotlin {
-    jvmToolchain(17)
-}
+kotlin { jvmToolchain(17) }
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -17,6 +16,4 @@ dependencies {
     testImplementation(kotlin("reflect"))
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
+tasks.test { useJUnitPlatform() }

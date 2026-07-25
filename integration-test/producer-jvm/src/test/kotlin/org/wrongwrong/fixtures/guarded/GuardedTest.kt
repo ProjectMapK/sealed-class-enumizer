@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures.guarded
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.wrongwrong.sealedClassEnumizer.label
 
 // sealed class 基底 + protected ネスト末端の box テスト（docs/テストケース管理.md TC-VIS-017）
 class GuardedTest {

@@ -3,7 +3,8 @@ package org.wrongwrong.fixtures.plain
 import org.wrongwrong.sealedClassEnumizer.Enumize
 
 // final class 末端（明示 companion）と既存 companion への生成メンバー共存のフィクスチャ
-// （TC-LEAF-001 / TC-LEAF-020 / TC-LEAF-024 / TC-LEAF-058。非 data の object 末端 = TC-LEAF-005 / TC-LEAF-064）
+// （TC-LEAF-001 / TC-LEAF-020 / TC-LEAF-024 / TC-LEAF-058。非 data の object 末端 = TC-LEAF-005 /
+// TC-LEAF-064）
 @Enumize
 sealed interface Plain {
     // final class 末端 + 明示既定名 companion（既存流用・自動生成はスキップ）

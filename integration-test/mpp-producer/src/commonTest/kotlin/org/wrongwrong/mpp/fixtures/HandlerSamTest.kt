@@ -1,9 +1,9 @@
 package org.wrongwrong.mpp.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 末端 fun interface の SAM が全ターゲットで 1 メソッドに保たれることの box テスト
 // （docs/テストケース管理.md TC-MPP-054・V10-c）。ラムダで Handler.Fn を生成できること自体が

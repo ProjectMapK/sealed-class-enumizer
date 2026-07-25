@@ -90,8 +90,9 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
     // raw 追跡（エイリアス自身のスコープでの名前解決）へ落として展開する
     fun expandedClassId(coneType: ConeKotlinType): ClassId? {
         val classId = expandedType(coneType).classId ?: return null
-        val symbol = session.symbolProvider.getClassLikeSymbolByClassId(classId) as? FirTypeAliasSymbol
-            ?: return classId
+        val symbol =
+            session.symbolProvider.getClassLikeSymbolByClassId(classId) as? FirTypeAliasSymbol
+                ?: return classId
         return resolveAliasExpansion(symbol, LinkedHashSet())?.classId
     }
 
@@ -237,9 +238,11 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         imports: List<FirImport>,
         useSite: FirClassLikeSymbol<*>,
     ): ClassId? =
-        imports.filter { it.isAllUnder }.firstNotNullOfOrNull { import ->
-            import.importedFqName?.child(firstName)?.let { resolvableClassId(it, useSite) }
-        }
+        imports
+            .filter { it.isAllUnder }
+            .firstNotNullOfOrNull { import ->
+                import.importedFqName?.child(firstName)?.let { resolvableClassId(it, useSite) }
+            }
 
     // パッケージ名から書かれた参照（FQN 表記）
     private fun qualifiedNameClassId(parts: List<Name>, useSite: FirClassLikeSymbol<*>): ClassId? {
@@ -263,8 +266,11 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         if (segments.size <= packageSegments.size) return null
         if (segments.subList(0, packageSegments.size) != packageSegments) return null
         val relativeSegments = segments.subList(packageSegments.size, segments.size)
-        return relativeSegments.drop(1)
-            .fold(ClassId(packageFqName, relativeSegments.first())) { id, name -> id.createNestedClassId(name) }
+        return relativeSegments.drop(1).fold(ClassId(packageFqName, relativeSegments.first())) {
+            id,
+            name ->
+            id.createNestedClassId(name)
+        }
     }
 
     private fun resolvesToClassLike(classId: ClassId): Boolean =

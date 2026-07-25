@@ -1,9 +1,9 @@
 package org.wrongwrong.gradle
 
-import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAnywhere
-import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import kotlin.test.Test
 import kotlin.test.assertTrue
+import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAnywhere
+import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 
 // 残ケース掃討: MPP のソースセット境界（sweep-mpp-* フィクスチャ）。
 // expect/actual 末端の near-miss・HMPP 派生ソースセットへの逸脱・common 診断の metadata 発火を検証する
@@ -16,10 +16,7 @@ class SweepMppTest : DiagTestBase() {
         val output = failOutput("sweep-mpp-expect-leaf", "compileKotlinJvm")
         assertFragmentAbsent(output, DiagFragments.ON_EXPECT)
         assertFragmentAbsent(output, DiagFragments.ON_ACTUAL)
-        assertTrue(
-            output.lineSequence().any { it.contains("e: ") },
-            "言語側エラーへ合流すること:\n$output",
-        )
+        assertTrue(output.lineSequence().any { it.contains("e: ") }, "言語側エラーへ合流すること:\n$output")
     }
 
     // TC-MPP-051: 中間ソースセット（webMain）の基底 × 派生ソースセット（jsMain）の末端。
@@ -28,9 +25,11 @@ class SweepMppTest : DiagTestBase() {
     @Test
     fun hmppDerivedSourceSetLeafFailsBuild() {
         val output = failOutput("sweep-mpp-hmpp", "compileKotlinJs")
-        val positioned = output.lineSequence()
-            .filter { it.contains("SwHmppJsLeaf.kt:") && it.contains("e: ") }
-            .toList()
+        val positioned =
+            output
+                .lineSequence()
+                .filter { it.contains("SwHmppJsLeaf.kt:") && it.contains("e: ") }
+                .toList()
         assertTrue(positioned.isNotEmpty(), "派生ソースセットの末端にエラーが出ること:\n$output")
     }
 

@@ -23,15 +23,16 @@ object IcBasicFixture {
     const val CLASS_PREFIX = "org/wrongwrong/icfix"
 
     // clean ビルドの実行時基準値（docs/概要.md §5 の FQN 序数順: Bar < Foo < Outer.Leaf）
-    val BASELINE_OUT = listOf(
-        "ENTRIES=Bar,Foo,Leaf",
-        "TI_ENTRIES=T1",
-        "DESCRIBE=foo,bar,leaf",
-        "PROBE_FOO=Foo",
-        "PROBE_LEAF=Leaf",
-        "TRY_BAZ=IAE:No enumish entry with label 'Baz' in SI",
-        "NOLABEL=IAE:No enumish entry with label 'NoSuch' in SI",
-    )
+    val BASELINE_OUT =
+        listOf(
+            "ENTRIES=Bar,Foo,Leaf",
+            "TI_ENTRIES=T1",
+            "DESCRIBE=foo,bar,leaf",
+            "PROBE_FOO=Foo",
+            "PROBE_LEAF=Leaf",
+            "TRY_BAZ=IAE:No enumish entry with label 'Baz' in SI",
+            "NOLABEL=IAE:No enumish entry with label 'NoSuch' in SI",
+        )
 
     // SI 階層のファイル帰属を分類するための接頭辞（帰属はコンパイラ設計00 §4 の成果物対応表）
     fun isSiGenerated(key: String): Boolean = key.startsWith("$CLASS_PREFIX/SI$")
@@ -39,6 +40,8 @@ object IcBasicFixture {
     fun isTiOutput(key: String): Boolean = key.startsWith("$CLASS_PREFIX/TI")
 
     fun isHierarchyOutput(key: String): Boolean =
-        key.startsWith("$CLASS_PREFIX/SI") || key.startsWith("$CLASS_PREFIX/Foo") ||
-            key.startsWith("$CLASS_PREFIX/Bar") || key.startsWith("$CLASS_PREFIX/Outer")
+        key.startsWith("$CLASS_PREFIX/SI") ||
+            key.startsWith("$CLASS_PREFIX/Foo") ||
+            key.startsWith("$CLASS_PREFIX/Bar") ||
+            key.startsWith("$CLASS_PREFIX/Outer")
 }

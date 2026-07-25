@@ -60,7 +60,8 @@ class EnumizeIrGenerationExtension : IrGenerationExtension {
         for (declaration in owner.declarations) {
             if (!declaration.isGeneratedByEnumize) continue
             when (declaration) {
-                is IrProperty -> declaration.getter?.let { verifyBody(it, declaration.modality, owner) }
+                is IrProperty ->
+                    declaration.getter?.let { verifyBody(it, declaration.modality, owner) }
                 is IrSimpleFunction -> verifyBody(declaration, declaration.modality, owner)
                 is IrConstructor -> verifyBody(declaration, Modality.FINAL, owner)
                 else -> Unit
@@ -70,6 +71,8 @@ class EnumizeIrGenerationExtension : IrGenerationExtension {
 
     private fun verifyBody(function: IrFunction, modality: Modality, owner: IrClass) {
         if (modality == Modality.ABSTRACT || function.body != null) return
-        error("generated declaration was not filled: ${owner.kotlinFqName}.${function.name} (${function.origin})")
+        error(
+            "generated declaration was not filled: ${owner.kotlinFqName}.${function.name} (${function.origin})"
+        )
     }
 }

@@ -1,10 +1,10 @@
 package org.wrongwrong.fixtures.baseimpl
 
-import org.wrongwrong.fixtures.SI
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import org.wrongwrong.fixtures.SI
 
 // 基底 Enumish（runtime-api）の手動実装は無制約であることの box テスト（docs/テストケース管理.md TC-BOX-079）
 class FreeAgentTest {

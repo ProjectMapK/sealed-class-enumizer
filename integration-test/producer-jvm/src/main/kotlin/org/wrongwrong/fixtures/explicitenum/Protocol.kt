@@ -8,8 +8,7 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 sealed interface Protocol {
     enum class Verb : Protocol {
         GET,
-        POST,
-        ;
+        POST;
 
         companion object
     }

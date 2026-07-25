@@ -22,8 +22,9 @@ sealed interface Zoo {
         fun go(): Int
     }
 
-    enum class EnumLeaf : Zoo { ONE }
+    enum class EnumLeaf : Zoo {
+        ONE
+    }
 
-    @JvmInline
-    value class ValueLeaf(val x: Int) : Zoo
+    @JvmInline value class ValueLeaf(val x: Int) : Zoo
 }

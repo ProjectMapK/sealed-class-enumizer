@@ -41,12 +41,18 @@ class FallbackTest {
     fun enumLeafWithInternalCompanionFallsBack() {
         val kind: FallbackHost.Enumish = FallbackHost.Cmd.HELP.asEnumish()
         assertSame(FallbackHost.Cmd.Companion, kind)
-        assertEquals(listOf("HELP", "Cmd", "Cmd"), listOf(FallbackHost.Cmd.HELP.name, kind.label, kind.toString()))
+        assertEquals(
+            listOf("HELP", "Cmd", "Cmd"),
+            listOf(FallbackHost.Cmd.HELP.name, kind.label, kind.toString()),
+        )
     }
 
     // 4 種別すべての kind が entries に載る
     @Test
     fun entriesContainAllFallbackKinds() {
-        assertEquals(listOf("Cmd", "Custom", "Fn", "Val"), FallbackHost.Enumish.entries.map { it.label })
+        assertEquals(
+            listOf("Cmd", "Custom", "Fn", "Val"),
+            FallbackHost.Enumish.entries.map { it.label },
+        )
     }
 }

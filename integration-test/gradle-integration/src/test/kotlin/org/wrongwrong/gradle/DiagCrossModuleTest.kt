@@ -1,8 +1,8 @@
 package org.wrongwrong.gradle
 
+import kotlin.test.Test
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
-import kotlin.test.Test
 
 // G 軸: 跨モジュール系（利用側モジュールでの ENUMIZE_AMBIGUOUS_KIND・2 家族実装・生成 Enumish の
 // 別モジュール実装・単一末端サブタイプの吸収・網羅 when の ABI 伝播。docs/テストケース管理.md

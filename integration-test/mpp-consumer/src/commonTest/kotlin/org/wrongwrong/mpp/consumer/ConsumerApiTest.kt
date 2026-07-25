@@ -1,13 +1,13 @@
 package org.wrongwrong.mpp.consumer
 
-import org.wrongwrong.mpp.fixtures.EmptyRoot
-import org.wrongwrong.mpp.fixtures.SI
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import org.wrongwrong.mpp.fixtures.EmptyRoot
+import org.wrongwrong.mpp.fixtures.SI
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 跨モジュール × MPP: プラグイン未適用モジュールの共通コードから mpp-producer の生成 API を
 // 参照して各 platform で動作することの box テスト（docs/テストケース管理.md mpp-consumer 行・
@@ -53,6 +53,9 @@ class ConsumerApiTest {
     @Test
     fun generatedCompanionIsNameableAcrossModules() {
         assertSame(SI.Foo.Companion, SI.Enumish.valueOf("Foo"))
-        assertEquals(listOf("foo", "bar"), listOf(consumerClassify(SI.Foo(1)), consumerClassify(SI.Bar)))
+        assertEquals(
+            listOf("foo", "bar"),
+            listOf(consumerClassify(SI.Foo(1)), consumerClassify(SI.Bar)),
+        )
     }
 }

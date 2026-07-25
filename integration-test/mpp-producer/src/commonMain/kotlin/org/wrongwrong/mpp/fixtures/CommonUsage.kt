@@ -8,10 +8,11 @@ fun pickLabels(): List<String> = SI.Enumish.entries.map { it.label }
 
 // else 無し kind-when（TC-MPP-047: 生成 Enumish の inheritors が common metadata へ直列化され、
 // commonMain のコードでも網羅が成立する = V1 × V5）
-fun classify(si: SI): String = when (si.asEnumish()) {
-    SI.Foo.Companion -> "foo"
-    SI.Bar -> "bar"
-}
+fun classify(si: SI): String =
+    when (si.asEnumish()) {
+        SI.Foo.Companion -> "foo"
+        SI.Bar -> "bar"
+    }
 
 // enumishCompanion 経由の共通参照（TC-MPP-066: metadata にはシグネチャのみが載り、
 // ボディは各 platform の IR 充填で埋まる）

@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures.handler
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // fun interface 末端（V10-c: SAM 保持）の box テスト
 // （docs/テストケース管理.md TC-LEAF-010 / TC-LEAF-038 / TC-LEAF-081 / TC-BOX-068）

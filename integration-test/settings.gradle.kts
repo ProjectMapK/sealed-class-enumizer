@@ -9,27 +9,19 @@ pluginManagement {
     }
 }
 
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-}
+plugins { id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0" }
 
 // repositoriesMode は親ビルドと同じく既定（PREFER_PROJECT）とする。KGP の JS / Wasm ツールチェーン
 // （Node.js / Yarn / Binaryen 配布物）はプロジェクトレベルの ivy リポジトリを動的に追加するため、
 // PREFER_SETTINGS では org.nodejs:node 等が解決できず mpp-* の JS / Wasm ターゲットがビルド不能になる
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-    }
+    repositories { mavenCentral() }
     // KGP のバージョンは親ビルドの version catalog を唯一の源とする。独立したビルドには catalog が
     // 自動共有されないため、親の TOML を明示的に読み込む。参照は build.gradle.kts の alias(...) が行う
     // （catalog は pluginManagement からは参照できないため、バージョン宣言は settings ではなく
     // ルートの plugins ブロックに置く）
-    versionCatalogs {
-        create("libs") {
-            from(files("../gradle/libs.versions.toml"))
-        }
-    }
+    versionCatalogs { create("libs") { from(files("../gradle/libs.versions.toml")) } }
 }
 
 rootProject.name = "enumize-integration-test"

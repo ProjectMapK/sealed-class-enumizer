@@ -5,7 +5,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
 // final class 末端（明示 companion）・既存 companion との共存・非 data object 末端の box テスト
-// （docs/テストケース管理.md TC-LEAF-001 / TC-LEAF-020 / TC-LEAF-024 / TC-LEAF-005 / TC-LEAF-058 / TC-LEAF-064）
+// （docs/テストケース管理.md TC-LEAF-001 / TC-LEAF-020 / TC-LEAF-024 / TC-LEAF-005 / TC-LEAF-058 /
+// TC-LEAF-064）
 class PlainTest {
     // TC-LEAF-001: final class 末端。値が別でも kind は同一シングルトン（明示 companion の流用 = TC-LEAF-020）
     @Test
@@ -27,14 +28,21 @@ class PlainTest {
     fun userMembersCoexistWithGeneratedMembers() {
         assertEquals(1, Plain.Stocked.cfg)
         assertEquals(1, Plain.Stocked.make().v)
-        assertEquals(listOf("Stocked", "Stocked"), listOf(Plain.Stocked.Companion.label, Plain.Stocked.Companion.toString()))
+        assertEquals(
+            listOf("Stocked", "Stocked"),
+            listOf(Plain.Stocked.Companion.label, Plain.Stocked.Companion.toString()),
+        )
     }
 
-    // TC-LEAF-005 / TC-LEAF-064 / TC-BOX-042: 非 data の object 末端は kind = 自身で、toString = label が生成される
+    // TC-LEAF-005 / TC-LEAF-064 / TC-BOX-042: 非 data の object 末端は kind = 自身で、toString = label
+    // が生成される
     @Test
     fun plainObjectLeafIsItsOwnKindWithGeneratedToString() {
         assertSame(Plain.Marker, Plain.Marker.asEnumish())
-        assertEquals(listOf("Marker", "Marker"), listOf(Plain.Marker.label, Plain.Marker.toString()))
+        assertEquals(
+            listOf("Marker", "Marker"),
+            listOf(Plain.Marker.label, Plain.Marker.toString()),
+        )
         assertEquals(Plain.Marker::class, Plain.Marker.enumizedClass)
     }
 

@@ -20,10 +20,7 @@ object DiagAsserts {
     // 既知 NG のケースで、発火の事実だけを検証する用途）
     fun assertDiagnosticAnywhere(output: String, vararg fragments: String) {
         val hit = output.lineSequence().any { candidate -> fragments.all(candidate::contains) }
-        assertTrue(
-            hit,
-            "期待した診断が出力に無い: ${fragments.toList()}\n診断行一覧:\n${diagnosticSummary(output)}",
-        )
+        assertTrue(hit, "期待した診断が出力に無い: ${fragments.toList()}\n診断行一覧:\n${diagnosticSummary(output)}")
     }
 
     // 指定ファイル:行 に診断（e:/w:）が 1 件も出ていないことを検査する
@@ -40,7 +37,8 @@ object DiagAsserts {
 
     // 指定ファイルに関する行に指定断片が現れないことを検査する（他ファイルの発火と共存する場合の限定版）
     fun assertFragmentAbsentAt(output: String, file: String, fragment: String) {
-        val hits = output.lineSequence().filter { it.contains(file) && it.contains(fragment) }.toList()
+        val hits =
+            output.lineSequence().filter { it.contains(file) && it.contains(fragment) }.toList()
         assertTrue(hits.isEmpty(), "$file の行に現れないはずの断片 \"$fragment\" が存在する: $hits")
     }
 

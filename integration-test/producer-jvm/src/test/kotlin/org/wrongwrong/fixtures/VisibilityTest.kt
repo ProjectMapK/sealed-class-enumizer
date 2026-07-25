@@ -1,12 +1,12 @@
 package org.wrongwrong.fixtures
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import org.wrongwrong.fixtures.widerleaf.AutoWide
 import org.wrongwrong.fixtures.widerleaf.InternalBase
 import org.wrongwrong.fixtures.widerleaf.PublicLeaf
 import org.wrongwrong.sealedClassEnumizer.label
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertSame
 
 // 可視性が混在する階層の box テスト（docs/エッジケースへの対応方針.md §1）
 class VisibilityTest {

@@ -17,16 +17,22 @@ object EnumizeErrors : KtDiagnosticsContainer() {
     val ENUMIZE_NOT_SEALED: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_ON_EXPECT: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_ON_ACTUAL: KtDiagnosticFactory0 by error0<PsiElement>()
-    val ENUMIZE_MULTIPLE_FAMILIES: KtDiagnosticFactory2<String, String> by error2<PsiElement, String, String>()
+    val ENUMIZE_MULTIPLE_FAMILIES: KtDiagnosticFactory2<String, String> by
+        error2<PsiElement, String, String>()
     val ENUMIZE_NESTED_IN_HIERARCHY: KtDiagnosticFactory1<String> by error1<PsiElement, String>()
-    val ENUMIZE_AMBIGUOUS_KIND: KtDiagnosticFactory2<String, String> by error2<PsiElement, String, String>()
+    val ENUMIZE_AMBIGUOUS_KIND: KtDiagnosticFactory2<String, String> by
+        error2<PsiElement, String, String>()
     val ENUMIZE_INNER_LEAF: KtDiagnosticFactory0 by error0<PsiElement>()
-    val ENUMIZE_KIND_TYPE_NOT_DENOTABLE: KtDiagnosticFactory1<String> by error1<PsiElement, String>()
+    val ENUMIZE_KIND_TYPE_NOT_DENOTABLE: KtDiagnosticFactory1<String> by
+        error1<PsiElement, String>()
     val ENUMIZE_COMPANION_LEAF_CONFLICT: KtDiagnosticFactory0 by error0<PsiElement>()
-    val ENUMIZE_LABEL_CLASH: KtDiagnosticFactory2<String, String> by error2<PsiElement, String, String>()
+    val ENUMIZE_LABEL_CLASH: KtDiagnosticFactory2<String, String> by
+        error2<PsiElement, String, String>()
     val ENUMIZE_MANUAL_MEMBER_CONFLICT: KtDiagnosticFactory1<String> by error1<PsiElement, String>()
-    val ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY: KtDiagnosticFactory1<String> by error1<PsiElement, String>()
-    val ENUMIZE_MANUAL_SUPERTYPE_MISMATCH: KtDiagnosticFactory2<String, String> by error2<PsiElement, String, String>()
+    val ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY: KtDiagnosticFactory1<String> by
+        error1<PsiElement, String>()
+    val ENUMIZE_MANUAL_SUPERTYPE_MISMATCH: KtDiagnosticFactory2<String, String> by
+        error2<PsiElement, String, String>()
     val ENUMIZE_RESERVED_NAME_CLASH: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_EXTENSION_SHADOWED: KtDiagnosticFactory1<String> by warning1<PsiElement, String>()
     val ENUMIZE_ENUM_LEAF_UNSUPPORTED: KtDiagnosticFactory0 by error0<PsiElement>()

@@ -1,12 +1,12 @@
 package org.wrongwrong.mpp.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 全 API 表面の box テスト（docs/テストケース管理.md TC-MPP-001〜005/007/008/010/011/013/014/022/061）。
 // commonTest に置くことで同一のテストが jvm / js / wasmJs / wasmWasi / native(host) の
@@ -23,16 +23,18 @@ class SiApiSurfaceTest {
     // 同一の期待 data class に一致する（simpleName のみ使用 = no-reflection 原則の範囲）
     @Test
     fun goldenSnapshotMatchesOnEveryTarget() {
-        val actual = EntriesSnapshot(
-            labels = SI.Enumish.entries.map { it.label },
-            simpleNames = SI.Enumish.entries.map { it.enumizedClass.simpleName },
-            strings = SI.Enumish.entries.map { it.toString() },
-        )
-        val expected = EntriesSnapshot(
-            labels = listOf("Bar", "Foo"),
-            simpleNames = listOf("Bar", "Foo"),
-            strings = listOf("Bar", "Foo"),
-        )
+        val actual =
+            EntriesSnapshot(
+                labels = SI.Enumish.entries.map { it.label },
+                simpleNames = SI.Enumish.entries.map { it.enumizedClass.simpleName },
+                strings = SI.Enumish.entries.map { it.toString() },
+            )
+        val expected =
+            EntriesSnapshot(
+                labels = listOf("Bar", "Foo"),
+                simpleNames = listOf("Bar", "Foo"),
+                strings = listOf("Bar", "Foo"),
+            )
         assertEquals(expected, actual)
     }
 
@@ -97,12 +99,13 @@ class SiApiSurfaceTest {
     // （commonTest）から名指しできることを併せて確認する
     @Test
     fun kindWhenIsExhaustiveWithoutElse() {
-        val branches = SI.Enumish.entries.map { kind ->
-            when (kind) {
-                SI.Foo.Companion -> "foo"
-                SI.Bar -> "bar"
+        val branches =
+            SI.Enumish.entries.map { kind ->
+                when (kind) {
+                    SI.Foo.Companion -> "foo"
+                    SI.Bar -> "bar"
+                }
             }
-        }
         assertEquals(listOf("bar", "foo"), branches)
     }
 }

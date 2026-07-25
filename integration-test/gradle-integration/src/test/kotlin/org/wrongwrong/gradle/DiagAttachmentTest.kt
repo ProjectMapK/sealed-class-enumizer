@@ -1,10 +1,10 @@
 package org.wrongwrong.gradle
 
+import kotlin.test.Test
+import kotlin.test.assertTrue
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
-import kotlin.test.Test
-import kotlin.test.assertTrue
 
 // G 軸: @Enumize の付与対象系診断（ENUMIZE_NOT_SEALED と付与先の境界。docs/テストケース管理.md
 // TC-DIAG-001〜008・085〜087、docs/コンパイラプラグイン設計01.md §7.2、docs/概要.md §8）
@@ -66,7 +66,8 @@ class DiagAttachmentTest : DiagTestBase() {
         val positioned = output.lineSequence().filter { it.contains("NsNested.kt:8:") }.toList()
         assertTrue(
             positioned.any {
-                it.contains(DiagFragments.NOT_SEALED) || it.contains(DiagFragments.NESTED_IN_HIERARCHY)
+                it.contains(DiagFragments.NOT_SEALED) ||
+                    it.contains(DiagFragments.NESTED_IN_HIERARCHY)
             },
             "NsNested.kt:8 に NOT_SEALED / NESTED_IN_HIERARCHY のいずれも無い: $positioned",
         )

@@ -19,19 +19,25 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     override fun getCompilerPluginId(): String = SealedClassEnumizerCoordinates.COMPILER_PLUGIN_ID
 
-    override fun getPluginArtifact(): SubpluginArtifact = SubpluginArtifact(
-        groupId = SealedClassEnumizerCoordinates.GROUP,
-        artifactId = SealedClassEnumizerCoordinates.COMPILER_PLUGIN_ARTIFACT,
-        version = SealedClassEnumizerCoordinates.VERSION,
-    )
+    override fun getPluginArtifact(): SubpluginArtifact =
+        SubpluginArtifact(
+            groupId = SealedClassEnumizerCoordinates.GROUP,
+            artifactId = SealedClassEnumizerCoordinates.COMPILER_PLUGIN_ARTIFACT,
+            version = SealedClassEnumizerCoordinates.VERSION,
+        )
 
-    override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
+    override fun applyToCompilation(
+        kotlinCompilation: KotlinCompilation<*>
+    ): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
         addRuntimeDependencyIfEnabled(project, kotlinCompilation)
         return project.provider { emptyList() }
     }
 
-    private fun addRuntimeDependencyIfEnabled(project: Project, kotlinCompilation: KotlinCompilation<*>) {
+    private fun addRuntimeDependencyIfEnabled(
+        project: Project,
+        kotlinCompilation: KotlinCompilation<*>,
+    ) {
         val extension = project.extensions.getByType(SealedClassEnumizerExtension::class.java)
         if (!extension.addRuntimeDependency.get()) {
             return

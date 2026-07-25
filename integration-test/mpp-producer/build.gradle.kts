@@ -7,21 +7,16 @@ plugins {
 }
 
 group = "org.wrongwrong"
+
 version = "1.0-SNAPSHOT"
 
 kotlin {
     jvmToolchain(17)
 
     jvm()
-    js {
-        nodejs()
-    }
-    wasmJs {
-        nodejs()
-    }
-    wasmWasi {
-        nodejs()
-    }
+    js { nodejs() }
+    wasmJs { nodejs() }
+    wasmWasi { nodejs() }
     val os = System.getProperty("os.name")
     when {
         os.startsWith("Windows") -> mingwX64()
@@ -30,11 +25,7 @@ kotlin {
     }
 
     sourceSets {
-        commonTest {
-            dependencies {
-                implementation(kotlin("test"))
-            }
-        }
+        commonTest { dependencies { implementation(kotlin("test")) } }
         // TC-MPP-046: 中間ソースセット（HMPP）の @Enumize 階層は src/webMain / src/webTest に置く。
         // webMain（js / wasmJs 共有）は既定の階層テンプレートが作る中間ソースセットであり、
         // その metadata コンパイルでも生成が成立すること（V5 の中間ソースセット適用）を検証する。

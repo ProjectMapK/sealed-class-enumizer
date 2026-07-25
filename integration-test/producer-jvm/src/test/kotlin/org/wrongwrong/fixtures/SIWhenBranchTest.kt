@@ -11,10 +11,11 @@ class SIWhenBranchTest {
     @Test
     fun valueWhenSmartCasts() {
         val si: SI = SI.Foo(41)
-        val result = when (si) {
-            is SI.Foo -> si.v + 1
-            SI.Bar -> 0
-        }
+        val result =
+            when (si) {
+                is SI.Foo -> si.v + 1
+                SI.Bar -> 0
+            }
         assertEquals(42, result)
     }
 
@@ -23,14 +24,15 @@ class SIWhenBranchTest {
     @Test
     fun kindWhenDoesNotNarrowValueType() {
         val si: SI = SI.Foo(1)
-        val result = when (si.asEnumish()) {
-            SI.Foo.Companion -> {
-                // 分岐内でも si は SI のまま（member v へは is 判定が必要なことを実行時に確認）
-                assertTrue(si is SI.Foo)
-                "foo"
+        val result =
+            when (si.asEnumish()) {
+                SI.Foo.Companion -> {
+                    // 分岐内でも si は SI のまま（member v へは is 判定が必要なことを実行時に確認）
+                    assertTrue(si is SI.Foo)
+                    "foo"
+                }
+                SI.Bar -> "bar"
             }
-            SI.Bar -> "bar"
-        }
         assertEquals("foo", result)
     }
 
@@ -38,20 +40,23 @@ class SIWhenBranchTest {
     // 短縮形（SI.Foo ->）は companion への等値枝として書け、網羅性にも算入される（V1-c の実測）
     @Test
     fun kindWhenBranchShapes() {
-        fun byEquality(si: SI): String = when (si.asEnumish()) {
-            SI.Foo.Companion -> "foo"
-            SI.Bar -> "bar"
-        }
+        fun byEquality(si: SI): String =
+            when (si.asEnumish()) {
+                SI.Foo.Companion -> "foo"
+                SI.Bar -> "bar"
+            }
 
-        fun byShortForm(si: SI): String = when (si.asEnumish()) {
-            SI.Foo -> "foo"
-            SI.Bar -> "bar"
-        }
+        fun byShortForm(si: SI): String =
+            when (si.asEnumish()) {
+                SI.Foo -> "foo"
+                SI.Bar -> "bar"
+            }
 
-        fun byIsBranch(si: SI): String = when (si.asEnumish()) {
-            is SI.Foo.Companion -> "foo"
-            is SI.Bar -> "bar"
-        }
+        fun byIsBranch(si: SI): String =
+            when (si.asEnumish()) {
+                is SI.Foo.Companion -> "foo"
+                is SI.Bar -> "bar"
+            }
 
         val values = listOf<SI>(SI.Foo(1), SI.Bar)
         assertEquals(listOf("foo", "bar"), values.map(::byEquality))

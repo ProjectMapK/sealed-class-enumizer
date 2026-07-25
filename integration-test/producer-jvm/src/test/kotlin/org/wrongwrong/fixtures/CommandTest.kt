@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // enum class 末端（V4）の box テスト（docs/概要.md §1「enum が sealed interface を継承しているケース」）
 class CommandTest {

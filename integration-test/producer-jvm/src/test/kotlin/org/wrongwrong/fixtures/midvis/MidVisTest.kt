@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures.midvis
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // public 基底 + internal 中間 sealed + public 末端の box テスト（docs/テストケース管理.md TC-VIS-016）
 class MidVisTest {

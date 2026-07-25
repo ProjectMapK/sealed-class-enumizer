@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.Enumish
-import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import org.wrongwrong.sealedClassEnumizer.Enumish
+import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
 
 // 複数階層の Companion を基底型で束ねる box テスト
 // （docs/テストケース管理.md TC-BOX-040 / TC-MAN-010。EnumishCompanion<out T> の宣言側共変）

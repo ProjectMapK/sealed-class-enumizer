@@ -1,10 +1,10 @@
 package org.wrongwrong.gradle
 
+import kotlin.test.Test
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
 import org.wrongwrong.gradle.DiagAsserts.assertNoDiagnosticAt
-import kotlin.test.Test
 
 // G 軸: label の一意性（ENUMIZE_LABEL_CLASH）と拡張シャドーイング警告（ENUMIZE_EXTENSION_SHADOWED）
 // （docs/テストケース管理.md TC-DIAG-039〜043・063〜065・080〜081・098〜099・103・114〜115、概要 §2・§8）。
@@ -20,24 +20,60 @@ class DiagLabelTest : DiagTestBase() {
     @Test
     fun nestedLeavesWithSameSimpleNameClash() {
         val output = labelClash()
-        assertDiagnosticAt(output, "LcOuter1.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.LcOuter2.Foo")
-        assertDiagnosticAt(output, "LcOuter2.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.LcOuter1.Foo")
+        assertDiagnosticAt(
+            output,
+            "LcOuter1.kt",
+            5,
+            DiagFragments.LABEL_CLASH,
+            "org.wrongwrong.diag.label.LcOuter2.Foo",
+        )
+        assertDiagnosticAt(
+            output,
+            "LcOuter2.kt",
+            5,
+            DiagFragments.LABEL_CLASH,
+            "org.wrongwrong.diag.label.LcOuter1.Foo",
+        )
     }
 
     // TC-DIAG-040: companion 自身が末端の場合はその宣言名が label になり、同名の別末端と衝突する
     @Test
     fun companionAsLeafDeclarationNameClashes() {
         val output = labelClash()
-        assertDiagnosticAt(output, "Lc2Host.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc2Outer.Foo2")
-        assertDiagnosticAt(output, "Lc2Outer.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc2Host.Foo2")
+        assertDiagnosticAt(
+            output,
+            "Lc2Host.kt",
+            5,
+            DiagFragments.LABEL_CLASH,
+            "org.wrongwrong.diag.label.Lc2Outer.Foo2",
+        )
+        assertDiagnosticAt(
+            output,
+            "Lc2Outer.kt",
+            5,
+            DiagFragments.LABEL_CLASH,
+            "org.wrongwrong.diag.label.Lc2Host.Foo2",
+        )
     }
 
     // TC-DIAG-098: 末端 enum class の label は enum 全体の単純名（定数名は判定に関与しない）
     @Test
     fun enumLeafSimpleNameClashesWithOtherLeaf() {
         val output = labelClash()
-        assertDiagnosticAt(output, "Lc3Si.kt", 8, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc3Outer.Dup")
-        assertDiagnosticAt(output, "Lc3Outer.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc3Si.Dup")
+        assertDiagnosticAt(
+            output,
+            "Lc3Si.kt",
+            8,
+            DiagFragments.LABEL_CLASH,
+            "org.wrongwrong.diag.label.Lc3Outer.Dup",
+        )
+        assertDiagnosticAt(
+            output,
+            "Lc3Outer.kt",
+            5,
+            DiagFragments.LABEL_CLASH,
+            "org.wrongwrong.diag.label.Lc3Si.Dup",
+        )
     }
 
     // TC-DIAG-103: LABEL_CLASH は衝突する両末端に発火し、同一階層の別の末端（Lc4Priv = 参照不能だが
@@ -45,8 +81,20 @@ class DiagLabelTest : DiagTestBase() {
     @Test
     fun labelClashReportsBothParticipantsAndIsNotSuppressed() {
         val output = labelClash()
-        assertDiagnosticAt(output, "Lc4A.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc4B.Same")
-        assertDiagnosticAt(output, "Lc4B.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc4A.Same")
+        assertDiagnosticAt(
+            output,
+            "Lc4A.kt",
+            5,
+            DiagFragments.LABEL_CLASH,
+            "org.wrongwrong.diag.label.Lc4B.Same",
+        )
+        assertDiagnosticAt(
+            output,
+            "Lc4B.kt",
+            5,
+            DiagFragments.LABEL_CLASH,
+            "org.wrongwrong.diag.label.Lc4A.Same",
+        )
         assertFragmentAbsentAt(output, "Lc4Priv.kt", "e: ")
     }
 
@@ -121,10 +169,17 @@ class DiagLabelTest : DiagTestBase() {
             |class IcLcOuter {
             |    object One : IcLcSi
             |}
-            |""".trimMargin(),
+            |"""
+                .trimMargin(),
         )
         val failed = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertDiagnosticAt(failed.output, "IcLcOuter.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.iclabel.One")
+        assertDiagnosticAt(
+            failed.output,
+            "IcLcOuter.kt",
+            5,
+            DiagFragments.LABEL_CLASH,
+            "org.wrongwrong.diag.iclabel.One",
+        )
         TestKitHarness.deleteFile(dir, addedPath)
         TestKitHarness.build(dir, "compileKotlin")
     }

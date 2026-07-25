@@ -37,26 +37,32 @@ class EnumizeIrContext(val pluginContext: IrPluginContext) {
 
     val holderBaseClass: IrClassSymbol =
         pluginContext.referenceClass(EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID)
-            ?: error("runtime-api class not found on classpath: ${EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID}")
+            ?: error(
+                "runtime-api class not found on classpath: ${EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID}"
+            )
 
-    val holderBaseConstructor = pluginContext.referenceConstructors(EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID)
-        .single()
+    val holderBaseConstructor =
+        pluginContext.referenceConstructors(EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID).single()
 
     val holderEntriesProperty: IrPropertySymbol = holderProperty(EnumizeNames.ENTRIES)
 
-    val holderEnumizedRootClassProperty: IrPropertySymbol = holderProperty(EnumizeNames.ENUMIZED_ROOT_CLASS)
+    val holderEnumizedRootClassProperty: IrPropertySymbol =
+        holderProperty(EnumizeNames.ENUMIZED_ROOT_CLASS)
 
     val holderCreateEntries: IrSimpleFunctionSymbol = holderFunction(EnumizeNames.CREATE_ENTRIES)
 
     val holderGetByLabel: IrSimpleFunctionSymbol = holderFunction(EnumizeNames.GET_BY_LABEL)
 
-    val holderGetByLabelOrNull: IrSimpleFunctionSymbol = holderFunction(EnumizeNames.GET_BY_LABEL_OR_NULL)
+    val holderGetByLabelOrNull: IrSimpleFunctionSymbol =
+        holderFunction(EnumizeNames.GET_BY_LABEL_OR_NULL)
 
-    val listOfVararg: IrSimpleFunctionSymbol = pluginContext
-        .referenceFunctions(CallableId(FqName("kotlin.collections"), Name.identifier("listOf")))
-        .single { symbol ->
-            symbol.owner.parameters.size == 1 && symbol.owner.parameters.single().varargElementType != null
-        }
+    val listOfVararg: IrSimpleFunctionSymbol =
+        pluginContext
+            .referenceFunctions(CallableId(FqName("kotlin.collections"), Name.identifier("listOf")))
+            .single { symbol ->
+                symbol.owner.parameters.size == 1 &&
+                    symbol.owner.parameters.single().varargElementType != null
+            }
 
     val stringType: IrType = pluginContext.irBuiltIns.stringType
 
@@ -68,53 +74,63 @@ class EnumizeIrContext(val pluginContext: IrPluginContext) {
 
     val anyConstructor: IrConstructorSymbol = anyClass.owner.constructors.first().symbol
 
-    val anyToString: IrSimpleFunctionSymbol = anyClass.owner.declarations
-        .filterIsInstance<IrSimpleFunction>()
-        .single { it.name == EnumizeNames.TO_STRING && it.parameters.size == 1 }
-        .symbol
+    val anyToString: IrSimpleFunctionSymbol =
+        anyClass.owner.declarations
+            .filterIsInstance<IrSimpleFunction>()
+            .single { it.name == EnumizeNames.TO_STRING && it.parameters.size == 1 }
+            .symbol
 
-    fun kClassTypeOf(argument: IrType): IrType = pluginContext.irBuiltIns.kClassClass.typeWith(argument)
+    fun kClassTypeOf(argument: IrType): IrType =
+        pluginContext.irBuiltIns.kClassClass.typeWith(argument)
 
     fun listTypeOf(argument: IrType): IrType = pluginContext.irBuiltIns.listClass.typeWith(argument)
 
-    fun builder(symbol: IrSymbol): DeclarationIrBuilder = DeclarationIrBuilder(pluginContext, symbol)
+    fun builder(symbol: IrSymbol): DeclarationIrBuilder =
+        DeclarationIrBuilder(pluginContext, symbol)
 
     // 生成 object のコンストラクタボディが Fir2Ir で充填されなかった場合の補完
     fun ensureObjectConstructorBody(objectClass: IrClass) {
         if (!objectClass.isGeneratedByEnumize) return
         val constructor = objectClass.constructors.firstOrNull { it.isPrimary } ?: return
         if (constructor.body != null) return
-        constructor.body = builder(constructor.symbol).run {
-            irBlockBody {
-                +irDelegatingConstructorCall(anyConstructor.owner)
-                +IrInstanceInitializerCallImpl(
-                    UNDEFINED_OFFSET,
-                    UNDEFINED_OFFSET,
-                    objectClass.symbol,
-                    unitType,
-                )
+        constructor.body =
+            builder(constructor.symbol).run {
+                irBlockBody {
+                    +irDelegatingConstructorCall(anyConstructor.owner)
+                    +IrInstanceInitializerCallImpl(
+                        UNDEFINED_OFFSET,
+                        UNDEFINED_OFFSET,
+                        objectClass.symbol,
+                        unitType,
+                    )
+                }
             }
-        }
     }
 
     // 生成プロパティはボディを IR で充填する getter-only であり backing field を持たない。
     // FIR 側の宣言が default アクセサ形のため Fir2Ir が field を実体化することがあり、
     // interface 上ではそれが不正な class file（instance field）になるため、充填時に除去する
     fun ourPropertyGetter(container: IrClass, name: Name): IrSimpleFunction? {
-        val property = container.declarations.filterIsInstance<IrProperty>()
-            .firstOrNull { it.isGeneratedByEnumize && it.name == name }
-            ?: return null
+        val property =
+            container.declarations.filterIsInstance<IrProperty>().firstOrNull {
+                it.isGeneratedByEnumize && it.name == name
+            } ?: return null
         property.backingField = null
         return property.getter
     }
 
     fun ourFunction(container: IrClass, name: Name): IrSimpleFunction? =
-        container.declarations.filterIsInstance<IrSimpleFunction>()
-            .firstOrNull { it.isGeneratedByEnumize && it.name == name }
+        container.declarations.filterIsInstance<IrSimpleFunction>().firstOrNull {
+            it.isGeneratedByEnumize && it.name == name
+        }
 
     private fun holderProperty(name: Name): IrPropertySymbol =
-        pluginContext.referenceProperties(CallableId(EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID, name)).single()
+        pluginContext
+            .referenceProperties(CallableId(EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID, name))
+            .single()
 
     private fun holderFunction(name: Name): IrSimpleFunctionSymbol =
-        pluginContext.referenceFunctions(CallableId(EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID, name)).single()
+        pluginContext
+            .referenceFunctions(CallableId(EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID, name))
+            .single()
 }

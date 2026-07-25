@@ -6,12 +6,12 @@ import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.declarations.addConstructor
 import org.jetbrains.kotlin.ir.builders.declarations.addFunction
 import org.jetbrains.kotlin.ir.builders.declarations.addGetter
 import org.jetbrains.kotlin.ir.builders.declarations.addProperty
 import org.jetbrains.kotlin.ir.builders.declarations.buildClass
-import org.jetbrains.kotlin.ir.builders.IrBuilderWithScope
 import org.jetbrains.kotlin.ir.builders.irBlockBody
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irDelegatingConstructorCall
@@ -25,8 +25,8 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrVarargImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.starProjectedType
 import org.jetbrains.kotlin.ir.types.typeWith
-import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
 import org.jetbrains.kotlin.ir.util.copyTo
+import org.jetbrains.kotlin.ir.util.createThisReceiverParameter
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
@@ -38,7 +38,11 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
     // enumish の中にネストして生成し、IR 上の帰属を基底ファイルにする（P1 の実装）。
     // kind の取得は kindProviders に委ねる（参照可能な kind は直接参照、参照不能な kind は
     // EnumizeKindAccessorIrGenerator が生成したアクセサ呼び出し。設計02 §4.3）
-    fun generate(enumish: IrClass, base: IrClass, kindProviders: List<EnumizeKindProvider>): IrClass {
+    fun generate(
+        enumish: IrClass,
+        base: IrClass,
+        kindProviders: List<EnumizeKindProvider>,
+    ): IrClass {
         val holder = createHolderClass(enumish)
         generateConstructor(holder, enumish)
         generateEnumizedRootClassOverride(holder, base)
@@ -47,13 +51,14 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
     }
 
     private fun createHolderClass(enumish: IrClass): IrClass {
-        val holder = ctx.pluginContext.irFactory.buildClass {
-            name = EnumizeNames.ENTRIES_HOLDER_NAME
-            kind = ClassKind.OBJECT
-            modality = Modality.FINAL
-            visibility = DescriptorVisibilities.PUBLIC
-            origin = ctx.generatedOrigin
-        }
+        val holder =
+            ctx.pluginContext.irFactory.buildClass {
+                name = EnumizeNames.ENTRIES_HOLDER_NAME
+                kind = ClassKind.OBJECT
+                modality = Modality.FINAL
+                visibility = DescriptorVisibilities.PUBLIC
+                origin = ctx.generatedOrigin
+            }
         holder.parent = enumish
         enumish.declarations.add(holder)
         holder.createThisReceiverParameter()
@@ -92,20 +97,22 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
         }
         val thisReceiver = holder.thisReceiver ?: error("thisReceiver missing for \$EntriesHolder")
         getter.parameters = listOf(thisReceiver.copyTo(getter, type = holder.defaultType))
-        getter.overriddenSymbols = listOfNotNull(ctx.holderEnumizedRootClassProperty.owner.getter?.symbol)
-        getter.body = ctx.builder(getter.symbol).run {
-            irBlockBody {
-                +irReturn(
-                    IrClassReferenceImpl(
-                        UNDEFINED_OFFSET,
-                        UNDEFINED_OFFSET,
-                        returnType,
-                        base.symbol,
-                        baseStarType,
+        getter.overriddenSymbols =
+            listOfNotNull(ctx.holderEnumizedRootClassProperty.owner.getter?.symbol)
+        getter.body =
+            ctx.builder(getter.symbol).run {
+                irBlockBody {
+                    +irReturn(
+                        IrClassReferenceImpl(
+                            UNDEFINED_OFFSET,
+                            UNDEFINED_OFFSET,
+                            returnType,
+                            base.symbol,
+                            baseStarType,
+                        )
                     )
-                )
+                }
             }
-        }
     }
 
     private fun generateCreateEntriesOverride(
@@ -115,33 +122,36 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
     ) {
         val enumishType = enumish.defaultType
         val returnType = ctx.listTypeOf(enumishType)
-        val function = holder.addFunction(
-            name = EnumizeNames.CREATE_ENTRIES.asString(),
-            returnType = returnType,
-            modality = Modality.FINAL,
-            visibility = DescriptorVisibilities.PROTECTED,
-            origin = ctx.generatedOrigin,
-        )
+        val function =
+            holder.addFunction(
+                name = EnumizeNames.CREATE_ENTRIES.asString(),
+                returnType = returnType,
+                modality = Modality.FINAL,
+                visibility = DescriptorVisibilities.PROTECTED,
+                origin = ctx.generatedOrigin,
+            )
         function.overriddenSymbols = listOf(ctx.holderCreateEntries)
-        function.body = ctx.builder(function.symbol).run {
-            irBlockBody {
-                val builder = this
-                // §3 の順序（コンパイラ提供の継承者リストの走査順）をそのまま listOf(...) の並びにする
-                val vararg = IrVarargImpl(
-                    UNDEFINED_OFFSET,
-                    UNDEFINED_OFFSET,
-                    ctx.pluginContext.irBuiltIns.arrayClass.typeWith(enumishType),
-                    enumishType,
-                    kindProviders.map { provider -> provider(builder) },
-                )
-                +irReturn(
-                    irCall(ctx.listOfVararg, returnType).apply {
-                        typeArguments[0] = enumishType
-                        arguments[0] = vararg
-                    }
-                )
+        function.body =
+            ctx.builder(function.symbol).run {
+                irBlockBody {
+                    val builder = this
+                    // §3 の順序（コンパイラ提供の継承者リストの走査順）をそのまま listOf(...) の並びにする
+                    val vararg =
+                        IrVarargImpl(
+                            UNDEFINED_OFFSET,
+                            UNDEFINED_OFFSET,
+                            ctx.pluginContext.irBuiltIns.arrayClass.typeWith(enumishType),
+                            enumishType,
+                            kindProviders.map { provider -> provider(builder) },
+                        )
+                    +irReturn(
+                        irCall(ctx.listOfVararg, returnType).apply {
+                            typeArguments[0] = enumishType
+                            arguments[0] = vararg
+                        }
+                    )
+                }
             }
-        }
     }
 
     // createDefaultPrivateConstructor 由来のボディが Fir2Ir で欠けた場合の保険も兼ねた共通処理
@@ -150,11 +160,17 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
         owner: IrClass,
         delegatingCall: IrBuilderWithScope.() -> IrExpression,
     ) {
-        constructor.body = ctx.builder(constructor.symbol).run {
-            irBlockBody {
-                +delegatingCall()
-                +IrInstanceInitializerCallImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, owner.symbol, ctx.unitType)
+        constructor.body =
+            ctx.builder(constructor.symbol).run {
+                irBlockBody {
+                    +delegatingCall()
+                    +IrInstanceInitializerCallImpl(
+                        UNDEFINED_OFFSET,
+                        UNDEFINED_OFFSET,
+                        owner.symbol,
+                        ctx.unitType,
+                    )
+                }
             }
-        }
     }
 }

@@ -1,12 +1,13 @@
 package org.wrongwrong.fixtures.openleaf
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // open class 末端（V10）と実装者ゼロ interface 末端の box テスト
-// （docs/テストケース管理.md TC-LEAF-007 / TC-LEAF-035 / TC-LEAF-084 / TC-LEAF-095 / TC-BOX-076 / TC-BOX-077 / TC-BOX-082）
+// （docs/テストケース管理.md TC-LEAF-007 / TC-LEAF-035 / TC-LEAF-084 / TC-LEAF-095 / TC-BOX-076 / TC-BOX-077
+// / TC-BOX-082）
 class FigureTest {
     // TC-LEAF-007 / TC-LEAF-084: open class 末端 + companion 自動生成。kind = Round.Companion
     @Test
@@ -44,7 +45,10 @@ class FigureTest {
     fun multiLevelSubtypeIsAbsorbedIntoLeafKind() {
         val square: Figure = Square()
         assertSame(Figure.Round.Companion, square.asEnumish())
-        assertEquals(listOf("Round", Figure.Round::class), listOf(square.label, square.asEnumish().enumizedClass))
+        assertEquals(
+            listOf("Round", Figure.Round::class),
+            listOf(square.label, square.asEnumish().enumizedClass),
+        )
     }
 
     // TC-BOX-077: 実装者ゼロの interface 末端でも kind は entries に載り valueOf で解決できる

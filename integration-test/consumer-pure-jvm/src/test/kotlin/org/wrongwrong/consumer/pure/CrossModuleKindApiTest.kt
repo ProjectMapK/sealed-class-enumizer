@@ -1,26 +1,30 @@
 package org.wrongwrong.consumer.pure
 
+import kotlin.reflect.KClass
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import org.wrongwrong.fixtures.Command
 import org.wrongwrong.fixtures.Generic
 import org.wrongwrong.fixtures.SI
 import org.wrongwrong.fixtures.valueclass.Valued
 import org.wrongwrong.fixtures.valueclass.Wrapped
 import org.wrongwrong.sealedClassEnumizer.label
-import kotlin.reflect.KClass
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertSame
 
 // kind 側 API（enumizedClass / label / toString）の跨モジュール観測
 // （docs/概要.md §2、docs/テストケース管理.md TC-XM-033 / TC-XM-034 / TC-XM-041 / TC-XM-050）
 class CrossModuleKindApiTest {
     // TC-XM-033: enumizedClass で末端 KClass を取得でき、DI / serialization 風の接続点
-    //（KClass をキーにしたマップ構築・simpleName の読み取り）として使える
+    // （KClass をキーにしたマップ構築・simpleName の読み取り）として使える
     @Test
     fun enumizedClassConnectsKindsToReflectionSystems() {
-        val byClass: Map<KClass<out SI>, SI.Enumish> = SI.Enumish.entries.associateBy { it.enumizedClass }
+        val byClass: Map<KClass<out SI>, SI.Enumish> =
+            SI.Enumish.entries.associateBy { it.enumizedClass }
         assertSame(SI.Foo.Companion, byClass.getValue(SI.Foo::class))
-        assertEquals(listOf("Bar", "Foo"), SI.Enumish.entries.map { it.enumizedClass.simpleName ?: "" })
+        assertEquals(
+            listOf("Bar", "Foo"),
+            SI.Enumish.entries.map { it.enumizedClass.simpleName ?: "" },
+        )
     }
 
     // TC-XM-034: 型パラメータ付き末端の kind は型引数に依存せず、enumizedClass は star projection の

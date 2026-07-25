@@ -2,7 +2,8 @@ package org.wrongwrong.fixtures.secret
 
 import org.wrongwrong.sealedClassEnumizer.Enumize
 
-// 基底本体にネストした private / internal 末端（TC-LEAF-088 / TC-BOX-073 / TC-ORD-059 / TC-VIS-012 / TC-VIS-033）。
+// 基底本体にネストした private / internal 末端（TC-LEAF-088 / TC-BOX-073 / TC-ORD-059 / TC-VIS-012 /
+// TC-VIS-033）。
 // 基底内ネストの private 末端は entries 構築コード（基底本体スコープ）から参照できるため
 // アクセサ不要（直接参照）で entries に載り、可視性は entries の順序にも掲載にも影響しない
 @Enumize

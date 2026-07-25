@@ -1,18 +1,17 @@
 package org.wrongwrong.gradle
 
+import java.nio.file.Path
+import kotlin.io.path.createDirectories
 import org.gradle.testkit.runner.BuildResult
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Path
-import kotlin.io.path.createDirectories
 
 // 診断カタログ系テストの共通基盤（docs/テストケース管理.md G 軸・「Gradle TestKit 方針」）。
 // 同一フィクスチャを参照する複数のテストメソッドが 1 回のビルド結果を共有して、TestKit の
 // 起動回数を抑える（1 フィクスチャ = 1 ビルドで複数診断をまとめて検証する方針）。
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class DiagTestBase {
-    @TempDir
-    protected lateinit var workRoot: Path
+    @TempDir protected lateinit var workRoot: Path
 
     private val cache = mutableMapOf<String, BuildResult>()
 

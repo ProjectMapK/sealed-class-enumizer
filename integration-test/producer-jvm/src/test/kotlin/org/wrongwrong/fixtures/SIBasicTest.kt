@@ -1,11 +1,11 @@
 package org.wrongwrong.fixtures
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 標準形 SI の box テスト（docs/テストケース管理.md H 軸の基本ケース）
 class SIBasicTest {
@@ -76,10 +76,11 @@ class SIBasicTest {
     @Test
     fun kindWhenIsExhaustiveWithoutElse() {
         val si: SI = SI.Foo(1)
-        val result = when (si.asEnumish()) {
-            SI.Foo.Companion -> "foo"
-            SI.Bar -> "bar"
-        }
+        val result =
+            when (si.asEnumish()) {
+                SI.Foo.Companion -> "foo"
+                SI.Bar -> "bar"
+            }
         assertEquals("foo", result)
     }
 }

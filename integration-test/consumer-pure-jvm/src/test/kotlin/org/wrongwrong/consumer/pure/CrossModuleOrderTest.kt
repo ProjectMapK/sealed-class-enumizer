@@ -1,13 +1,13 @@
 package org.wrongwrong.consumer.pure
 
-import org.wrongwrong.fixtures.emptyhier.Empty
-import org.wrongwrong.fixtures.midvis.ViaMid
-import org.wrongwrong.fixtures.mixedorder.S
-import org.wrongwrong.fixtures.nested.NestedRoot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
+import org.wrongwrong.fixtures.emptyhier.Empty
+import org.wrongwrong.fixtures.midvis.ViaMid
+import org.wrongwrong.fixtures.mixedorder.S
+import org.wrongwrong.fixtures.nested.NestedRoot
 
 // entries の順序・集合の跨モジュール観測（docs/概要.md §5・§7、docs/テストケース管理.md
 // TC-ORD-040 / TC-XM-046 / TC-ORD-062 / TC-XM-047 / TC-GAP-016 / TC-GAP-018）
@@ -16,7 +16,10 @@ class CrossModuleOrderTest {
     // 保存される（定義モジュールのコンパイル時に決定され、実行時にホルダーで解決される）
     @Test
     fun mixedPlacementEntriesKeepFqnOrderAcrossModule() {
-        assertEquals(listOf("Bbb", "Mmm", "Aaa", "Zzz", "aLower"), S.Enumish.entries.map { it.label })
+        assertEquals(
+            listOf("Bbb", "Mmm", "Aaa", "Zzz", "aLower"),
+            S.Enumish.entries.map { it.label },
+        )
     }
 
     // TC-XM-046 / TC-ORD-062: 中間 sealed の入れ子展開順（break 順序）が跨モジュールで保存される。
@@ -42,18 +45,19 @@ class CrossModuleOrderTest {
     }
 
     // TC-GAP-016（静的側）: internal 中間 sealed を経由する階層も跨モジュールで通常どおり観測できる
-    //（中間には何も生成されず可視性も影響しない。IC での並び再配置検査は gradle-integration 担当）
+    // （中間には何も生成されず可視性も影響しない。IC での並び再配置検査は gradle-integration 担当）
     @Test
     fun internalIntermediateHierarchyIsObservableAcrossModule() {
         assertEquals(listOf("MA", "MB"), ViaMid.Enumish.entries.map { it.label })
     }
 
     // TC-GAP-018（JVM 跨モジュール面）: 空階層の entries は空・valueOf は常に失敗し文言も保たれる
-    //（MPP common 面は mpp-* 担当）
+    // （MPP common 面は mpp-* 担当）
     @Test
     fun emptyHierarchyIsObservableAcrossModule() {
         assertEquals(emptyList(), Empty.Enumish.entries.map { it.label })
-        val failure = assertFailsWith<IllegalArgumentException> { Empty.Enumish.valueOf("Anything") }
+        val failure =
+            assertFailsWith<IllegalArgumentException> { Empty.Enumish.valueOf("Anything") }
         assertEquals("No enumish entry with label 'Anything' in Empty", failure.message)
     }
 }

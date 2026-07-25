@@ -1,9 +1,9 @@
 package org.wrongwrong.fixtures.multienum
 
-import org.wrongwrong.sealedClassEnumizer.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
+import org.wrongwrong.sealedClassEnumizer.label
 
 // 1 階層内の複数 enum 末端の box テスト
 // （docs/テストケース管理.md TC-BOX-084 / TC-LEAF-032）
@@ -28,6 +28,9 @@ class MultiEnumTest {
     @Test
     fun constantToStringOverrideDoesNotAffectKind() {
         assertEquals("x-custom", Multi.Gamma.X.toString())
-        assertEquals(listOf("Gamma", "Gamma"), listOf(Multi.Gamma.X.label, Multi.Gamma.X.asEnumish().toString()))
+        assertEquals(
+            listOf("Gamma", "Gamma"),
+            listOf(Multi.Gamma.X.label, Multi.Gamma.X.asEnumish().toString()),
+        )
     }
 }
