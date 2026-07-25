@@ -35,4 +35,5 @@ object DiagFragments {
     const val LANG_INCONSISTENT_TYPE_ARGS = "has inconsistent values"
     const val LANG_WHEN_NOT_EXHAUSTIVE = "must be exhaustive"
     const val LANG_SEALED_DIFFERENT_MODULE = "different module"
+    const val LANG_SUPERTYPE_APPEARS_TWICE = "supertype appears twice"
 }
