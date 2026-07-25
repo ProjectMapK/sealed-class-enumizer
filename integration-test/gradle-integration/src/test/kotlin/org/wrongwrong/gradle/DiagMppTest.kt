@@ -1,12 +1,10 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Disabled
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import kotlin.test.Test
-import kotlin.test.assertTrue
 
-// G 軸: MPP 負値（ENUMIZE_ON_EXPECT / ENUMIZE_ON_ACTUAL / ENUMIZE_CROSS_SOURCE_SET）と MPP near-miss
+// G 軸: MPP 負値（ENUMIZE_ON_EXPECT / ENUMIZE_ON_ACTUAL / 別ソースセット継承者の言語エラー）と MPP near-miss
 // （docs/テストケース管理.md TC-DIAG-009〜012・061〜062、docs/概要.md §7・§8）。
 // フィクスチャは jvm 単一ターゲットの KMP ビルド（commonMain / jvmMain のソースセット分割で十分なため）
 class DiagMppTest : DiagTestBase() {
@@ -32,25 +30,17 @@ class DiagMppTest : DiagTestBase() {
         )
     }
 
-    // TC-DIAG-061: 階層の継承者が別ソースセット → 言語側の sealed 継承エラーに合流する（buildAndFail）
+    // TC-DIAG-061: 階層の継承者が別ソースセット → コンパイラ本体の sealed 制約エラーへ合流する
+    // （buildAndFail）。プラグイン側の補足診断は持たず本体診断に委ねる方針のため、その言語エラーが
+    // 十分に説明的であること（同一モジュール制約を明示すること）をここで固定する（設計01 §7.2）
     @Test
     fun crossSourceSetInheritorFailsBuild() {
-        val output = failOutput("diag-mpp-cross-source-set", "compileKotlinJvm")
-        val positioned = output.lineSequence().filter { it.contains("MppCJvm.kt:4:") }.toList()
-        assertTrue(positioned.any { it.contains("e: ") }, "MppCJvm.kt:4 にエラーが無い: $positioned")
-    }
-
-    // TC-DIAG-061: doc はコンパイラ本体診断への補足として ENUMIZE_CROSS_SOURCE_SET の発火を要求するが、
-    // 実測は言語エラー（Extending sealed classes or interfaces from a different module is prohibited.）のみで
-    // 補足診断は出ない（別ソースセットの継承者が基底の inheritors 一覧に載らず検査が空振りするため）
-    @Test
-    @Disabled("NG: 別ソースセット継承者で ENUMIZE_CROSS_SOURCE_SET が不発火（言語エラーのみ） — docs/修正方針案.md 反映待ち")
-    fun crossSourceSetSupplementaryDiagnosticIsReported() {
         assertDiagnosticAt(
             failOutput("diag-mpp-cross-source-set", "compileKotlinJvm"),
-            "MppC.kt",
-            6,
-            DiagFragments.CROSS_SOURCE_SET,
+            "MppCJvm.kt",
+            4,
+            "e: ",
+            DiagFragments.LANG_SEALED_DIFFERENT_MODULE,
         )
     }
 

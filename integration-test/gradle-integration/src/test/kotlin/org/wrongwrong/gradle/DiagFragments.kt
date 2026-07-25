@@ -22,7 +22,6 @@ object DiagFragments {
     const val MANUAL_IMPL_OUTSIDE_HIERARCHY = "from outside its hierarchy"
     const val MANUAL_SUPERTYPE_MISMATCH = "does not match the generated supertype"
     const val RESERVED_NAME_CLASH = "already declares a nested classifier named"
-    const val CROSS_SOURCE_SET = "is declared in a different source set"
     const val EXTENSION_SHADOWED = "extension property at call sites"
     const val ENUM_LEAF_UNSUPPORTED = "An enum class leaf is not supported"
 

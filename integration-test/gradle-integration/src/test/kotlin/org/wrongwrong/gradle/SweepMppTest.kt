@@ -1,6 +1,5 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Disabled
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAnywhere
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import kotlin.test.Test
@@ -24,7 +23,8 @@ class SweepMppTest : DiagTestBase() {
     }
 
     // TC-MPP-051: 中間ソースセット（webMain）の基底 × 派生ソースセット（jsMain）の末端。
-    // sealed は「同一ソースセット」を要求し「可視な派生ソースセット」では不足するため言語エラー
+    // sealed は「同一ソースセット」を要求し「可視な派生ソースセット」では不足するため言語エラー。
+    // common↔platform（TC-DIAG-061）と同様、プラグイン側の補足診断は持たない（設計01 §7.2）
     @Test
     fun hmppDerivedSourceSetLeafFailsBuild() {
         val output = failOutput("sweep-mpp-hmpp", "compileKotlinJs")
@@ -32,17 +32,6 @@ class SweepMppTest : DiagTestBase() {
             .filter { it.contains("SwHmppJsLeaf.kt:") && it.contains("e: ") }
             .toList()
         assertTrue(positioned.isNotEmpty(), "派生ソースセットの末端にエラーが出ること:\n$output")
-    }
-
-    // TC-MPP-051 の補足診断: doc は言語エラーへの補足 ENUMIZE_CROSS_SOURCE_SET を要求するが、
-    // 実測は common↔platform（TC-DIAG-061）と同様に HMPP 派生関係でも不発火（docs/修正方針案.md #9）
-    @Test
-    @Disabled("NG#9: 別ソースセット継承者で ENUMIZE_CROSS_SOURCE_SET が不発火（言語エラーのみ） — docs/修正方針案.md 反映待ち")
-    fun hmppSupplementaryCrossSourceSetIsReported() {
-        assertDiagnosticAnywhere(
-            failOutput("sweep-mpp-hmpp", "compileKotlinJs"),
-            DiagFragments.CROSS_SOURCE_SET,
-        )
     }
 
     // TC-MPP-065: commonMain の label 衝突は metadata コンパイル（:compileCommonMainKotlinMetadata）

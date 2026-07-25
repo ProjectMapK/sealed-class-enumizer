@@ -7,8 +7,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
 // 非 final 末端（common）のサブタイプを platform ソースセットに置く構成が
-// ENUMIZE_CROSS_SOURCE_SET を発火させず kind に吸収されることの box テスト
-// （docs/テストケース管理.md TC-MPP-050。コンパイル成立自体が非発火の実証）
+// sealed のソースセット制約に掛からず kind に吸収されることの box テスト
+// （docs/テストケース管理.md TC-MPP-050。コンパイル成立自体がその実証）
 class JvmSubtypeTest {
     @Test
     fun platformSourceSetSubtypeIsAbsorbed() {
