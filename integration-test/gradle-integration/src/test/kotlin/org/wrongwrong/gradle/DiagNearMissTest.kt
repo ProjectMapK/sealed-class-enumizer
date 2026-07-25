@@ -71,6 +71,5 @@ class DiagNearMissTest : DiagTestBase() {
     fun remainingNearMissesDoNotConflict() {
         assertFragmentAbsent(nearMiss(), DiagFragments.MANUAL_MEMBER_CONFLICT)
         assertFragmentAbsent(nearMiss(), DiagFragments.NOT_SEALED)
-        assertFragmentAbsent(nearMiss(), DiagFragments.ENUM_LEAF_UNSUPPORTED)
     }
 }

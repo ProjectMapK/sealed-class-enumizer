@@ -23,7 +23,6 @@ object DiagFragments {
     const val MANUAL_SUPERTYPE_MISMATCH = "does not match the generated supertype"
     const val RESERVED_NAME_CLASH = "already declares a nested classifier named"
     const val EXTENSION_SHADOWED = "extension property at call sites"
-    const val ENUM_LEAF_UNSUPPORTED = "An enum class leaf is not supported"
 
     // ---- 言語（コンパイラ本体）診断: プラグイン診断との切り分け・合流確認に使う実測断片 ----
     const val LANG_WRONG_ANNOTATION_TARGET = "not applicable to target"

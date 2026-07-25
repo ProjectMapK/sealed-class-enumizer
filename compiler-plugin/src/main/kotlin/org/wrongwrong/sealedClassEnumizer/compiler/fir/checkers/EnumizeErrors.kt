@@ -12,8 +12,7 @@ import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.warning1
 
 // 診断カタログ（docs/コンパイラプラグイン設計00.md §8・docs/コンパイラプラグイン設計01.md §7.2）。
-// 診断 ID は英語の識別子であり、本文の日本語用語とは独立に安定させる。
-// ENUMIZE_ENUM_LEAF_UNSUPPORTED は V4 不成立の縮退時のみ有効化するため、定義のみで現状は発火させない。
+// 診断 ID は英語の識別子であり、本文の日本語用語とは独立に安定させる
 object EnumizeErrors : KtDiagnosticsContainer() {
     val ENUMIZE_NOT_SEALED: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_ON_EXPECT: KtDiagnosticFactory0 by error0<PsiElement>()
@@ -36,7 +35,6 @@ object EnumizeErrors : KtDiagnosticsContainer() {
         error2<PsiElement, String, String>()
     val ENUMIZE_RESERVED_NAME_CLASH: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_EXTENSION_SHADOWED: KtDiagnosticFactory1<String> by warning1<PsiElement, String>()
-    val ENUMIZE_ENUM_LEAF_UNSUPPORTED: KtDiagnosticFactory0 by error0<PsiElement>()
 
     override fun getRendererFactory(): BaseDiagnosticRendererFactory = EnumizeErrorMessages
 }

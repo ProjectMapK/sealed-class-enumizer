@@ -98,10 +98,5 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
                     "extension property at call sites. Use 'asEnumish().label' to reliably read the kind label.",
                 CommonRenderers.STRING,
             )
-            map.put(
-                EnumizeErrors.ENUMIZE_ENUM_LEAF_UNSUPPORTED,
-                "An enum class leaf is not supported in this configuration. " +
-                    "Replace the enum class leaf with object or class leaves.",
-            )
         }
 }
