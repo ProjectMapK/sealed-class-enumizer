@@ -26,8 +26,8 @@ object TestKitHarness {
     // ワーカー数の既定はホストのコア数であり、フィクスチャ（1〜3 プロジェクト）には過大で、
     // 並行実行すると デーモン数 × コア数 だけ多重化されて CPU を奪い合う
     private val daemonSettings = listOf(
-        "org.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=768m",
-        "kotlin.daemon.jvmargs=-Xmx1g",
+        "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=1g",
+        "kotlin.daemon.jvmargs=-Xmx2g",
         "org.gradle.workers.max=2",
     )
 
@@ -83,11 +83,13 @@ object TestKitHarness {
     fun buildAndFail(projectDir: Path, vararg arguments: String): BuildResult =
         runner(projectDir, arguments).buildAndFail()
 
+    // forwardOutput() は付けない。検証は BuildResult.output を読むため不要で、フィクスチャビルド
+    // 全本数分の出力をテストワーカーの標準出力へ流すと、並行実行時に結果ストリームが壊れて
+    // テストタスク自体が落ちる（docs/テストケース管理.md 並行実行方針）
     private fun runner(projectDir: Path, arguments: Array<out String>): GradleRunner =
         GradleRunner.create()
             .withProjectDir(projectDir.toFile())
             .withArguments(listOf(*arguments) + "--stacktrace")
-            .forwardOutput()
 
     // フィクスチャ内ファイルの編集（IC 回帰の「ビルド→編集→再ビルド」用）
     fun replaceInFile(projectDir: Path, relativePath: String, old: String, new: String) {

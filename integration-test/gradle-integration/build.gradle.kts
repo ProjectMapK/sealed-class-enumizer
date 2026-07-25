@@ -24,8 +24,8 @@ dependencies {
 val fixtureWorkRoot = layout.buildDirectory.dir("testkit-fixtures")
 
 // TestKit の 1 テストは別プロセスの Gradle デーモンと Kotlin デーモンを 1 本ずつ占有する。
-// 並行数の上限は CPU ではなくデーモンの常駐メモリで決まるため、コア数の 1/4 を採る
-val testKitForks = (Runtime.getRuntime().availableProcessors() / 4).coerceIn(1, 8)
+// 並行数の上限は CPU ではなくデーモンの常駐メモリで決まるため、コア数の 1/3 を採る
+val testKitForks = (Runtime.getRuntime().availableProcessors() / 3).coerceIn(1, 8)
 
 // 展開先の作り直しはテスト本体と分けて前段のタスクで行う（test の出力準備と混ざらないようにする）。
 // 直前の実行が残した TestKit のデーモンが Windows でファイルを掴んだままのことがあるため、
@@ -47,9 +47,9 @@ tasks.test {
     // テストクラス単位の並行実行。クラス内は直列のままなので、DiagTestBase の
     // 「1 フィクスチャ = 1 ビルド」共有とフィクスチャ名で固定ディレクトリを掘る前提は保たれる
     maxParallelForks = testKitForks
-    // 各フォークは駆動した全ビルドの出力（GradleRunner.forwardOutput）を保持する
-    maxHeapSize = "1g"
-    // TestKit ビルドは長時間になるためテスト毎の出力を逐次流す
+    // 各フォークは駆動した全ビルドの出力（BuildResult.output）を保持する
+    maxHeapSize = "2g"
+    // TestKit ビルドは長時間になるためテスト毎の結果を逐次流す
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = false
