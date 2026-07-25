@@ -1,4 +1,4 @@
-// KT-86121 再現形フィクスチャ（多ファイル sealed 階層 + プラグイン生成コード）
+// 基底不在の IC ラウンド用フィクスチャ（多ファイル sealed 階層 + プラグイン生成コード）
 plugins {
     kotlin("jvm")
     id("org.wrongwrong.sealed-class-enumizer")
@@ -6,5 +6,5 @@ plugins {
 
 tasks.register<JavaExec>("runMain") {
     classpath = files(sourceSets.main.get().runtimeClasspath)
-    mainClass.set("org.wrongwrong.kt86121.MainKt")
+    mainClass.set("org.wrongwrong.baseabsent.MainKt")
 }

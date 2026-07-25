@@ -1,4 +1,4 @@
-package org.wrongwrong.kt86121
+package org.wrongwrong.baseabsent
 
 import org.wrongwrong.sealedClassEnumizer.Enumize
 

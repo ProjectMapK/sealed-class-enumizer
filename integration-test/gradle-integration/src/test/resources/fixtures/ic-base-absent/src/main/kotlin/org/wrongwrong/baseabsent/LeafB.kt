@@ -1,4 +1,4 @@
-package org.wrongwrong.kt86121
+package org.wrongwrong.baseabsent
 
 // 末端 object
 data object LeafB : SI

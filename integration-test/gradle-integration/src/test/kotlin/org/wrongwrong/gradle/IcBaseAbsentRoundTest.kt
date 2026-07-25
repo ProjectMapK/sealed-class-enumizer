@@ -6,9 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 // 基底不在ラウンドのシナリオ（設計00 §5.4・§9-4、docs/テストケース管理.md TC-IC-039/040・TC-ORD-050）:
-// 多ファイル sealed 階層 × プラグイン生成コード × IC の再現形。クラス名は歴史的に KT-86121 を冠するが、
-// 同 issue（serialization × SyntheticAccessorLowering）とは別事象であり、docs/修正方針案.md #12 の
-// プラグイン側修正と同時に改名する。
+// 多ファイル sealed 階層 × プラグイン生成コード × IC の再現形。
 //
 // Kotlin 2.4.20-Beta1 + Gradle 9.5.0 での実測:
 // - 既存 kind を宣言するファイルの連続編集（コメント・private メンバー・基底編集）はクラッシュせず、
@@ -20,19 +18,19 @@ import kotlin.test.assertTrue
 //   clean で回復する
 // R5 はこのクラッシュを expected として固定する回帰ゲートであり、プラグイン側の修正でクラッシュしなく
 // なったとき、ここが破れて検出される
-class Kt86121Test {
-    private val siFile = "src/main/kotlin/org/wrongwrong/kt86121/Si.kt"
-    private val leafAFile = "src/main/kotlin/org/wrongwrong/kt86121/LeafA.kt"
-    private val leafBFile = "src/main/kotlin/org/wrongwrong/kt86121/LeafB.kt"
-    private val leafDFile = "src/main/kotlin/org/wrongwrong/kt86121/LeafD.kt"
-    private val useFile = "src/main/kotlin/org/wrongwrong/kt86121/Use.kt"
-    private val generatedPrefix = "org/wrongwrong/kt86121/SI\$"
+class IcBaseAbsentRoundTest {
+    private val siFile = "src/main/kotlin/org/wrongwrong/baseabsent/Si.kt"
+    private val leafAFile = "src/main/kotlin/org/wrongwrong/baseabsent/LeafA.kt"
+    private val leafBFile = "src/main/kotlin/org/wrongwrong/baseabsent/LeafB.kt"
+    private val leafDFile = "src/main/kotlin/org/wrongwrong/baseabsent/LeafD.kt"
+    private val useFile = "src/main/kotlin/org/wrongwrong/baseabsent/Use.kt"
+    private val generatedPrefix = "org/wrongwrong/baseabsent/SI\$"
     private val expectedOut = listOf("ENTRIES=LeafA,LeafB,LeafC", "DESCRIBE=a,b,c")
     private val expectedOutWithD = listOf("ENTRIES=LeafA,LeafB,LeafC,LeafD", "DESCRIBE=a,b,c")
 
     @Test
     fun consecutiveEditsStayGreenAndNewLeafFileCrashesAsKnownIssue() {
-        val dir = IcTestSupport.prepare("kt86121", "kt86121-")
+        val dir = IcTestSupport.prepare("ic-base-absent", "icabs-")
         assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
         val generated0 = generatedDigests(dir)
 
@@ -69,7 +67,7 @@ class Kt86121Test {
         // 網羅性判定は前ラウンドのメタデータ由来の継承者一覧で行われ、枝の有無に依らず通る（修正方針案 #12）
         TestKitHarness.writeFile(
             dir, leafDFile,
-            "package org.wrongwrong.kt86121\n\n// R5: 新規ファイルで追加される末端（クラッシュ再現の引き金）\ndata object LeafD : SI\n",
+            "package org.wrongwrong.baseabsent\n\n// R5: 新規ファイルで追加される末端（クラッシュ再現の引き金）\ndata object LeafD : SI\n",
         )
         TestKitHarness.replaceInFile(dir, useFile, "    LeafB -> \"b\"", "    LeafB -> \"b\"\n    LeafD -> \"d\"")
         val crash = TestKitHarness.buildAndFail(dir, "runMain")
@@ -98,7 +96,7 @@ class Kt86121Test {
     // clean 経由なら同一ソースが成功する（クラッシュは IC 経路限定）ことも併せて固定する
     @Test
     fun midChainOnlyEditCrashesAsKnownIssue() {
-        val dir = IcTestSupport.prepare("ic-chain", "kt86121b-")
+        val dir = IcTestSupport.prepare("ic-chain", "icabschain-")
         val expected = listOf("ENTRIES=Leaf", "KIND=Leaf")
         assertEquals(expected, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
 

@@ -1,4 +1,4 @@
-package org.wrongwrong.kt86121
+package org.wrongwrong.baseabsent
 
 // else 無しの kind-when（各ラウンドで診断が偽陽性を出さないことの観測点 = TC-IC-059）
 fun describe(value: SI): String = when (value.asEnumish()) {

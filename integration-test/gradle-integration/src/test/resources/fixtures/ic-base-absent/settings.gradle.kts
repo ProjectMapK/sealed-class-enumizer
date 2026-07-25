@@ -1,4 +1,4 @@
-// TestKit フィクスチャ: KT-86121 型（多ファイル sealed × プラグイン生成 × IC の連続編集）
+// TestKit フィクスチャ: 多ファイル sealed × プラグイン生成 × IC の連続編集と基底不在ラウンド
 // docs/コンパイラプラグイン設計00.md §5.4・§9-4・docs/テストケース管理.md TC-IC-039/040
 pluginManagement {
     repositories {
@@ -20,7 +20,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "kt86121"
+rootProject.name = "ic-base-absent"
 
 buildCache {
     local {
