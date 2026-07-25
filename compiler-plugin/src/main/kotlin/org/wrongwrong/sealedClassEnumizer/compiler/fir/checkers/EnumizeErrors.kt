@@ -28,7 +28,6 @@ object EnumizeErrors : KtDiagnosticsContainer() {
     val ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY: KtDiagnosticFactory1<String> by error1<PsiElement, String>()
     val ENUMIZE_MANUAL_SUPERTYPE_MISMATCH: KtDiagnosticFactory2<String, String> by error2<PsiElement, String, String>()
     val ENUMIZE_RESERVED_NAME_CLASH: KtDiagnosticFactory0 by error0<PsiElement>()
-    val ENUMIZE_COMPANION_REQUIRED: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_CROSS_SOURCE_SET: KtDiagnosticFactory1<String> by error1<PsiElement, String>()
     val ENUMIZE_EXTENSION_SHADOWED: KtDiagnosticFactory0 by warning0<PsiElement>()
     val ENUMIZE_ENUM_LEAF_UNSUPPORTED: KtDiagnosticFactory0 by error0<PsiElement>()

@@ -92,11 +92,6 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
                 "which clashes with the generated declaration. Rename the existing nested declaration.",
         )
         map.put(
-            EnumizeErrors.ENUMIZE_COMPANION_REQUIRED,
-            "This leaf class needs a companion object to host its kind, and automatic generation " +
-                "did not apply here. Declare 'companion object' explicitly.",
-        )
-        map.put(
             EnumizeErrors.ENUMIZE_CROSS_SOURCE_SET,
             "Inheritor ''{0}'' of the '@Enumize' hierarchy is declared in a different source set. " +
                 "A sealed hierarchy must be contained in a single source set; move the inheritor.",

@@ -258,6 +258,8 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         )
     }
 
+    // companion は末端 class に必ず存在する（手動宣言か、無ければ候補判定による自動生成。設計01 §6.2）。
+    // 生成が届かない構成は所属判定ごと成立せず、この検査には到達しない
     private fun checkCompanionOfLeafClass(
         declaration: FirRegularClass,
         base: FirRegularClassSymbol,
@@ -266,11 +268,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         reporter: DiagnosticReporter,
     ) {
         val symbol = declaration.symbol
-        val companion = symbol.companionObjectSymbol
-        if (companion == null) {
-            reporter.reportOn(declaration.source, EnumizeErrors.ENUMIZE_COMPANION_REQUIRED, context)
-            return
-        }
+        val companion = symbol.companionObjectSymbol ?: return
         if (resolver.isOurGenerated(companion)) return
         if (resolver.membershipOf(companion)?.isLeaf == true) {
             reporter.reportOn(companion.source, EnumizeErrors.ENUMIZE_COMPANION_LEAF_CONFLICT, context)
