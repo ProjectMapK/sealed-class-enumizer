@@ -120,7 +120,9 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     }
 
     // 型引数の異なる手動継承 `: Enumized<別の型>`。declaring の直接 supertype を検査し、
-    // declaring が報告対象自身でない場合（間接継承）は報告対象側の宣言へ位置づける
+    // declaring が報告対象自身でない場合（間接継承）は報告対象側の宣言へ位置づける。
+    // 型引数の照合は typealias 展開後の ClassId で行う（生成 Enumish への別名は同一の型であり、
+    // 表記の違いで不一致にしてはならない。設計01 §4）
     private fun checkManualEnumizedSupertype(
         reportTarget: FirRegularClassSymbol,
         declaring: FirRegularClassSymbol,
@@ -134,7 +136,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             val coneType = ref.coneType as? ConeClassLikeType ?: continue
             if (coneType.classId != EnumizeNames.ENUMIZED_CLASS_ID) continue
             val argument = coneType.typeArguments.firstOrNull() as? ConeKotlinTypeProjection
-            val argumentClassId = argument?.type?.classId
+            val argumentClassId = argument?.type?.let(resolver.tracker::expandedClassId)
             if (argumentClassId != expectedArgument) {
                 val source = if (declaring === reportTarget) ref.source ?: reportTarget.source else reportTarget.source
                 reporter.reportOn(

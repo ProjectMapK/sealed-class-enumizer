@@ -81,9 +81,11 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         return session.symbolProvider.getClassLikeSymbolByClassId(classId) as? FirRegularClassSymbol
     }
 
-    // 解決済み型は typealias を展開してから ClassId を取る
+    // 解決済み型の ClassId は typealias を展開してから取る（型の同一性は表記に依らない）
+    fun expandedClassId(coneType: ConeKotlinType): ClassId? = coneType.fullyExpandedType(session).classId
+
     fun resolveExpandedClassSymbol(coneType: ConeKotlinType): FirRegularClassSymbol? =
-        resolveClassSymbol(coneType.fullyExpandedType(session).classId)
+        resolveClassSymbol(expandedClassId(coneType))
 
     private fun findEnumizeBase(
         classSymbol: FirRegularClassSymbol,
