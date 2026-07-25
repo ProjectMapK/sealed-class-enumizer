@@ -1,6 +1,5 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Disabled
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import kotlin.test.Test
@@ -22,7 +21,8 @@ class DiagCrossModuleTest : DiagTestBase() {
         )
     }
 
-    // TC-DIAG-094: 別モジュールで 2 家族の末端 interface を実装 → 異なる型引数の二重継承の言語エラー
+    // TC-DIAG-094: 非 sealed の末端 interface 経由で 2 家族に属する型は、Enumized の異なる型引数による
+    // 二重継承の言語エラーになる（家族探索は sealed 連鎖のみを辿るためプラグイン診断は関与しない）
     @Test
     fun crossModuleTwoFamilyImplementationFailsWithLanguageError() {
         assertDiagnosticAt(
@@ -30,21 +30,6 @@ class DiagCrossModuleTest : DiagTestBase() {
             "Cross2.kt",
             7,
             DiagFragments.LANG_INCONSISTENT_TYPE_ARGS,
-        )
-    }
-
-    // TC-DIAG-094: doc は「プラグイン適用時は ENUMIZE_MULTIPLE_FAMILIES でも先回り報告」とするが、
-    // 実測は言語エラーのみで不発火（家族探索が sealed 連鎖のみを上向きに辿るため、非 sealed の
-    // 末端 interface を経由する 2 家族実装では基底に到達しない）。報告 ID の選択は doc 側でも
-    // プロトタイプ確定待ちの残ギャップとされている
-    @Test
-    @Disabled("NG: 跨モジュール 2 家族実装で ENUMIZE_MULTIPLE_FAMILIES が不発火（言語エラーのみ） — docs/修正方針案.md 反映待ち")
-    fun crossModuleTwoFamilyImplementationReportsMultipleFamilies() {
-        assertDiagnosticAt(
-            failOutput("diag-cross-families", ":app:compileKotlin"),
-            "Cross2.kt",
-            7,
-            DiagFragments.MULTIPLE_FAMILIES,
         )
     }
 
