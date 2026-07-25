@@ -30,7 +30,7 @@ val testKitForks = (Runtime.getRuntime().availableProcessors() / 3).coerceIn(1, 
 // 展開先の作り直しはテスト本体と分けて前段のタスクで行う（test の出力準備と混ざらないようにする）。
 // 直前の実行が残した TestKit のデーモンが Windows でファイルを掴んだままのことがあるため、
 // 削除は best-effort とする（掴まれた分は次回以降の実行で回収される）
-val cleanFixtureWorkRoot by tasks.registering {
+val cleanFixtureWorkRoot = tasks.register("cleanFixtureWorkRoot") {
     val workRoot = fixtureWorkRoot
     doLast {
         workRoot.get().asFile.deleteRecursively()
