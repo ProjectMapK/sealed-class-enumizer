@@ -1,7 +1,6 @@
 package org.wrongwrong.gradle
 
 import org.junit.jupiter.api.Disabled
-import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAnywhere
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
@@ -10,47 +9,36 @@ import kotlin.test.Test
 
 // G 軸: label の一意性（ENUMIZE_LABEL_CLASH）と拡張シャドーイング警告（ENUMIZE_EXTENSION_SHADOWED）
 // （docs/テストケース管理.md TC-DIAG-039〜043・063〜065・080〜081・098〜099・103、概要 §2・§8）。
-//
-// 既知 NG（報告位置）: LABEL_CLASH は衝突する両末端に報告される仕様（設計01 §7.1）だが、末端が基底と
-// 別ファイルにある場合、実測では基底側ファイルの無意味な座標（別ファイルのオフセットをそのまま適用した
-// 位置）に出る。発火の事実（文言と衝突相手の FQN）は正しいため、発火は位置非依存で検証し、
-// 仕様どおりの位置検証は @Disabled で残す。
+// LABEL_CLASH は衝突する両末端の宣言位置に報告される（設計01 §7.1）ため、基底と別ファイルの末端も
+// 含めて位置と衝突相手の FQN を検証する。
 class DiagLabelTest : DiagTestBase() {
     private fun labelClash(): String = failOutput("diag-label-clash", "compileKotlin")
 
     private fun warnings(): String = successOutput("diag-warning-label", "compileKotlin")
 
-    // TC-DIAG-039: 別々の外側にネストした同名末端 → 両末端を当事者として LABEL_CLASH が発火する
+    // TC-DIAG-039: 別々の外側にネストした同名末端 → 両末端の宣言位置に、互いを衝突相手として発火する
+    // （どちらの末端も基底 LcSi とは別ファイル）
     @Test
     fun nestedLeavesWithSameSimpleNameClash() {
         val output = labelClash()
-        assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Foo", "org.wrongwrong.diag.label.LcOuter1.Foo")
-        assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Foo", "org.wrongwrong.diag.label.LcOuter2.Foo")
-    }
-
-    // TC-DIAG-039: 仕様上の報告位置は衝突する両方の末端宣言（設計01 §7.1）
-    @Test
-    @Disabled("NG: 基底と別ファイルの末端への LABEL_CLASH が基底側ファイルの無関係な座標に報告される — docs/修正方針案.md 反映待ち")
-    fun labelClashIsReportedAtBothLeafDeclarations() {
-        assertDiagnosticAt(labelClash(), "LcOuter1.kt", 5, DiagFragments.LABEL_CLASH, "Foo")
-        assertDiagnosticAt(labelClash(), "LcOuter2.kt", 5, DiagFragments.LABEL_CLASH, "Foo")
+        assertDiagnosticAt(output, "LcOuter1.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.LcOuter2.Foo")
+        assertDiagnosticAt(output, "LcOuter2.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.LcOuter1.Foo")
     }
 
     // TC-DIAG-040: companion 自身が末端の場合はその宣言名が label になり、同名の別末端と衝突する
     @Test
     fun companionAsLeafDeclarationNameClashes() {
         val output = labelClash()
-        assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Foo2", "org.wrongwrong.diag.label.Lc2Host.Foo2")
-        assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Foo2", "org.wrongwrong.diag.label.Lc2Outer.Foo2")
+        assertDiagnosticAt(output, "Lc2Host.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc2Outer.Foo2")
+        assertDiagnosticAt(output, "Lc2Outer.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc2Host.Foo2")
     }
 
-    // TC-DIAG-098: 末端 enum class の label は enum 全体の単純名（定数名は判定に関与しない）。
-    // 基底と同一ファイルの enum 末端側は仕様どおりの位置に出る
+    // TC-DIAG-098: 末端 enum class の label は enum 全体の単純名（定数名は判定に関与しない）
     @Test
     fun enumLeafSimpleNameClashesWithOtherLeaf() {
         val output = labelClash()
-        assertDiagnosticAt(output, "Lc3Si.kt", 8, DiagFragments.LABEL_CLASH, "Dup")
-        assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Dup", "org.wrongwrong.diag.label.Lc3Outer.Dup")
+        assertDiagnosticAt(output, "Lc3Si.kt", 8, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc3Outer.Dup")
+        assertDiagnosticAt(output, "Lc3Outer.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc3Si.Dup")
     }
 
     // TC-DIAG-103: LABEL_CLASH は衝突する両末端に発火し、同一階層の別の末端（Lc4Priv = 参照不能だが
@@ -58,8 +46,8 @@ class DiagLabelTest : DiagTestBase() {
     @Test
     fun labelClashReportsBothParticipantsAndIsNotSuppressed() {
         val output = labelClash()
-        assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Same", "org.wrongwrong.diag.label.Lc4A.Same")
-        assertDiagnosticAnywhere(output, DiagFragments.LABEL_CLASH, "Same", "org.wrongwrong.diag.label.Lc4B.Same")
+        assertDiagnosticAt(output, "Lc4A.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc4B.Same")
+        assertDiagnosticAt(output, "Lc4B.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.label.Lc4A.Same")
         assertFragmentAbsentAt(output, "Lc4Priv.kt", "e: ")
     }
 
@@ -92,11 +80,10 @@ class DiagLabelTest : DiagTestBase() {
         assertDiagnosticAt(warnings(), "Wl3Leaf.kt", 4, DiagFragments.EXTENSION_SHADOWED)
     }
 
-    // TC-DIAG-043: 別ファイル追加で label 衝突を導入すると階層共連れで発火し、削除で解除される（§5.3 #8）。
-    // 実測は追加後の incremental ラウンドで LABEL_CLASH が出ず、backend の RuntimeException
-    // （Exception while generating code for asEnumish）でクラッシュする（KT-86121 系の既知クラッシュ形）
+    // TC-DIAG-043: 別ファイル追加で label 衝突を導入すると発火し、削除で解除される（設計00 §5.3 #8）。
+    // IC ラウンドは階層の部分集合ビューを持つため、報告はそのラウンドでコンパイルされる末端
+    // （= 追加したファイル）のみに出る（衝突相手は既存末端としてメッセージが示す）
     @Test
-    @Disabled("NG: IC の末端追加ラウンドで LABEL_CLASH が出ず backend RuntimeException になる（KT-86121 系） — docs/修正方針案.md 反映待ち")
     fun addingClashingLeafFileTogglesLabelClash() {
         val dir = prepare("diag-ic-label-clash")
         val addedPath = "src/main/kotlin/org/wrongwrong/diag/iclabel/IcLcOuter.kt"
@@ -114,8 +101,7 @@ class DiagLabelTest : DiagTestBase() {
             |""".trimMargin(),
         )
         val failed = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertDiagnosticAnywhere(failed.output, DiagFragments.LABEL_CLASH, "One", "org.wrongwrong.diag.iclabel.One")
-        assertDiagnosticAnywhere(failed.output, DiagFragments.LABEL_CLASH, "One", "org.wrongwrong.diag.iclabel.IcLcOuter.One")
+        assertDiagnosticAt(failed.output, "IcLcOuter.kt", 5, DiagFragments.LABEL_CLASH, "org.wrongwrong.diag.iclabel.One")
         TestKitHarness.deleteFile(dir, addedPath)
         TestKitHarness.build(dir, "compileKotlin")
     }
