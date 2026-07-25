@@ -24,7 +24,7 @@ object EnumizeNames {
     // その kind 取得メンバー。file-private な壁に対するトップレベル関数名は kind ごとに一意化して生成する
     val KIND_ACCESSOR_NAME: Name = Name.identifier("\$EnumizeKindAccessor")
     val KIND_ACCESSOR_GET: Name = Name.identifier("get")
-    val KIND_ACCESSOR_TOP_LEVEL_PREFIX: String = "\$enumizeKindAccessor\$"
+    const val KIND_ACCESSOR_TOP_LEVEL_PREFIX: String = "\$enumizeKindAccessor\$"
 
     val LABEL: Name = Name.identifier("label")
     val ENUMISH_COMPANION_PROPERTY: Name = Name.identifier("enumishCompanion")
