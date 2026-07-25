@@ -29,10 +29,10 @@ class DeterminismTest {
         )
 
     private val aaaBlock =
-        "    // 2 原則-c: data object は言語合成の toString を保つ（生成しない）\n" + "    data object Aaa : S"
+        "    // 原則 1(c): data object は言語合成の toString を保つ（生成しない）\n" + "    data object Aaa : S"
 
     private val customBlock =
-        "    // 2 原則-a: kind（companion）の手動 toString には生成しない\n" +
+        "    // 原則 1(a): kind（companion）の手動 toString には生成しない\n" +
             "    data class Custom(val raw: String) : S {\n" +
             "        companion object {\n" +
             "            override fun toString(): String = \"custom!\"\n" +
@@ -96,7 +96,7 @@ class DeterminismTest {
     }
 
     // kind の toString の生成条件が別ファイルの supertype の toString 増減に依存する（TC-IC-049・V11）:
-    // 階層外の親クラス WithToString の具象 toString を除去すると 2 原則-2 により kind へ生成が入り
+    // 階層外の親クラス WithToString の具象 toString を除去すると原則 2 により kind へ生成が入り
     // （表示が label へ）、復元すると生成が止まる（継承採用へ戻る）。各状態で実行時挙動が決定的
     @Test
     fun case49ToStringGenerationFollowsSupertypeAcrossFiles() {

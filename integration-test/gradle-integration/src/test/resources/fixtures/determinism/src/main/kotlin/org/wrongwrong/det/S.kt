@@ -6,10 +6,10 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 // ネスト末端・可視性混在・toString 2 原則の対象を同居させる
 @Enumize
 sealed interface S {
-    // 2 原則-c: data object は言語合成の toString を保つ（生成しない）
+    // 原則 1(c): data object は言語合成の toString を保つ（生成しない）
     data object Aaa : S
 
-    // 2 原則-a: kind（companion）の手動 toString には生成しない
+    // 原則 1(a): kind（companion）の手動 toString には生成しない
     data class Custom(val raw: String) : S {
         companion object {
             override fun toString(): String = "custom!"
