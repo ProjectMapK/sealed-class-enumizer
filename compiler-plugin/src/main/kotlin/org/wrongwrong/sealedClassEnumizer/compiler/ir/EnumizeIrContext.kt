@@ -7,9 +7,14 @@ package org.wrongwrong.sealedClassEnumizer.compiler.ir
 
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
-import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.builders.irBlockBody
+import org.jetbrains.kotlin.ir.builders.irDelegatingConstructorCall
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
+import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.expressions.impl.IrInstanceInitializerCallImpl
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.symbols.IrPropertySymbol
@@ -25,8 +30,8 @@ import org.jetbrains.kotlin.name.Name
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeKey
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
-// IR 生成で共有する参照（runtime-api のシンボル・ビルトイン型）。すべて ClassId / CallableId からの
-// 静的参照であり、名前解決を経ない（設計02 §4.2）
+// IR 生成で共有する参照（runtime-api のシンボル・ビルトイン型）と、プラグイン生成宣言の取り回し。
+// 参照はすべて ClassId / CallableId からの静的参照であり、名前解決を経ない（設計02 §4.2）
 class EnumizeIrContext(val pluginContext: IrPluginContext) {
     val generatedOrigin: IrDeclarationOrigin = IrDeclarationOrigin.GeneratedByPlugin(EnumizeKey)
 
@@ -74,8 +79,38 @@ class EnumizeIrContext(val pluginContext: IrPluginContext) {
 
     fun builder(symbol: IrSymbol): DeclarationIrBuilder = DeclarationIrBuilder(pluginContext, symbol)
 
-    fun isOurs(declaration: IrDeclaration): Boolean =
-        (declaration.origin as? IrDeclarationOrigin.GeneratedByPlugin)?.pluginKey == EnumizeKey
+    // 生成 object のコンストラクタボディが Fir2Ir で充填されなかった場合の補完
+    fun ensureObjectConstructorBody(objectClass: IrClass) {
+        if (!objectClass.isGeneratedByEnumize) return
+        val constructor = objectClass.constructors.firstOrNull { it.isPrimary } ?: return
+        if (constructor.body != null) return
+        constructor.body = builder(constructor.symbol).run {
+            irBlockBody {
+                +irDelegatingConstructorCall(anyConstructor.owner)
+                +IrInstanceInitializerCallImpl(
+                    UNDEFINED_OFFSET,
+                    UNDEFINED_OFFSET,
+                    objectClass.symbol,
+                    unitType,
+                )
+            }
+        }
+    }
+
+    // 生成プロパティはボディを IR で充填する getter-only であり backing field を持たない。
+    // FIR 側の宣言が default アクセサ形のため Fir2Ir が field を実体化することがあり、
+    // interface 上ではそれが不正な class file（instance field）になるため、充填時に除去する
+    fun ourPropertyGetter(container: IrClass, name: Name): IrSimpleFunction? {
+        val property = container.declarations.filterIsInstance<IrProperty>()
+            .firstOrNull { it.isGeneratedByEnumize && it.name == name }
+            ?: return null
+        property.backingField = null
+        return property.getter
+    }
+
+    fun ourFunction(container: IrClass, name: Name): IrSimpleFunction? =
+        container.declarations.filterIsInstance<IrSimpleFunction>()
+            .firstOrNull { it.isGeneratedByEnumize && it.name == name }
 
     private fun holderProperty(name: Name): IrPropertySymbol =
         pluginContext.referenceProperties(CallableId(EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID, name)).single()

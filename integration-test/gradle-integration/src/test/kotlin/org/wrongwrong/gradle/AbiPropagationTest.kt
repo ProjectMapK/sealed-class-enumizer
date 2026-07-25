@@ -35,10 +35,8 @@ class AbiPropagationTest {
             dir, bazFile,
             "package org.wrongwrong.abifix\n\n// #11 で追加される末端（docs/テストケース管理.md TC-XM-013）\ndata object Baz : SI\n",
         )
-        // producer 側の IC 直行は「末端の新規ファイル追加」で既知の ICE になる（基底不在ラウンド。
-        // 再現ゲートは Kt86121Test・NG 記録は IcRegressionTest の TC-IC-011）ため、producer のみ
-        // clean で迂回する。検証対象の consumer 側は未編集のまま IC で再検査される（#11 の本質は不変）
-        TestKitHarness.build(dir, ":producer:clean")
+        // producer 側は基底不在ラウンド（新規ファイルでの末端追加）を IC 直行で通り、
+        // 検証対象の consumer 側は未編集のまま IC で再検査される
         val failure = TestKitHarness.buildAndFail(dir, ":consumer:compileKotlin")
         assertEquals(TaskOutcome.SUCCESS, failure.task(":producer:compileKotlin")?.outcome)
         assertEquals(TaskOutcome.FAILED, failure.task(":consumer:compileKotlin")?.outcome)
@@ -83,10 +81,8 @@ class AbiPropagationTest {
             "Unresolved reference" in deletion.output && "Foo" in deletion.output,
             "削除 kind の名指しが未解決になること:\n${deletion.output}",
         )
-        // 復元は「末端を含む新規ファイルの追加」になり IC 直行では既知の ICE（基底不在ラウンド）を踏むため、
-        // producer のみ clean で迂回して復帰させる
+        // 復元は「末端を含む新規ファイルの追加」= 基底不在ラウンドであり、IC 直行で成立する
         TestKitHarness.writeFile(dir, fooFile, fooContent)
-        TestKitHarness.build(dir, ":producer:clean")
         TestKitHarness.build(dir, ":consumer:compileKotlin")
 
         // TC-IC-056: @Enumize 除去で生成 API が消え、consumer の参照が未解決・producer の stale が掃除される

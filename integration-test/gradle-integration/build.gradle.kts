@@ -1,6 +1,6 @@
 // Gradle TestKit ホスト（docs/テストケース管理.md モジュール一覧）。
 // resources/fixtures 配下の合成ビルドを GradleRunner で駆動し、IC 回帰・決定性・
-// 跨モジュール負値診断・ABI 伝播・旧バイナリ差し替え・KT-86121 を検証する
+// 跨モジュール負値診断・ABI 伝播・旧バイナリ差し替え・基底不在ラウンドを検証する
 plugins {
     kotlin("jvm")
 }

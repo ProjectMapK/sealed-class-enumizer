@@ -6,18 +6,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 // 基底不在ラウンドのシナリオ（設計00 §5.4・§9-4、docs/テストケース管理.md TC-IC-039/040・TC-ORD-050）:
-// 多ファイル sealed 階層 × プラグイン生成コード × IC の再現形。
-//
-// Kotlin 2.4.20-Beta1 + Gradle 9.5.0 での実測:
-// - 既存 kind を宣言するファイルの連続編集（コメント・private メンバー・基底編集）はクラッシュせず、
-//   各ラウンドで entries は stale にならない（R1〜R4）。生成 EntriesHolder が各 kind を参照するため、
-//   これらの編集では基底ファイルが同一ラウンドへ共連れされる
-// - **末端の「新規ファイル」追加はクラッシュする**（R5）。新規ファイルは前ビルドの参照グラフに無く
-//   基底がラウンドに入らないため、プラグインの IR 生成が走らず、FIR 生成宣言（asEnumish）へ
-//   ボディが充填されないまま codegen が「Function has no body」で失敗する。再試行でも失敗が持続し、
-//   clean で回復する
-// R5 はこのクラッシュを expected として固定する回帰ゲートであり、プラグイン側の修正でクラッシュしなく
-// なったとき、ここが破れて検出される
+// 多ファイル sealed 階層 × プラグイン生成コード × IC。基底ファイルが IC ラウンドへ入らない編集
+// （新規ファイルでの末端追加）でも、IR 側のボディ充填は origin 駆動で走るため成立する。合否は
+// 「クラッシュしないこと」ではなく、最終成果物（実行時 entries・生成 .class のバイト）と診断
+// （kind-when の網羅性・LABEL_CLASH）が clean ビルドと一致することで判定する。
+// もう一方の基底不在ラウンド（中間 sealed ファイルの単独編集）は TC-IC-060 が持つ
 class IcBaseAbsentRoundTest {
     private val siFile = "src/main/kotlin/org/wrongwrong/baseabsent/Si.kt"
     private val leafAFile = "src/main/kotlin/org/wrongwrong/baseabsent/LeafA.kt"
@@ -27,9 +20,13 @@ class IcBaseAbsentRoundTest {
     private val generatedPrefix = "org/wrongwrong/baseabsent/SI\$"
     private val expectedOut = listOf("ENTRIES=LeafA,LeafB,LeafC", "DESCRIBE=a,b,c")
     private val expectedOutWithD = listOf("ENTRIES=LeafA,LeafB,LeafC,LeafD", "DESCRIBE=a,b,c")
+    private val newLeafSource = "package org.wrongwrong.baseabsent\n\n" +
+        "// 新規ファイルで追加される末端（基底不在ラウンドの引き金）\ndata object LeafD : SI\n"
 
+    // 既存 kind を宣言するファイルの連続編集（R1〜R4）では基底ファイルが同一ラウンドへ共連れされる。
+    // 新規ファイルでの末端追加（R5）は共連れが起きず基底不在ラウンドになるが、成果物は clean と一致する
     @Test
-    fun consecutiveEditsStayGreenAndNewLeafFileCrashesAsKnownIssue() {
+    fun consecutiveEditsAndNewLeafFileMatchCleanBuild() {
         val dir = IcTestSupport.prepare("ic-base-absent", "icabs-")
         assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
         val generated0 = generatedDigests(dir)
@@ -62,57 +59,50 @@ class IcBaseAbsentRoundTest {
         )
         assertRoundIsGreen(dir, generated0)
 
-        // R5: 末端の「新規ファイル」追加 — 基底不在ラウンドで再現する既知のバックエンドクラッシュ。
-        // when の枝を同時に足すのは R6（clean 回復）を網羅性エラーにしないためである。基底不在ラウンドの
-        // 網羅性判定は前ラウンドのメタデータ由来の継承者一覧で行われ、枝の有無に依らず通る（修正方針案 #12）
-        TestKitHarness.writeFile(
-            dir, leafDFile,
-            "package org.wrongwrong.baseabsent\n\n// R5: 新規ファイルで追加される末端（クラッシュ再現の引き金）\ndata object LeafD : SI\n",
-        )
+        // R5: 末端の「新規ファイル」追加 = 基底不在ラウンド。entries へ反映され、
+        // 全生成物が同一ソースの clean ビルドとバイト一致する（合否条件そのもの）
+        TestKitHarness.writeFile(dir, leafDFile, newLeafSource)
         TestKitHarness.replaceInFile(dir, useFile, "    LeafB -> \"b\"", "    LeafB -> \"b\"\n    LeafD -> \"d\"")
-        val crash = TestKitHarness.buildAndFail(dir, "runMain")
-        assertTrue(
-            "Function has no body" in crash.output && "asEnumish" in crash.output,
-            "既知クラッシュ（基底不在ラウンド）が再現しなくなった — docs/修正方針案.md #12 を見直すこと:\n${crash.output}",
-        )
-
-        // R5': 同一入力の再試行でも失敗が持続する（IC 状態は自己回復しない）
-        val retry = TestKitHarness.buildAndFail(dir, "runMain")
-        assertTrue("Function has no body" in retry.output, "再試行でも失敗が持続すること:\n${retry.output}")
-
-        // R6: clean を挟めば同じソースが成功する（クラッシュは IC 経路に限られる）
+        assertEquals(expectedOutWithD, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+        val incremental = IcTestSupport.classDigests(dir)
         assertEquals(expectedOutWithD, IcTestSupport.outLines(TestKitHarness.build(dir, "clean", "runMain")))
+        assertEquals(IcTestSupport.classDigests(dir), incremental, "基底不在ラウンドの成果物が clean と一致すること")
 
-        // R7: 末端ファイルの削除は IC 直行で成立し、基準状態の生成物とバイト一致まで復帰する
+        // R6: 末端ファイルの削除も IC 直行で成立し、基準状態の生成物とバイト一致まで復帰する
         TestKitHarness.deleteFile(dir, leafDFile)
         TestKitHarness.replaceInFile(dir, useFile, "    LeafB -> \"b\"\n    LeafD -> \"d\"", "    LeafB -> \"b\"")
         assertRoundIsGreen(dir, generated0)
     }
 
-    // 第 2 の再現形（TC-IC-060/025 の実測 NG）: 多段中間 sealed チェーン（CSI←Mid1←Mid2←Leaf 各別
-    // ファイル）で「中間 sealed ファイルのみ」を ABI 非変更編集すると、IC ラウンドに基底ファイルが
-    // 含まれないまま末端が再コンパイルされ、同じ「Function has no body」ICE になる（中間 sealed は
-    // 生成物から参照されないため、基底を共連れさせる依存辺が無い）。
-    // clean 経由なら同一ソースが成功する（クラッシュは IC 経路限定）ことも併せて固定する
+    // 基底不在ラウンドでも階層系の診断が出ること: 新規ファイルの末端は利用側の kind-when を
+    // 非網羅にし、同一ラウンドで追加した同名末端どうしは LABEL_CLASH になる
     @Test
-    fun midChainOnlyEditCrashesAsKnownIssue() {
-        val dir = IcTestSupport.prepare("ic-chain", "icabschain-")
-        val expected = listOf("ENTRIES=Leaf", "KIND=Leaf")
-        assertEquals(expected, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+    fun baseAbsentRoundReportsHierarchyDiagnostics() {
+        val dir = IcTestSupport.prepare("ic-base-absent", "icabsdiag-")
+        assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
 
-        TestKitHarness.replaceInFile(
-            dir, "src/main/kotlin/org/wrongwrong/chain/Mid2.kt",
-            "// チェーン 2 段目の中間 sealed（TC-IC-060 の編集対象）",
-            "// チェーン 2 段目の中間 sealed（TC-IC-060 の編集対象。編集ラウンド）",
-        )
-        val crash = TestKitHarness.buildAndFail(dir, "runMain")
+        TestKitHarness.writeFile(dir, leafDFile, newLeafSource)
+        val exhaustiveness = TestKitHarness.buildAndFail(dir, "compileKotlin")
         assertTrue(
-            "Function has no body" in crash.output && "asEnumish" in crash.output,
-            "既知クラッシュ（中間 sealed 単独編集）が再現しなくなった — NG 記録を見直すこと:\n${crash.output}",
+            "exhaustive" in exhaustiveness.output,
+            "新規ファイルの末端追加で kind-when が非網羅になること:\n${exhaustiveness.output}",
         )
+        TestKitHarness.deleteFile(dir, leafDFile)
 
-        // clean を挟めば同じソースが成功し、実行時結果も不変
-        assertEquals(expected, IcTestSupport.outLines(TestKitHarness.build(dir, "clean", "runMain")))
+        // 同一ラウンドで追加した 2 つの新規末端が同じ label を持つ構成
+        TestKitHarness.writeFile(
+            dir, "src/main/kotlin/org/wrongwrong/baseabsent/Dup1.kt",
+            "package org.wrongwrong.baseabsent\n\nobject H1 {\n    data object Dup : SI\n}\n",
+        )
+        TestKitHarness.writeFile(
+            dir, "src/main/kotlin/org/wrongwrong/baseabsent/Dup2.kt",
+            "package org.wrongwrong.baseabsent\n\nobject H2 {\n    data object Dup : SI\n}\n",
+        )
+        val clash = TestKitHarness.buildAndFail(dir, "compileKotlin")
+        assertTrue(
+            "Duplicated label" in clash.output,
+            "同一ラウンドで追加した同名末端どうしが LABEL_CLASH になること:\n${clash.output}",
+        )
     }
 
     // 各ラウンド: ビルドが成功し（診断の偽陽性なし = TC-IC-059）、entries が stale にならず、

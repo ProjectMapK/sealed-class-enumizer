@@ -1,6 +1,5 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -42,11 +41,9 @@ class IcRegressionTest {
         assertEquals(digests0.filterKeys { it != fooKey }, digests1.filterKeys { it != fooKey })
     }
 
-    // #2 末端の追加を IC 直行で行う仕様通りの形（TC-IC-011）: 期待は「階層共連れ + 利用側の
-    // kind-when が網羅性エラー」。実測は初回 IC ラウンドが新規ファイル単独で走り、基底がラウンド外の
-    // ため FIR 生成宣言（asEnumish）に IR ボディが充填されず、バックエンド ICE
-    // 「Function has no body」で failed する（基底不在ラウンド。再現ゲートは Kt86121Test が保持）
-    @Disabled("NG: 末端の新規ファイル追加の IC 初回ラウンドがバックエンド ICE（Function has no body・TC-IC-011）— docs/修正方針案.md #12")
+    // #2 末端の追加を IC 直行で行う（TC-IC-011）: 新規ファイルの末端追加は基底ファイルを
+    // 同一ラウンドへ共連れしないが、利用側の kind-when が網羅性エラーになる
+    // （基底不在ラウンドの成果物一致は IcBaseAbsentRoundTest が持つ）
     @Test
     fun case2AddLeafIncrementallyDetectedByWhenExhaustiveness() {
         val dir = IcTestSupport.prepare(IcBasicFixture.NAME, "ic2-")
@@ -60,9 +57,9 @@ class IcRegressionTest {
         assertTrue("exhaustive" in addFailure.output, "末端追加で kind-when が非網羅になること:\n${addFailure.output}")
     }
 
-    // #2 の意味論（網羅性エラーによる検出・entries への反映）と #3 末端の削除（TC-IC-012）。
-    // 追加ラウンドのみ IC 直行が ICE になるため（上の @Disabled = TC-IC-011 の NG）、追加は clean を
-    // 挟んで到達し、削除側は仕様どおり IC 直行で検証する。復帰後は clean 基準とバイト一致する
+    // #2 の意味論（entries への反映）と #3 末端の削除（TC-IC-012）。追加の検出そのものは
+    // TC-IC-011 が IC 直行で見るため、ここは追加後の entries と削除側の挙動を見る。
+    // 復帰後は clean 基準とバイト一致する
     @Test
     fun case2SemanticsAndCase3RemoveLeafIncrementally() {
         val dir = IcTestSupport.prepare(IcBasicFixture.NAME, "ic23-")
@@ -71,12 +68,10 @@ class IcRegressionTest {
         val digests0 = IcTestSupport.classDigests(dir)
 
         // #2 の意味論: 追加された末端は利用側の else 無し kind-when の網羅性エラーで検出される
-        // （clean 経由 = フルビルドの検査。IC 直行の検証は @Disabled の TC-IC-011 が持つ）
         TestKitHarness.writeFile(
             dir, IcBasicFixture.BAZ_FILE,
             "package org.wrongwrong.icfix\n\n// 編集ケース #2 で追加される末端（docs/テストケース管理.md TC-IC-011）\ndata object Baz : SI\n",
         )
-        TestKitHarness.build(dir, "clean")
         val addFailure = TestKitHarness.buildAndFail(dir, "compileKotlin")
         assertTrue("exhaustive" in addFailure.output, "末端追加で kind-when が非網羅になること:\n${addFailure.output}")
 

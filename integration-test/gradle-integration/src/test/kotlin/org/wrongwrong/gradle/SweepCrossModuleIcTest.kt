@@ -95,8 +95,7 @@ class SweepCrossModuleIcTest {
     }
 
     // TC-XM-055 / TC-GAP-016（IC 面）: 非入れ子の internal 中間 sealed の挿入で entries の並びが
-    // 再配置され（[Bar,Foo]→[Foo,Bar]）、kind 集合は不変のため consumer の kind-when は壊れない。
-    // 基底ファイルを同一ラウンドで共連れ編集し、新規ファイル単独ラウンドの既知 ICE（NG#12）を回避する
+    // 再配置され（[Bar,Foo]→[Foo,Bar]）、kind 集合は不変のため consumer の kind-when は壊れない
     @Test
     fun intermediateSealedInsertionReordersEntriesAcrossModules() {
         val dir = IcTestSupport.prepare("abi-propagation", "swxm55-")
@@ -110,11 +109,6 @@ class SweepCrossModuleIcTest {
                 "internal sealed interface AMid : SI\n",
         )
         TestKitHarness.replaceInFile(dir, ABI_FOO, "class Foo(val v: Int) : SI", "class Foo(val v: Int) : AMid")
-        TestKitHarness.replaceInFile(
-            dir, ABI_SI,
-            "// 跨モジュール ABI 伝播フィクスチャの基底（末端は別ファイル）",
-            "// 跨モジュール ABI 伝播フィクスチャの基底（末端は別ファイル・sweep: 中間挿入と同一ラウンド編集）",
-        )
         val second = TestKitHarness.build(dir, ":consumer:runMain")
 
         // SI 継承者 [AMid, Bar] → AMid を [Foo] へ展開 → entries=[Foo, Bar]（末端集合 FQN 順ではない）

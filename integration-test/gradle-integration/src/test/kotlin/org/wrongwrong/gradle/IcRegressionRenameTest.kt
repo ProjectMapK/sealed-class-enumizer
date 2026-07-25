@@ -1,6 +1,5 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -96,10 +95,7 @@ class IcRegressionRenameTest {
 
     // #9 中間 sealed の追加・除去（TC-IC-024）: kind 集合は不変のため kind-when は成立し続けるが、
     // 末端がトップレベルのまま中間へ付け替わると entries の並びが入れ子展開順へ変わる（設計00 §6.2）。
-    // 除去で並びが復帰し、生成物も clean とバイト一致する。
-    // 注: 中間 sealed を含む編集ラウンドは、基底ファイルが同一ラウンドへ入らないと既知の ICE
-    // （Function has no body = TC-IC-025/060 の NG。docs/修正方針案.md #12）を間欠的に踏むため、
-    // 各ラウンドで基底コメントも同時編集して基底を確実に dirty set へ入れている（既知 NG の迂回）
+    // 除去で並びが復帰し、生成物も clean とバイト一致する
     @Test
     fun case9IntermediateSealedInsertionAndRemoval() {
         val dir = IcTestSupport.prepare(IcBasicFixture.NAME, "ic9-")
@@ -112,11 +108,6 @@ class IcRegressionRenameTest {
             "package org.wrongwrong.icfix\n\n// 編集ケース #9 で挿入される中間 sealed（docs/テストケース管理.md TC-IC-024）\nsealed interface Mid : SI\n",
         )
         TestKitHarness.replaceInFile(dir, IcBasicFixture.BAR_FILE, "data object Bar : SI", "data object Bar : Mid")
-        TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.SI_FILE,
-            "// IC 回帰フィクスチャの基底。",
-            "// IC 回帰フィクスチャの基底（#9 挿入ラウンド）。",
-        )
         val inserted = IcTestSupport.outLines(TestKitHarness.build(dir, "runMain"))
         assertEquals(
             listOf(
@@ -133,11 +124,6 @@ class IcRegressionRenameTest {
 
         TestKitHarness.deleteFile(dir, IcBasicFixture.MID_FILE)
         TestKitHarness.replaceInFile(dir, IcBasicFixture.BAR_FILE, "data object Bar : Mid", "data object Bar : SI")
-        TestKitHarness.replaceInFile(
-            dir, IcBasicFixture.SI_FILE,
-            "// IC 回帰フィクスチャの基底（#9 挿入ラウンド）。",
-            "// IC 回帰フィクスチャの基底。",
-        )
         assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
         assertEquals(siGenerated0, IcTestSupport.classDigests(dir).filterKeys(IcBasicFixture::isSiGenerated))
     }
@@ -173,20 +159,16 @@ class IcRegressionRenameTest {
         assertEquals(digests0, IcTestSupport.classDigests(dir))
     }
 
-    // 多段中間 sealed チェーン（TC-IC-060）: 仕様の期待は「チェーン中間ファイルの ABI 非変更編集で
-    // 階層全体が共連れされ、再帰収集の結果が不変」。実測は中間 sealed ファイル単独編集の IC ラウンドに
-    // 基底ファイルが含まれず、末端の FIR 生成宣言へ IR ボディが充填されないままバックエンド ICE
-    // 「Function has no body」で failed する（2 段の TC-IC-025 相当でも同様に再現。
-    // 再現ゲートは Kt86121Test.midChainOnlyEditCrashesAsKnownIssue が保持）
-    @Disabled("NG: 中間 sealed ファイル単独編集の IC ラウンドがバックエンド ICE（Function has no body・TC-IC-060/025）— docs/修正方針案.md #12")
+    // 多段中間 sealed チェーン（TC-IC-060。2 段の TC-IC-025 相当も同形）: チェーン中間ファイルの
+    // ABI 非変更編集は基底ファイルを共連れしない（中間 sealed は生成物から参照されず依存辺が無い）が、
+    // 末端側のボディ充填は origin 駆動で走るため成立し、再帰収集の結果は不変である。
+    // 階層が変わらないラウンドであり、全生成物が編集前とバイト一致する
     @Test
     fun case60MidChainEditRecollectsRecursively() {
         val dir = IcTestSupport.prepare("ic-chain", "ic60-")
         val expected = listOf("ENTRIES=Leaf", "KIND=Leaf")
         assertEquals(expected, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
-        val generatedPrefix = "org/wrongwrong/chain/CSI\$Enumish"
-        val generated0 = IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) }
-        val times0 = IcTestSupport.classTimes(dir)
+        val digests0 = IcTestSupport.classDigests(dir)
 
         TestKitHarness.replaceInFile(
             dir, "src/main/kotlin/org/wrongwrong/chain/Mid2.kt",
@@ -194,9 +176,7 @@ class IcRegressionRenameTest {
             "// チェーン 2 段目の中間 sealed（TC-IC-060 の編集対象。編集ラウンド）",
         )
         assertEquals(expected, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
-        val changed = IcTestSupport.changedKeys(times0, IcTestSupport.classTimes(dir))
-        assertTrue(changed.any { it.startsWith(generatedPrefix) }, "基底の生成物が共連れ再生成されること: $changed")
-        assertEquals(generated0, IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) })
+        assertEquals(digests0, IcTestSupport.classDigests(dir))
     }
 
     // 空階層の境界（TC-IC-061）: 全末端の削除で entries=[]・valueOf は常に失敗、のまま生成が成立し、
@@ -233,7 +213,7 @@ class IcRegressionRenameTest {
             IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")),
         )
 
-        // 最初の末端の追加（既存ファイルへの追記 = 新規ファイル追加の既知 ICE を踏まない形）
+        // 最初の末端の追加（基底ファイルへの追記であり、基底が同一ラウンドへ入る形）
         TestKitHarness.replaceInFile(
             dir, IcBasicFixture.SI_FILE,
             "sealed interface SI",
