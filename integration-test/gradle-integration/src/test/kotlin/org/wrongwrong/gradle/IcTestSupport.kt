@@ -15,14 +15,20 @@ import kotlin.streams.asSequence
 
 // TestKit テスト群の共通観測ヘルパ（docs/テストケース管理.md C 軸の観測手段:
 // 実行時 OUT: 行・生成 .class のバイト比較・出力タイムスタンプによる再コンパイル追跡）。
-// TestKitHarness は変更禁止のため、追加のユーティリティは本オブジェクトへ集約する
+// フィクスチャの展開と GradleRunner の起動は TestKitHarness が持ち、観測系は本オブジェクトへ集約する
 object IcTestSupport {
     private const val CLASSES_DIR = "build/classes/kotlin/main"
 
     // フィクスチャの展開先。@TempDir は Windows のデーモンロックで後始末に失敗しうるため、
-    // モジュールの build 配下（clean で回収される場所）へ展開する
+    // モジュールの build 配下（clean で回収され、テスト開始時に作り直される場所）へ展開する。
+    // 並行実行するフォークの作業ディレクトリに依存しないよう、絶対パスをテストタスクから注入する
+    private val fixtureWorkRoot: Path =
+        Path.of(requireNotNull(System.getProperty("enumizer.fixtureWorkRoot")) {
+            "システムプロパティ enumizer.fixtureWorkRoot が未設定（gradle-integration/build.gradle.kts が注入する)"
+        })
+
     fun emptyDir(prefix: String): Path {
-        val root = Path.of("build", "testkit-fixtures").toAbsolutePath().createDirectories()
+        val root = fixtureWorkRoot.createDirectories()
         return Files.createTempDirectory(root, prefix)
     }
 
