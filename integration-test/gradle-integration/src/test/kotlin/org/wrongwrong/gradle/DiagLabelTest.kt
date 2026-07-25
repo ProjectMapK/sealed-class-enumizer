@@ -1,6 +1,5 @@
 package org.wrongwrong.gradle
 
-import org.junit.jupiter.api.Disabled
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
@@ -8,7 +7,7 @@ import org.wrongwrong.gradle.DiagAsserts.assertNoDiagnosticAt
 import kotlin.test.Test
 
 // G 軸: label の一意性（ENUMIZE_LABEL_CLASH）と拡張シャドーイング警告（ENUMIZE_EXTENSION_SHADOWED）
-// （docs/テストケース管理.md TC-DIAG-039〜043・063〜065・080〜081・098〜099・103、概要 §2・§8）。
+// （docs/テストケース管理.md TC-DIAG-039〜043・063〜065・080〜081・098〜099・103・114〜115、概要 §2・§8）。
 // LABEL_CLASH は衝突する両末端の宣言位置に報告される（設計01 §7.1）ため、基底と別ファイルの末端も
 // 含めて位置と衝突相手の FQN を検証する。
 class DiagLabelTest : DiagTestBase() {
@@ -66,18 +65,42 @@ class DiagLabelTest : DiagTestBase() {
         assertDiagnosticAt(warnings(), "Wl2Si.kt", 8, DiagFragments.EXTENSION_SHADOWED)
     }
 
+    // TC-DIAG-114: 基底の label を継承した末端 class にも警告が出る（宣言元 = 基底をメッセージが示す）。
+    // 報告位置は継承先クラスの宣言（継承メンバーには自ファイルの位置が無いため）
+    @Test
+    fun leafClassInheritingBaseLabelWarns() {
+        assertDiagnosticAt(
+            warnings(),
+            "Wl2Si.kt",
+            14,
+            DiagFragments.EXTENSION_SHADOWED,
+            "org.wrongwrong.diag.warn.Wl2Si",
+        )
+    }
+
+    // TC-DIAG-115: kind（末端 object）は生成 label が継承した label を override するため非発火
+    @Test
+    fun leafObjectInheritingBaseLabelDoesNotWarn() {
+        assertNoDiagnosticAt(warnings(), "Wl2Si.kt", 11)
+    }
+
     // TC-DIAG-065: label 以外の名前のメンバーには警告が出ない
     @Test
     fun otherMemberNameDoesNotWarn() {
         assertNoDiagnosticAt(warnings(), "WlSi.kt", 11)
     }
 
-    // TC-DIAG-081: doc は末端 class が label default を継承する構成も EXTENSION_SHADOWED（PLAUSIBLE 判定）
-    // とするが、実測は自クラスの宣言のみが検査対象で、継承 label には ES / MMC のいずれも出ない（分岐確定）
+    // TC-DIAG-081: 末端 class が階層外 interface から label default を継承する構成も警告対象
+    // （生成先は companion のため MMC ではない。MMC-04 = 末端 object との class/object 対比）
     @Test
-    @Disabled("NG: 継承した label default に EXTENSION_SHADOWED が出ない（doc の PLAUSIBLE 判定と相違・実測は完全非発火） — docs/修正方針案.md 反映待ち")
     fun inheritedLabelDefaultWarns() {
-        assertDiagnosticAt(warnings(), "Wl3Leaf.kt", 4, DiagFragments.EXTENSION_SHADOWED)
+        assertDiagnosticAt(
+            warnings(),
+            "Wl3Leaf.kt",
+            4,
+            DiagFragments.EXTENSION_SHADOWED,
+            "org.wrongwrong.diag.warn.Wl3Named",
+        )
     }
 
     // TC-DIAG-043: 別ファイル追加で label 衝突を導入すると発火し、削除で解除される（設計00 §5.3 #8）。
