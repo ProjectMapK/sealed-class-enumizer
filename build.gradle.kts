@@ -5,10 +5,21 @@
 // 要求するとクラスローダが分裂し、KGP の共有 build service（KotlinNativeBundleBuildService）が
 // 型不一致になって IDE sync（prepareKotlinIdeaImport → commonizeNativeDistribution）が失敗するため、
 // 全プラグインをルートのクラスローダへ一度だけロードして共有させる。
+// ktfmt はモジュール構成ではなくビルド全体の共通規約であり、スタイル定義を 1 か所に保つため
+// ルートで適用して allprojects へ配る（ルート自身の build.gradle.kts / settings.gradle.kts も対象になる）。
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.autoservice) apply false
+    alias(libs.plugins.ktfmt)
+}
+
+// gradle.properties の kotlin.code.style=official に合わせ、ktfmt も Kotlin 公式スタイル
+// （ブロック・継続ともインデント 4、末尾カンマ付与）で揃える
+allprojects {
+    apply(plugin = "com.ncorti.ktfmt.gradle")
+
+    ktfmt { kotlinLangStyle() }
 }
 
 // integration-test の TestKit フィクスチャ向けに、3 モジュールのローカル Maven 公開を集約する

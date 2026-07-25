@@ -6,7 +6,19 @@
 //
 // KGP のバージョンはここでのみ宣言する。settings.gradle.kts が読み込む親ビルドの version catalog を
 // 唯一の源とし、サブプロジェクトはバージョン無しの kotlin("jvm") / kotlin("multiplatform") で受ける
+//
+// ktfmt は親ビルドと同じくルートで適用して allprojects へ配る。対象は Kotlin ソースセットと各
+// プロジェクト直下の *.kts のみで、gradle-integration の TestKit フィクスチャ
+// （src/test/resources/fixtures）は含まれない。フィクスチャは診断の行番号を検証する入力であり、
+// 整形による行ずれが検証を壊すため対象外とする
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.ktfmt)
+}
+
+allprojects {
+    apply(plugin = "com.ncorti.ktfmt.gradle")
+
+    ktfmt { kotlinLangStyle() }
 }
