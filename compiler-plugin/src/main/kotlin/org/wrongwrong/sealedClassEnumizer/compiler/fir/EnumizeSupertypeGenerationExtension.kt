@@ -52,7 +52,7 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
     }
 
     private fun couldBeHierarchyMember(symbol: FirRegularClassSymbol): Boolean =
-        tracker.isHierarchyCandidate(symbol, followTypeAliases = true)
+        tracker.isHierarchyCandidate(symbol)
 
     override fun computeAdditionalSupertypes(
         classLikeDeclaration: FirClassLikeDeclaration,
@@ -112,14 +112,14 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
         val outer = outerSymbolOf(companion) ?: return emptyList()
         // 中間 sealed の companion は kind ではない。外側が object の場合 companion は存在しない
         if (tracker.isRawSealed(outer) || outer.classKind == ClassKind.OBJECT) return emptyList()
-        val base = tracker.findEnumizeBase(outer, followTypeAliases = true) ?: return emptyList()
+        val base = tracker.findEnumizeBase(outer) ?: return emptyList()
         return enumishInjectionFor(base, resolvedSupertypes)
     }
 
     // 外側（末端）の supertype 解決は companion より先に走るため、解決済み ref を tracker 経由で辿れる
     private fun findBaseFromResolved(resolvedSupertypes: List<FirResolvedTypeRef>): FirRegularClassSymbol? {
         val superSymbols = resolvedSupertypes.mapNotNull { tracker.resolveExpandedClassSymbol(it.coneType) }
-        return tracker.findEnumizeBaseAmong(superSymbols, followTypeAliases = true)
+        return tracker.findEnumizeBaseAmong(superSymbols)
     }
 
     private fun enumishInjectionFor(
@@ -137,7 +137,7 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) : FirSupertypeGen
         resolvedSupertypes.any { ref ->
             ref.coneType.classId == EnumizeNames.ENUMIZED_CLASS_ID ||
                 tracker.resolveExpandedClassSymbol(ref.coneType)?.let { superSymbol ->
-                    tracker.reachesSupertype(superSymbol, EnumizeNames.ENUMIZED_CLASS_ID, followTypeAliases = true)
+                    tracker.reachesSupertype(superSymbol, EnumizeNames.ENUMIZED_CLASS_ID)
                 } == true
         }
 

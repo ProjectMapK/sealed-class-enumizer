@@ -38,12 +38,13 @@ import org.jetbrains.kotlin.name.SpecialNames
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeKey
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
-// 解決済み情報（sealed inheritors 属性・解決済み supertype・実効可視性）を用いる階層照会の
-// セッション単一コンポーネント。所属事実（EnumizeMembership）は membershipOf がクラス毎に一度だけ
-// 計算してキャッシュし、消費側（宣言生成の役割判定・チェッカー）はその値を受け渡して読む。
-// membershipOf を含む本コンポーネントの照会は SUPER_TYPES 解決後のフェーズ
-// （メンバー生成・チェッカー・lazy inheritors 計算）からのみ呼ぶこと — raw 段階の答えを
-// キャッシュすると解決後のフェーズを汚染する。raw 段階の判定は tracker を直接使う。
+// 階層照会のセッション単一コンポーネント。所属事実（EnumizeMembership）は membershipOf がクラス毎に
+// 一度だけ計算してキャッシュし、消費側（宣言生成の役割判定・チェッカー）はその値を受け渡して読む。
+// 所属の計算（supertype の追跡）は tracker が担い、それ以外の照会は解決済み情報
+// （sealed inheritors 属性・解決済み supertype・実効可視性）を用いる。
+// membershipOf は SUPER_TYPES 中（getCallableNamesForClass 経由。設計01 §3）にも呼ばれ、
+// そのクラス自身の supertype ref が未解決のまま答えが確定するため、tracker は raw な ref からでも
+// 解決後と同じ答えを返せる必要がある（設計01 §6.1）。
 // 用語（階層・末端・中間 sealed・kind）は設計00 §1 に従う。
 class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionComponent(session) {
     val tracker: EnumizeRawSupertypeTracker = EnumizeRawSupertypeTracker(session)
@@ -200,7 +201,7 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
         result: LinkedHashMap<ClassId, FirRegularClassSymbol>,
     ) {
         if (!visited.add(symbol.classId)) return
-        for (superSymbol in tracker.supertypeClassSymbols(symbol, followTypeAliases = true)) {
+        for (superSymbol in tracker.supertypeClassSymbols(symbol)) {
             if (!tracker.isRawSealed(superSymbol)) continue
             if (tracker.isEnumizeBase(superSymbol)) {
                 result[superSymbol.classId] = superSymbol
@@ -228,7 +229,7 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
         symbol: FirRegularClassSymbol,
         result: LinkedHashMap<ClassId, FirRegularClassSymbol>,
     ) {
-        for (superSymbol in tracker.supertypeClassSymbols(symbol, followTypeAliases = true)) {
+        for (superSymbol in tracker.supertypeClassSymbols(symbol)) {
             if (result.putIfAbsent(superSymbol.classId, superSymbol) == null) {
                 collectClosure(superSymbol, result)
             }

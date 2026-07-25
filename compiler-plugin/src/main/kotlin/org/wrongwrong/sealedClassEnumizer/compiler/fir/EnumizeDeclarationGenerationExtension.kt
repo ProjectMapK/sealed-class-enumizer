@@ -195,9 +195,9 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
         val status = symbol.rawStatus
         if (status.isCompanion || status.isInner || status.modality == Modality.SEALED) return false
         if (symbol.companionObjectSymbol != null) return false
-        // typealias 経由は意図的な見逃し（明示的な companion を ENUMIZE_COMPANION_REQUIRED で促す契約。
-        // 設計01 §6.2）のため、この判定だけは typealias を辿らない
-        return tracker.isHierarchyCandidate(symbol, followTypeAliases = false)
+        // 候補判定は所属判定と同じ材料で行う（設計01 §6.2）。supertype の書き方（直接名・FQN 表記・
+        // 明示 import・star import・typealias / import エイリアス）で末端の扱いを変えない
+        return tracker.isHierarchyCandidate(symbol)
     }
 
     // 所属（membership）は resolver が一度だけ計算した事実を読み、役割へ写像する。
@@ -277,7 +277,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
     // 候補判定の誤検知時は解決済み supertype による正式判定が効かないままだが、その構成は
     // チェッカーの後続診断で顕在化する
     private fun generateLeafCompanion(leaf: FirRegularClassSymbol): FirClassLikeSymbol<*> {
-        val base = tracker.findEnumizeBase(leaf, followTypeAliases = false)
+        val base = tracker.findEnumizeBase(leaf)
         val companion = createCompanionObject(leaf, EnumizeKey) {
             if (base != null && !resolver.hasUserDeclaredNestedEnumish(base)) {
                 superType(resolver.generatedEnumishClassId(base).constructClassLikeType())

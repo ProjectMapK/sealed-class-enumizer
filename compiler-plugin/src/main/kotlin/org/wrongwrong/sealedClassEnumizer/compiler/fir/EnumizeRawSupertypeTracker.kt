@@ -6,6 +6,7 @@ package org.wrongwrong.sealedClassEnumizer.compiler.fir
 
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.declarations.FirImport
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
@@ -23,37 +24,36 @@ import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.ClassIdBasedLocality
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.wrongwrong.sealedClassEnumizer.compiler.EnumizeNames
 
 // 設計01 §6.1: COMPANION_GENERATION フェーズで解決済み supertype に依存せずに「階層に属する候補か」を
-// 判定するための raw supertype ref の保守的追跡。フェーズ非依存の純関数として実装する
+// 判定するための raw supertype ref の追跡。フェーズ非依存の純関数として実装する
 // （COMPILER_REQUIRED_ANNOTATIONS までに確定する情報だけを入力とし、同一入力に常に同一の答えを返す）。
 // 解決済み ref（FirResolvedTypeRef）も受け付けるため、SUPER_TYPES 以降のフェーズからも同じ機構で辿れる。
 //
-// followTypeAliases の使い分け:
-// - true  … supertype 注入・階層メンバー判定・チェッカー（設計01 §6.2 の「明示的な companion は常に
-//           完全なワークアラウンド」を成立させるため、typealias の raw な expandedTypeRef も辿る）
-// - false … companion 自動生成の候補判定（typealias 経由は意図的な見逃しとし、
-//           ENUMIZE_COMPANION_REQUIRED で明示的な companion を促す契約を維持する）
+// raw 段階の名前解決は、supertype のすべての表記（外側クラスのネスト・ファイルの明示 import・
+// 同一パッケージのトップレベル・star import・FQN 表記と、typealias / import エイリアスの展開）を
+// 扱い切る必要がある。階層判定は SUPER_TYPES 中の getCallableNamesForClass からも呼ばれ、その時点の
+// 答えがコンパイラ側に固定されるため（設計01 §3）、raw で追えない表記は「後から解決済み型で正す」
+// ことができず階層判定ごと欠落する。候補判定（companion 自動生成）も同じ追跡を使い、
+// supertype の書き方で末端の扱いを変えない（設計01 §6.2）
 class EnumizeRawSupertypeTracker(private val session: FirSession) {
 
-    fun isHierarchyCandidate(classSymbol: FirRegularClassSymbol, followTypeAliases: Boolean): Boolean =
-        findEnumizeBase(classSymbol, followTypeAliases) != null
+    fun isHierarchyCandidate(classSymbol: FirRegularClassSymbol): Boolean =
+        findEnumizeBase(classSymbol) != null
 
-    fun findEnumizeBase(classSymbol: FirRegularClassSymbol, followTypeAliases: Boolean): FirRegularClassSymbol? =
-        findEnumizeBase(classSymbol, followTypeAliases, LinkedHashSet())
+    fun findEnumizeBase(classSymbol: FirRegularClassSymbol): FirRegularClassSymbol? =
+        findEnumizeBase(classSymbol, LinkedHashSet())
 
     // 解決済み supertype として与えられたクラス群を起点に基底を探す
     // （computeAdditionalSupertypes が受け取る resolvedSupertypes 用の入口）
-    fun findEnumizeBaseAmong(
-        superSymbols: List<FirRegularClassSymbol>,
-        followTypeAliases: Boolean,
-    ): FirRegularClassSymbol? {
+    fun findEnumizeBaseAmong(superSymbols: List<FirRegularClassSymbol>): FirRegularClassSymbol? {
         for (superSymbol in superSymbols) {
             if (isEnumizeBase(superSymbol) && isRawSealed(superSymbol)) return superSymbol
             if (isRawSealed(superSymbol)) {
-                val base = findEnumizeBase(superSymbol, followTypeAliases)
+                val base = findEnumizeBase(superSymbol)
                 if (base != null) return base
             }
         }
@@ -61,11 +61,8 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
     }
 
     // supertype グラフ上で targetClassId へ到達できるか（Enumized の間接継承検出などの汎用到達判定）
-    fun reachesSupertype(
-        classSymbol: FirRegularClassSymbol,
-        targetClassId: ClassId,
-        followTypeAliases: Boolean,
-    ): Boolean = reachesSupertype(classSymbol, targetClassId, followTypeAliases, LinkedHashSet())
+    fun reachesSupertype(classSymbol: FirRegularClassSymbol, targetClassId: ClassId): Boolean =
+        reachesSupertype(classSymbol, targetClassId, LinkedHashSet())
 
     // 述語はソース宣言にしかマッチしないため、IC ラウンド外のファイル由来（前ラウンドの
     // メタデータからの逆直列化）はアノテーションの直接照合で判定する（Retention が BINARY のため残る）
@@ -76,11 +73,8 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
     fun isRawSealed(symbol: FirRegularClassSymbol): Boolean =
         symbol.rawStatus.modality == Modality.SEALED
 
-    fun supertypeClassSymbols(
-        classSymbol: FirRegularClassSymbol,
-        followTypeAliases: Boolean,
-    ): List<FirRegularClassSymbol> =
-        classSymbol.fir.superTypeRefs.mapNotNull { resolveSupertypeRef(it, classSymbol, followTypeAliases) }
+    fun supertypeClassSymbols(classSymbol: FirRegularClassSymbol): List<FirRegularClassSymbol> =
+        classSymbol.fir.superTypeRefs.mapNotNull { resolveSupertypeRef(it, classSymbol) }
 
     fun resolveClassSymbol(classId: ClassId?): FirRegularClassSymbol? {
         if (classId == null || classId.isLocal) return null
@@ -93,14 +87,13 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
 
     private fun findEnumizeBase(
         classSymbol: FirRegularClassSymbol,
-        followTypeAliases: Boolean,
         visited: MutableSet<ClassId>,
     ): FirRegularClassSymbol? {
         if (!visited.add(classSymbol.classId)) return null
-        for (superSymbol in supertypeClassSymbols(classSymbol, followTypeAliases)) {
+        for (superSymbol in supertypeClassSymbols(classSymbol)) {
             if (isEnumizeBase(superSymbol) && isRawSealed(superSymbol)) return superSymbol
             if (isRawSealed(superSymbol)) {
-                val base = findEnumizeBase(superSymbol, followTypeAliases, visited)
+                val base = findEnumizeBase(superSymbol, visited)
                 if (base != null) return base
             }
         }
@@ -110,38 +103,34 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
     private fun reachesSupertype(
         classSymbol: FirRegularClassSymbol,
         targetClassId: ClassId,
-        followTypeAliases: Boolean,
         visited: MutableSet<ClassId>,
     ): Boolean {
         if (!visited.add(classSymbol.classId)) return false
-        return supertypeClassSymbols(classSymbol, followTypeAliases).any { superSymbol ->
+        return supertypeClassSymbols(classSymbol).any { superSymbol ->
             superSymbol.classId == targetClassId ||
-                reachesSupertype(superSymbol, targetClassId, followTypeAliases, visited)
+                reachesSupertype(superSymbol, targetClassId, visited)
         }
     }
 
     private fun resolveSupertypeRef(
         typeRef: FirTypeRef,
         useSite: FirClassLikeSymbol<*>,
-        followTypeAliases: Boolean,
     ): FirRegularClassSymbol? =
         when (typeRef) {
             is FirResolvedTypeRef -> resolveExpandedClassSymbol(typeRef.coneType)
-            is FirUserTypeRef -> resolveUserTypeRef(typeRef, useSite, followTypeAliases)
+            is FirUserTypeRef -> resolveUserTypeRef(typeRef, useSite)
             else -> null
         }
 
     private fun resolveUserTypeRef(
         typeRef: FirUserTypeRef,
         useSite: FirClassLikeSymbol<*>,
-        followTypeAliases: Boolean,
     ): FirRegularClassSymbol? {
         val classId = userTypeRefClassId(typeRef, useSite) ?: return null
         if (classId.isLocal) return null
         return when (val symbol = session.symbolProvider.getClassLikeSymbolByClassId(classId)) {
             is FirRegularClassSymbol -> symbol
-            is FirTypeAliasSymbol ->
-                if (followTypeAliases) resolveAliasExpansion(symbol, LinkedHashSet()) else null
+            is FirTypeAliasSymbol -> resolveAliasExpansion(symbol, LinkedHashSet())
             else -> null
         }
     }
@@ -169,42 +158,102 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         }
     }
 
-    private fun userTypeRefClassId(typeRef: FirUserTypeRef, useSite: FirClassLikeSymbol<*>): ClassId? {
+    // 先頭の名前をスコープ順に解決し、残りをネスト分類子として畳む。ファイルの import は 1 度だけ引いて
+    // 下流（スコープ順の解決・FQN 表記としての解釈）へ渡す
+    private fun userTypeRefClassId(
+        typeRef: FirUserTypeRef,
+        useSite: FirClassLikeSymbol<*>,
+    ): ClassId? {
         val parts = typeRef.qualifier.map { it.name }
         val firstName = parts.firstOrNull() ?: return null
-        val scopeClassId = resolveFirstPartClassId(firstName, useSite) ?: return null
+        val imports = importsOf(useSite)
+        val scopeClassId = resolveFirstPartClassId(firstName, imports, useSite)
+        // スコープ順で解決できない名前は FQN 表記として解釈する。ただし明示 import に束縛された名前は
+        // その import 先が唯一の意味であり、FQN 表記ではない
+        if (scopeClassId == null) {
+            val bound = explicitBindingOf(imports, firstName) != null
+            return if (bound) null else qualifiedNameClassId(parts, useSite)
+        }
         return parts.drop(1).fold(scopeClassId) { id, part -> id.createNestedClassId(part) }
     }
 
     // 名前解決のスコープ順に忠実な候補選択: 外側クラスのネスト分類子（レキシカルに内側が優先）→
-    // 同一パッケージのトップレベル。最初に解決される候補のみを検査対象とし、外側候補への
-    // 「ついで照会」はしない。名前を占有していれば typealias も候補確定として扱う（辿るかどうかは
-    // followTypeAliases に従う）。import エイリアス・FQN 表記はここでは追えず、
-    // 見逃しは ENUMIZE_COMPANION_REQUIRED で顕在化する（設計01 §6.2）
-    private fun resolveFirstPartClassId(firstName: Name, useSite: FirClassLikeSymbol<*>): ClassId? {
+    // ファイルの明示 import → 同一パッケージのトップレベル → star import。最初に解決される候補のみを
+    // 検査対象とし、外側候補への「ついで照会」はしない（名前を占有していれば typealias も候補確定）
+    private fun resolveFirstPartClassId(
+        firstName: Name,
+        imports: List<FirImport>,
+        useSite: FirClassLikeSymbol<*>,
+    ): ClassId? {
         var outerId = useSite.classId.outerClassId
         while (outerId != null) {
             val nested = outerId.createNestedClassId(firstName)
             if (resolvesToClassLike(nested)) return nested
             outerId = outerId.outerClassId
         }
-        if (hasForeignExplicitImport(firstName, useSite)) return null
+        // 明示 import は同一パッケージのトップレベルより優先されるため、束縛があればその import 先だけが
+        // 候補になる（辿れない場合も後続の候補へは落とさない）
+        val binding = explicitBindingOf(imports, firstName)
+        if (binding != null) return importedClassId(binding, useSite)
         val topLevel = ClassId(useSite.classId.packageFqName, firstName)
-        return topLevel.takeIf(::resolvesToClassLike)
+        if (resolvesToClassLike(topLevel)) return topLevel
+        return starImportedClassId(firstName, imports, useSite)
+    }
+
+    private fun importsOf(useSite: FirClassLikeSymbol<*>): List<FirImport> =
+        session.firProvider.getFirClassifierContainerFileIfAny(useSite)?.imports.orEmpty()
+
+    // その名前を束縛する明示 import（エイリアス名による束縛を含む）
+    private fun explicitBindingOf(imports: List<FirImport>, name: Name): FirImport? =
+        imports.firstOrNull { import ->
+            !import.isAllUnder && (import.aliasName ?: import.importedFqName?.shortName()) == name
+        }
+
+    // import 先の ClassId（エイリアス名による束縛でも import 先そのものを指す）。別パッケージのクラスは
+    // sealed の言語規則により階層の supertype になり得ないが、typealias は別パッケージにあっても
+    // 展開先が階層の基底になりうるため、import 先はそのまま候補とする
+    private fun importedClassId(import: FirImport, useSite: FirClassLikeSymbol<*>): ClassId? {
+        val importedFqName = import.importedFqName ?: return null
+        return resolvableClassId(importedFqName, useSite)
+    }
+
+    // star import（`import pkg.*`）経由の名前。同一パッケージのトップレベルの次に効くスコープ段であり、
+    // 最初に解決される候補のみを採る
+    private fun starImportedClassId(
+        firstName: Name,
+        imports: List<FirImport>,
+        useSite: FirClassLikeSymbol<*>,
+    ): ClassId? =
+        imports.filter { it.isAllUnder }.firstNotNullOfOrNull { import ->
+            import.importedFqName?.child(firstName)?.let { resolvableClassId(it, useSite) }
+        }
+
+    // パッケージ名から書かれた参照（FQN 表記）
+    private fun qualifiedNameClassId(parts: List<Name>, useSite: FirClassLikeSymbol<*>): ClassId? {
+        val fqName = parts.fold(FqName.ROOT) { name, part -> name.child(part) }
+        return resolvableClassId(fqName, useSite)
+    }
+
+    // FqName の ClassId としての解釈。同一パッケージ配下のネスト参照 → トップレベル宣言 の順に実在する
+    // 候補を採る（typealias は言語規則によりトップレベル限定のため、別パッケージのエイリアスもこの 2 形で届く）
+    private fun resolvableClassId(fqName: FqName, useSite: FirClassLikeSymbol<*>): ClassId? {
+        if (fqName.isRoot) return null
+        val nested = classIdInPackage(useSite.classId.packageFqName, fqName)
+        if (nested != null && resolvesToClassLike(nested)) return nested
+        return ClassId(fqName.parent(), fqName.shortName()).takeIf(::resolvesToClassLike)
+    }
+
+    // packageFqName 配下を指す fqName の ClassId（ネストクラスへの参照も畳んで構成する）
+    private fun classIdInPackage(packageFqName: FqName, fqName: FqName): ClassId? {
+        val packageSegments = packageFqName.pathSegments()
+        val segments = fqName.pathSegments()
+        if (segments.size <= packageSegments.size) return null
+        if (segments.subList(0, packageSegments.size) != packageSegments) return null
+        val relativeSegments = segments.subList(packageSegments.size, segments.size)
+        return relativeSegments.drop(1)
+            .fold(ClassId(packageFqName, relativeSegments.first())) { id, name -> id.createNestedClassId(name) }
     }
 
     private fun resolvesToClassLike(classId: ClassId): Boolean =
         !classId.isLocal && session.symbolProvider.getClassLikeSymbolByClassId(classId) != null
-
-    // 明示 import は同一パッケージのトップレベルより優先されるため、同名で別パッケージからの import が
-    // ある場合はその名前を候補から外す（別パッケージの型は sealed の言語規則により階層の supertype になり得ない）
-    private fun hasForeignExplicitImport(name: Name, useSite: FirClassLikeSymbol<*>): Boolean {
-        val file = session.firProvider.getFirClassifierContainerFileIfAny(useSite) ?: return false
-        val samePackageFqName = useSite.classId.packageFqName.child(name)
-        return file.imports.any { import ->
-            !import.isAllUnder &&
-                (import.aliasName ?: import.importedFqName?.shortName()) == name &&
-                import.importedFqName != samePackageFqName
-        }
-    }
 }
