@@ -41,10 +41,9 @@ class SweepDiagOkTest : DiagTestBase() {
 
     // TC-MAN-069: doc（設計01 §4 の型引数込み照合 = D9X-14）は typealias 展開後の厳密一致による
     // 注入スキップを期待するが、実測は表層の Enumized<SwTaAlias> が展開されず
-    // ENUMIZE_MANUAL_SUPERTYPE_MISMATCH が発火する（docs/テストケース管理.md 残ギャップが
-    // プロトタイプ未確認と注記していた点の実測確定 = 新規 NG）
+    // ENUMIZE_MANUAL_SUPERTYPE_MISMATCH が発火する
     @Test
-    @Disabled("NG: typealias 経由の手動 Enumized<Alias=生成Enumish> が展開後照合されず MANUAL_SUPERTYPE_MISMATCH — docs/修正方針案.md 反映待ち")
+    @Disabled("NG#15: typealias 経由の手動 Enumized<Alias=生成Enumish> が展開後照合されず MANUAL_SUPERTYPE_MISMATCH — docs/修正方針案.md #15")
     fun typealiasedManualEnumizedIsAcceptedBySkip() {
         val output = successOutput("sweep-typealias", "compileKotlin")
         assertFragmentAbsent(output, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
