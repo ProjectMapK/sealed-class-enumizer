@@ -26,7 +26,7 @@ class DiagVisibilityTest : DiagTestBase() {
         assertDiagnosticAt(
             kindAccess(),
             "KtdLeaf.kt",
-            4,
+            5,
             DiagFragments.KIND_TYPE_NOT_DENOTABLE,
             "org.wrongwrong.diag.kindaccess.KtdLeaf",
         )
@@ -39,7 +39,7 @@ class DiagVisibilityTest : DiagTestBase() {
         assertDiagnosticAt(
             kindAccess(),
             "KnaxLeaf.kt",
-            4,
+            6,
             DiagFragments.KIND_TYPE_NOT_DENOTABLE,
             "org.wrongwrong.diag.kindaccess.KnaxLeaf",
         )
