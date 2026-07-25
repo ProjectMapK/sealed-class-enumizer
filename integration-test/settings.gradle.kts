@@ -7,10 +7,6 @@ pluginManagement {
         gradlePluginPortal()
         mavenCentral()
     }
-    plugins {
-        kotlin("jvm") version "2.4.20-Beta1"
-        kotlin("multiplatform") version "2.4.20-Beta1"
-    }
 }
 
 plugins {
@@ -24,6 +20,15 @@ plugins {
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
+    }
+    // KGP のバージョンは親ビルドの version catalog を唯一の源とする。独立したビルドには catalog が
+    // 自動共有されないため、親の TOML を明示的に読み込む。参照は build.gradle.kts の alias(...) が行う
+    // （catalog は pluginManagement からは参照できないため、バージョン宣言は settings ではなく
+    // ルートの plugins ブロックに置く）
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
     }
 }
 
