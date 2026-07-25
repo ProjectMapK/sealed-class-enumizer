@@ -1,3 +1,5 @@
+import com.ncorti.ktfmt.gradle.KtfmtPlugin
+
 // ルートプロジェクトは集約のみを担う。各モジュールの構成は各自の build.gradle.kts が持つ。
 // integration-test は独立した composite build であり、ここには含めない（docs/テストケース管理.md）。
 //
@@ -17,7 +19,7 @@ plugins {
 // gradle.properties の kotlin.code.style=official に合わせ、ktfmt も Kotlin 公式スタイル
 // （ブロック・継続ともインデント 4、末尾カンマ付与）で揃える
 allprojects {
-    apply(plugin = "com.ncorti.ktfmt.gradle")
+    apply<KtfmtPlugin>()
 
     ktfmt { kotlinLangStyle() }
 }

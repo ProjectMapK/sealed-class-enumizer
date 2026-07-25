@@ -1,3 +1,5 @@
+import com.ncorti.ktfmt.gradle.KtfmtPlugin
+
 // ルートは集約のみ。各サブプロジェクトの構成は各自の build.gradle.kts が持つ（docs/テストケース管理.md）。
 //
 // plugins ブロックは適用せず宣言のみ行う（apply false）。jvm 系と multiplatform 系のサブプロジェクトが
@@ -18,7 +20,7 @@ plugins {
 }
 
 allprojects {
-    apply(plugin = "com.ncorti.ktfmt.gradle")
+    apply<KtfmtPlugin>()
 
     ktfmt { kotlinLangStyle() }
 }
