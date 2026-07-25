@@ -43,7 +43,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         val resolver = context.session.enumizeHierarchyResolver
         val annotated =
             context.session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, declaration)
-        // 家族系診断だけは異常状態（非所属・複数所属）の内訳が要るため一覧を生読みする。
+        // 階層の一意性を見る診断だけは異常状態（非所属・複数所属）の内訳が要るため一覧を生読みする。
         // 以降の検査へ取り回すのは正常な所属（membership。異常時は null）のみ
         val familyBases = resolver.basesOf(symbol)
         val membership = resolver.membershipOf(symbol)

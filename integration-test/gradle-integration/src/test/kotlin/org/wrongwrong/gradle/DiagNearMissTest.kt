@@ -9,8 +9,8 @@ import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 class DiagNearMissTest : DiagTestBase() {
     private fun nearMiss(): String = successOutput("diag-nearmiss-general", "compileKotlin")
 
-    // TC-DIAG-017: 単一家族 + 非 @Enumize interface 併用（NmCross.kt）
-    // TC-DIAG-095: 単一家族内のダイヤモンド（NmDia.kt）
+    // TC-DIAG-017: 単一階層 + 非 @Enumize interface 併用（NmCross.kt）
+    // TC-DIAG-095: 単一階層内のダイヤモンド（NmDia.kt）
     @Test
     fun familyNearMissesDoNotReport() {
         assertFragmentAbsent(nearMiss(), DiagFragments.MULTIPLE_FAMILIES)

@@ -4,7 +4,7 @@ import kotlin.test.Test
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 
-// G 軸: 跨モジュール系（利用側モジュールでの ENUMIZE_AMBIGUOUS_KIND・2 家族実装・生成 Enumish の
+// G 軸: 跨モジュール系（利用側モジュールでの ENUMIZE_AMBIGUOUS_KIND・2 階層への所属・生成 Enumish の
 // 別モジュール実装・単一末端サブタイプの吸収・網羅 when の ABI 伝播。docs/テストケース管理.md
 // TC-DIAG-021・023・071・078・094・096、docs/概要.md §3・§8、docs/コンパイラプラグイン設計01.md §7.2）
 class DiagCrossModuleTest : DiagTestBase() {
@@ -21,8 +21,8 @@ class DiagCrossModuleTest : DiagTestBase() {
         )
     }
 
-    // TC-DIAG-094: 非 sealed の末端 interface 経由で 2 家族に属する型は、Enumized の異なる型引数による
-    // 二重継承の言語エラーになる（家族探索は sealed 連鎖のみを辿るためプラグイン診断は関与しない）
+    // TC-DIAG-094: 非 sealed の末端 interface 経由で 2 階層に属する型は、Enumized の異なる型引数による
+    // 二重継承の言語エラーになる（階層の探索は sealed 連鎖のみを辿るためプラグイン診断は関与しない）
     @Test
     fun crossModuleTwoFamilyImplementationFailsWithLanguageError() {
         assertDiagnosticAt(

@@ -3,7 +3,7 @@ package org.wrongwrong.gradle
 import kotlin.test.Test
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 
-// G 軸: 家族の一意性（ENUMIZE_MULTIPLE_FAMILIES / ENUMIZE_NESTED_IN_HIERARCHY）と kind の一意対応
+// G 軸: 階層の一意性（ENUMIZE_MULTIPLE_FAMILIES / ENUMIZE_NESTED_IN_HIERARCHY）と kind の一意対応
 // （ENUMIZE_AMBIGUOUS_KIND）の同一モジュール内発火系（docs/テストケース管理.md TC-DIAG-013〜020、
 // docs/コンパイラプラグイン設計01.md §7.2）
 class DiagHierarchyTest : DiagTestBase() {

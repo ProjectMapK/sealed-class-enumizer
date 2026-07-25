@@ -69,7 +69,7 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
         return EnumizeMembership(base, tracker.isRawSealed(symbol))
     }
 
-    // 所属する基底の一覧の生読み。家族系診断（MULTIPLE_FAMILIES / NESTED_IN_HIERARCHY）と
+    // 所属する基底の一覧の生読み。階層の一意性を見る診断（MULTIPLE_FAMILIES / NESTED_IN_HIERARCHY）と
     // 「どの階層にも属さない」ことの判定にのみ使い、通常の取り回しには membershipOf を使う
     fun basesOf(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> =
         basesCache.getValue(symbol)
