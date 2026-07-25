@@ -16,9 +16,9 @@ import kotlin.io.path.writeText
 // TestKit フィクスチャの展開と GradleRunner の起動を集約するハーネス（docs/テストケース管理.md
 // Gradle TestKit 方針）。フィクスチャは src/test/resources/fixtures/<name> に置き、
 // settings.gradle.kts 等のプレースホルダをコピー時に置換する:
-// - %%PARENT_BUILD%%    … 親ビルド（sealed-class-enumizer ルート）の絶対パス（スラッシュ区切り）
 // - %%BUILD_CACHE_DIR%% … テスト毎に隔離したローカルビルドキャッシュのディレクトリ
-// 併せて全フィクスチャ共通のデーモン設定を gradle.properties へ追記する
+// 併せて全フィクスチャ共通のデーモン設定を gradle.properties へ追記する。
+// プラグイン一式はローカル Maven から座標で解決するため、親ビルドの composite 参照は持たない
 object TestKitHarness {
     // Gradle の既定（-Xmx512m / MaxMetaspaceSize=384m）は composite 参照した親ビルドの KGP を
     // 載せるには不足する。全フィクスチャへ同一値を与えることで TestKit のデーモンが 1 種類に揃い、
@@ -30,11 +30,6 @@ object TestKitHarness {
         "kotlin.daemon.jvmargs=-Xmx1g",
         "org.gradle.workers.max=2",
     )
-
-    private val parentBuild: String =
-        requireNotNull(System.getProperty("enumizer.parentBuild")) {
-            "システムプロパティ enumizer.parentBuild が未設定（gradle-integration/build.gradle.kts が注入する)"
-        }.replace('\\', '/')
 
     private val fixturesRoot: Path =
         Path.of(requireNotNull(javaClass.classLoader.getResource("fixtures")) {
@@ -55,7 +50,6 @@ object TestKitHarness {
                         target.parent.createDirectories()
                         target.writeText(
                             path.readText()
-                                .replace("%%PARENT_BUILD%%", parentBuild)
                                 .replace("%%BUILD_CACHE_DIR%%", cacheDir.toString().replace('\\', '/'))
                         )
                     }

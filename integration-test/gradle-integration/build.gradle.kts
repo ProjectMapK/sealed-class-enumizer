@@ -23,8 +23,8 @@ dependencies {
 // （docs/テストケース管理.md フィクスチャ展開先の回収）
 val fixtureWorkRoot = layout.buildDirectory.dir("testkit-fixtures")
 
-// TestKit の 1 テストは別プロセスの Gradle デーモンを 1 本占有する。並行数の上限は CPU ではなく
-// デーモンの常駐メモリで決まるため、コア数の 1/4 を採る
+// TestKit の 1 テストは別プロセスの Gradle デーモンと Kotlin デーモンを 1 本ずつ占有する。
+// 並行数の上限は CPU ではなくデーモンの常駐メモリで決まるため、コア数の 1/4 を採る
 val testKitForks = (Runtime.getRuntime().availableProcessors() / 4).coerceIn(1, 8)
 
 // 展開先の作り直しはテスト本体と分けて前段のタスクで行う（test の出力準備と混ざらないようにする）。
@@ -39,10 +39,10 @@ val cleanFixtureWorkRoot by tasks.registering {
 
 tasks.test {
     dependsOn(cleanFixtureWorkRoot)
+    // フィクスチャはプラグイン一式をローカル Maven から解決するため、テスト前に公開しておく
+    // （docs/テストケース管理.md Gradle TestKit 方針の local-repo 経路）
+    dependsOn(gradle.includedBuild("sealed-class-enumizer").task(":publishAllToMavenLocal"))
     useJUnitPlatform()
-    // フィクスチャの settings.gradle.kts が pluginManagement { includeBuild(<親ビルド>) } で
-    // 本物のプラグインを解決するための絶対パス（docs/テストケース管理.md Gradle TestKit 方針）
-    systemProperty("enumizer.parentBuild", rootDir.parentFile.absolutePath)
     systemProperty("enumizer.fixtureWorkRoot", fixtureWorkRoot.get().asFile.absolutePath)
     // テストクラス単位の並行実行。クラス内は直列のままなので、DiagTestBase の
     // 「1 フィクスチャ = 1 ビルド」共有とフィクスチャ名で固定ディレクトリを掘る前提は保たれる
