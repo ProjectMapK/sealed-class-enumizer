@@ -45,29 +45,29 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             context.session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, declaration)
         // 階層の一意性を見る診断だけは異常状態（非所属・複数所属）の内訳が要るため一覧を生読みする。
         // 以降の検査へ取り回すのは正常な所属（membership。異常時は null）のみ
-        val familyBases = resolver.basesOf(symbol)
+        val belongingBases = resolver.basesOf(symbol)
         val membership = resolver.membershipOf(symbol)
         if (annotated) {
             checkBase(declaration, resolver, context, reporter)
-            if (familyBases.isNotEmpty()) {
+            if (belongingBases.isNotEmpty()) {
                 reporter.reportOn(
                     declaration.source,
                     EnumizeErrors.ENUMIZE_NESTED_IN_HIERARCHY,
-                    familyBases.first().classId.asFqNameString(),
+                    belongingBases.first().classId.asFqNameString(),
                     context,
                 )
             }
         }
-        if (familyBases.size >= 2) {
+        if (belongingBases.size >= 2) {
             reporter.reportOn(
                 declaration.source,
                 EnumizeErrors.ENUMIZE_MULTIPLE_FAMILIES,
-                familyBases[0].classId.asFqNameString(),
-                familyBases[1].classId.asFqNameString(),
+                belongingBases[0].classId.asFqNameString(),
+                belongingBases[1].classId.asFqNameString(),
                 context,
             )
         }
-        if (annotated || familyBases.isNotEmpty()) {
+        if (annotated || belongingBases.isNotEmpty()) {
             checkLabelShadowing(declaration, membership, resolver, context, reporter)
         }
         checkAmbiguousKind(declaration, membership, resolver, context, reporter)
