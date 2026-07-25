@@ -7,6 +7,7 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import kotlin.io.path.copyTo
 import kotlin.io.path.createDirectories
+import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.readText
 import kotlin.io.path.relativeTo
@@ -17,7 +18,19 @@ import kotlin.io.path.writeText
 // settings.gradle.kts 等のプレースホルダをコピー時に置換する:
 // - %%PARENT_BUILD%%    … 親ビルド（sealed-class-enumizer ルート）の絶対パス（スラッシュ区切り）
 // - %%BUILD_CACHE_DIR%% … テスト毎に隔離したローカルビルドキャッシュのディレクトリ
+// 併せて全フィクスチャ共通のデーモン設定を gradle.properties へ追記する
 object TestKitHarness {
+    // Gradle の既定（-Xmx512m / MaxMetaspaceSize=384m）は composite 参照した親ビルドの KGP を
+    // 載せるには不足する。全フィクスチャへ同一値を与えることで TestKit のデーモンが 1 種類に揃い、
+    // 並行実行するフォークの間でも使い回される（docs/テストケース管理.md 並行実行方針）。
+    // ワーカー数の既定はホストのコア数であり、フィクスチャ（1〜3 プロジェクト）には過大で、
+    // 並行実行すると デーモン数 × コア数 だけ多重化されて CPU を奪い合う
+    private val daemonSettings = listOf(
+        "org.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=768m",
+        "kotlin.daemon.jvmargs=-Xmx1g",
+        "org.gradle.workers.max=2",
+    )
+
     private val parentBuild: String =
         requireNotNull(System.getProperty("enumizer.parentBuild")) {
             "システムプロパティ enumizer.parentBuild が未設定（gradle-integration/build.gradle.kts が注入する)"
@@ -53,6 +66,15 @@ object TestKitHarness {
                 }
             }
         }
+        appendDaemonSettings(projectDir)
+    }
+
+    // フィクスチャ側の宣言（org.gradle.caching 等）を残したまま共通設定を後置きで追記する
+    // （properties は後勝ちのため、同じキーを持つフィクスチャがあれば共通設定が優先される）
+    private fun appendDaemonSettings(projectDir: Path) {
+        val file = projectDir.resolve("gradle.properties")
+        val head = if (file.exists()) file.readText().trimEnd() + "\n" else ""
+        file.writeText(head + daemonSettings.joinToString("\n", postfix = "\n"))
     }
 
     private fun isTextFile(path: Path): Boolean {
