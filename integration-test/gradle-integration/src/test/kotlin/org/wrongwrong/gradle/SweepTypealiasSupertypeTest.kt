@@ -6,42 +6,52 @@ import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 import kotlin.test.Test
 
 // supertype の頭そのものを typealias で書いた形の掃討（型引数だけを別名にする TC-MAN-069 =
-// SweepDiagOkTest との対比）。注入抑止の照合は supertype 生成拡張が受け取る解決済み型で行われるが、
-// この段階の型は typealias が未展開であるため、明示形なら注入スキップで受容される 2 形が
-// 重複注入によって言語エラー「A supertype appears twice」になる（docs/修正方針案.md #16）。
-// 一方、継承者一覧の収集は展開後の supertype を見るため別名でも影響を受けない（TC-MAN-083）。
-// 仕様どおりのアサートは @Disabled で保持し、実挙動を固定する回帰ゲートを併置する
-// （修正が入ったらゲートが fail して検出できる。その際は @Disabled 側と入れ替える）
+// SweepDiagOkTest との対比）。注入抑止の照合は解決済み型を展開してから行い、展開が届かない配置
+// （エイリアスが階層より先に解決されない場合）では raw 追跡へ落ちるため、明示形と同じく注入は
+// スキップされる。継承者一覧の収集も展開後の supertype を見る（TC-MAN-083）。
+// 残る乖離は、その配置で言語側が別名を展開しないまま IR へ進む基底側の 1 形のみ（修正方針案 #17）
 class SweepTypealiasSupertypeTest : DiagTestBase() {
     // TC-MAN-081: 基底の手動 Enumized 自体への typealias（展開後は Enumized<SwThSi.Enumish> と厳密一致）
     @Test
-    @Disabled("NG#16: 注入抑止の照合が展開前のため重複注入で言語エラーになる — docs/修正方針案.md #16")
     fun typealiasedEnumizedHeadIsAcceptedBySkip() {
         val output = successOutput("sweep-typealias-head", "compileKotlin")
         assertFragmentAbsent(output, DiagFragments.LANG_SUPERTYPE_APPEARS_TWICE)
-    }
-
-    // TC-MAN-081 の実挙動固定
-    @Test
-    fun typealiasedEnumizedHeadCurrentlyDuplicatesSupertype() {
-        val output = failOutput("sweep-typealias-head", "compileKotlin")
-        assertDiagnosticAnywhere(output, "SwThSi.kt", DiagFragments.LANG_SUPERTYPE_APPEARS_TWICE)
+        assertFragmentAbsent(output, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
     }
 
     // TC-MAN-082: 末端 object による生成 Enumish の冗長宣言を typealias で書く形
     //（明示形の TC-DIAG-049 は注入スキップで受容される）
     @Test
-    @Disabled("NG#16: 注入抑止の照合が展開前のため重複注入で言語エラーになる — docs/修正方針案.md #16")
     fun typealiasedEnumishHeadIsAcceptedBySkip() {
         val output = successOutput("sweep-typealias-leaf", "compileKotlin")
         assertFragmentAbsent(output, DiagFragments.LANG_SUPERTYPE_APPEARS_TWICE)
+        assertFragmentAbsent(output, DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY)
     }
 
-    // TC-MAN-082 の実挙動固定
+    // TC-MAN-084: 同一ファイル配置の別名（SwTlSame.kt）。解決済み supertype が展開されない配置でも
+    // 末端側の注入はスキップされる（展開前照合だと二重注入で「Inherited platform declarations clash」になる）
     @Test
-    fun typealiasedEnumishHeadCurrentlyDuplicatesSupertype() {
-        val output = failOutput("sweep-typealias-leaf", "compileKotlin")
-        assertDiagnosticAnywhere(output, "SwTlSi.kt", DiagFragments.LANG_SUPERTYPE_APPEARS_TWICE)
+    fun sameFileTypealiasedEnumishHeadIsAcceptedBySkip() {
+        val output = successOutput("sweep-typealias-leaf", "compileKotlin")
+        assertFragmentAbsent(output, DiagFragments.LANG_PLATFORM_DECLARATION_CLASH)
+    }
+
+    // TC-MAN-085: 頭が Enumized の別名を、エイリアスが階層より先に解決されない配置（同一ファイル）に
+    // 置いた形。注入はスキップされるが、言語側が別名を展開しないまま IR へ進むためバックエンド ICE に
+    // なる（エイリアスが先に処理される配置 = TC-MAN-081 は成立する）。
+    // 仕様どおりのアサートは @Disabled で保持し、実挙動を固定するゲートを併置する
+    @Test
+    @Disabled("NG#17: 先に解決されない配置の別名を言語側が展開せずバックエンド ICE になる — docs/修正方針案.md #17")
+    fun sameFileTypealiasedEnumizedHeadIsAcceptedBySkip() {
+        successOutput("sweep-typealias-samefile-head", "compileKotlin")
+    }
+
+    // TC-MAN-085 の実挙動固定（修正方針案 #17 の回帰ゲート）
+    @Test
+    fun sameFileTypealiasedEnumizedHeadCrashesAsKnownIssue() {
+        val output = failOutput("sweep-typealias-samefile-head", "compileKotlin")
+        assertDiagnosticAnywhere(output, "Exception during IR fake override builder")
+        assertDiagnosticAnywhere(output, "SwSfSi.kt")
     }
 
     // TC-MAN-083: 階層内の手動実装（末端 class 自身による生成 Enumish 実装）を typealias で書いても
