@@ -5,17 +5,21 @@ import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-// KT-86121 型シナリオ（設計00 §5.4・§9-4、docs/テストケース管理.md TC-IC-039/040・TC-ORD-050）:
-// 多ファイル sealed 階層 × プラグイン生成コード × IC の再現形。
+// 基底不在ラウンドのシナリオ（設計00 §5.4・§9-4、docs/テストケース管理.md TC-IC-039/040・TC-ORD-050）:
+// 多ファイル sealed 階層 × プラグイン生成コード × IC の再現形。クラス名は歴史的に KT-86121 を冠するが、
+// 同 issue（serialization × SyntheticAccessorLowering）とは別事象であり、docs/修正方針案.md #12 の
+// プラグイン側修正と同時に改名する。
 //
-// Kotlin 2.4.20-Beta1 + Gradle 9.6 での実測:
-// - 既存ファイルの連続編集（コメント・private メンバー・基底編集）はクラッシュせず、
-//   各ラウンドで entries は stale にならない（R1〜R4。既知の前提「編集ラウンドで落ちうる」との実測差）
-// - **末端の「新規ファイル」追加だけが確実にクラッシュする**（R5）。初回 IC ラウンドが新規ファイル
-//   単独で走り、基底（@Enumize 対象）がラウンド外のため、FIR 生成宣言（asEnumish）へ IR ボディが
-//   充填されず codegen が「Function has no body」で失敗する。再試行でも失敗が持続し、clean で回復する
-// R5 はこのクラッシュを expected として固定する回帰ゲートであり、コンパイラ側（2.5.0-Beta1 修正予定）
-// またはプラグイン側の修正でクラッシュしなくなったとき、ここが破れて検出される
+// Kotlin 2.4.20-Beta1 + Gradle 9.5.0 での実測:
+// - 既存 kind を宣言するファイルの連続編集（コメント・private メンバー・基底編集）はクラッシュせず、
+//   各ラウンドで entries は stale にならない（R1〜R4）。生成 EntriesHolder が各 kind を参照するため、
+//   これらの編集では基底ファイルが同一ラウンドへ共連れされる
+// - **末端の「新規ファイル」追加はクラッシュする**（R5）。新規ファイルは前ビルドの参照グラフに無く
+//   基底がラウンドに入らないため、プラグインの IR 生成が走らず、FIR 生成宣言（asEnumish）へ
+//   ボディが充填されないまま codegen が「Function has no body」で失敗する。再試行でも失敗が持続し、
+//   clean で回復する
+// R5 はこのクラッシュを expected として固定する回帰ゲートであり、プラグイン側の修正でクラッシュしなく
+// なったとき、ここが破れて検出される
 class Kt86121Test {
     private val siFile = "src/main/kotlin/org/wrongwrong/kt86121/Si.kt"
     private val leafAFile = "src/main/kotlin/org/wrongwrong/kt86121/LeafA.kt"
@@ -60,8 +64,9 @@ class Kt86121Test {
         )
         assertRoundIsGreen(dir, generated0)
 
-        // R5: 末端の「新規ファイル」追加 — 2.4.20-Beta1 で再現する既知のバックエンドクラッシュ。
-        // when の枝も同時に足してフロントエンドを健全に保ち、クラッシュを単離する
+        // R5: 末端の「新規ファイル」追加 — 基底不在ラウンドで再現する既知のバックエンドクラッシュ。
+        // when の枝を同時に足すのは R6（clean 回復）を網羅性エラーにしないためである。基底不在ラウンドの
+        // 網羅性判定は前ラウンドのメタデータ由来の継承者一覧で行われ、枝の有無に依らず通る（修正方針案 #12）
         TestKitHarness.writeFile(
             dir, leafDFile,
             "package org.wrongwrong.kt86121\n\n// R5: 新規ファイルで追加される末端（クラッシュ再現の引き金）\ndata object LeafD : SI\n",
@@ -70,7 +75,7 @@ class Kt86121Test {
         val crash = TestKitHarness.buildAndFail(dir, "runMain")
         assertTrue(
             "Function has no body" in crash.output && "asEnumish" in crash.output,
-            "既知クラッシュ（KT-86121 型）が再現しなくなった — 設計00 §5.4 の前提を見直すこと:\n${crash.output}",
+            "既知クラッシュ（基底不在ラウンド）が再現しなくなった — docs/修正方針案.md #12 を見直すこと:\n${crash.output}",
         )
 
         // R5': 同一入力の再試行でも失敗が持続する（IC 状態は自己回復しない）
@@ -88,7 +93,8 @@ class Kt86121Test {
 
     // 第 2 の再現形（TC-IC-060/025 の実測 NG）: 多段中間 sealed チェーン（CSI←Mid1←Mid2←Leaf 各別
     // ファイル）で「中間 sealed ファイルのみ」を ABI 非変更編集すると、IC ラウンドに基底ファイルが
-    // 含まれないまま末端が再コンパイルされ、同じ「Function has no body」ICE になる。
+    // 含まれないまま末端が再コンパイルされ、同じ「Function has no body」ICE になる（中間 sealed は
+    // 生成物から参照されないため、基底を共連れさせる依存辺が無い）。
     // clean 経由なら同一ソースが成功する（クラッシュは IC 経路限定）ことも併せて固定する
     @Test
     fun midChainOnlyEditCrashesAsKnownIssue() {

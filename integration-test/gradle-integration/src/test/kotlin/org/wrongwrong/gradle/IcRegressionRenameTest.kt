@@ -98,7 +98,7 @@ class IcRegressionRenameTest {
     // 末端がトップレベルのまま中間へ付け替わると entries の並びが入れ子展開順へ変わる（設計00 §6.2）。
     // 除去で並びが復帰し、生成物も clean とバイト一致する。
     // 注: 中間 sealed を含む編集ラウンドは、基底ファイルが同一ラウンドへ入らないと既知の ICE
-    // （Function has no body / KT-86121 型 = TC-IC-025/060 の NG）を間欠的に踏むため、
+    // （Function has no body = TC-IC-025/060 の NG。docs/修正方針案.md #12）を間欠的に踏むため、
     // 各ラウンドで基底コメントも同時編集して基底を確実に dirty set へ入れている（既知 NG の迂回）
     @Test
     fun case9IntermediateSealedInsertionAndRemoval() {
@@ -178,7 +178,7 @@ class IcRegressionRenameTest {
     // 基底ファイルが含まれず、末端の FIR 生成宣言へ IR ボディが充填されないままバックエンド ICE
     // 「Function has no body」で failed する（2 段の TC-IC-025 相当でも同様に再現。
     // 再現ゲートは Kt86121Test.midChainOnlyEditCrashesAsKnownIssue が保持）
-    @Disabled("NG: 中間 sealed ファイル単独編集の IC ラウンドがバックエンド ICE（Function has no body / KT-86121 型・TC-IC-060/025）— docs/修正方針案.md 反映待ち")
+    @Disabled("NG: 中間 sealed ファイル単独編集の IC ラウンドがバックエンド ICE（Function has no body・TC-IC-060/025）— docs/修正方針案.md #12")
     @Test
     fun case60MidChainEditRecollectsRecursively() {
         val dir = IcTestSupport.prepare("ic-chain", "ic60-")

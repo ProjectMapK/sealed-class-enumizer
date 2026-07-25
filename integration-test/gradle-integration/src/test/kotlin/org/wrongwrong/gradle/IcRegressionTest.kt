@@ -45,8 +45,8 @@ class IcRegressionTest {
     // #2 末端の追加を IC 直行で行う仕様通りの形（TC-IC-011）: 期待は「階層共連れ + 利用側の
     // kind-when が網羅性エラー」。実測は初回 IC ラウンドが新規ファイル単独で走り、基底がラウンド外の
     // ため FIR 生成宣言（asEnumish）に IR ボディが充填されず、バックエンド ICE
-    // 「Function has no body」で failed する（KT-86121 型。再現ゲートは Kt86121Test が保持）
-    @Disabled("NG: 末端の新規ファイル追加の IC 初回ラウンドがバックエンド ICE（Function has no body / KT-86121 型・TC-IC-011）— docs/修正方針案.md 反映待ち")
+    // 「Function has no body」で failed する（基底不在ラウンド。再現ゲートは Kt86121Test が保持）
+    @Disabled("NG: 末端の新規ファイル追加の IC 初回ラウンドがバックエンド ICE（Function has no body・TC-IC-011）— docs/修正方針案.md #12")
     @Test
     fun case2AddLeafIncrementallyDetectedByWhenExhaustiveness() {
         val dir = IcTestSupport.prepare(IcBasicFixture.NAME, "ic2-")
