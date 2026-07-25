@@ -194,10 +194,20 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) : FirDeclaratio
         if (!supportedKind) return false
         val status = symbol.rawStatus
         if (status.isCompanion || status.isInner || status.modality == Modality.SEALED) return false
-        if (symbol.companionObjectSymbol != null) return false
+        if (hasForeignCompanion(symbol)) return false
         // 候補判定は所属判定と同じ材料で行う（設計01 §6.2）。supertype の書き方（直接名・FQN 表記・
         // 明示 import・star import・typealias / import エイリアス）で末端の扱いを変えない
         return tracker.isHierarchyCandidate(symbol)
+    }
+
+    // 自前の生成結果（連結済みの生成 companion）を候補判定の入力にしない。
+    // getNestedClassifiersNames は COMPANION_GENERATION 後にも再評価される（KMP では
+    // 宣言側とは別のセッションが直列化時にネスト分類子スコープを構築し直す）ため、
+    // 生成済みを理由に false へ転ずるとネスト索引から companion が落ちる（設計01 §6.1 の
+    // 「同一入力に常に同一の答えを返す」要件）。手動宣言の companion は従来どおり候補から外す
+    private fun hasForeignCompanion(symbol: FirRegularClassSymbol): Boolean {
+        val companion = symbol.companionObjectSymbol ?: return false
+        return !resolver.isOurGenerated(companion)
     }
 
     // 所属（membership）は resolver が一度だけ計算した事実を読み、役割へ写像する。
