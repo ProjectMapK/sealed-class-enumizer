@@ -14,6 +14,17 @@ kotlin {
 
 dependencies {
     compileOnly(libs.kotlin.compiler.embeddable)
+    // プラグイン本体は runtime-api をロードしない（公式・著名プラグインと同じ方針。docs/実装ノート.md §2-6）。
+    // 名前定数と runtime-api の宣言の一致は EnumizeNamesTest が担保するため、依存はテストにのみ持つ
+    testImplementation(project(":runtime-api"))
+    testImplementation(libs.kotlin.compiler.embeddable)
+    testImplementation(libs.kotlin.test)
+    // 値引数名の取得（KCallable.parameters）に必要
+    testImplementation(libs.kotlin.reflect)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 // TestKit フィクスチャがプラグイン一式を座標で解決するための publication
