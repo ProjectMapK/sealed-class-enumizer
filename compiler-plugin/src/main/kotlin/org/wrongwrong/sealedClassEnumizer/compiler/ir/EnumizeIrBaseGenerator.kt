@@ -44,7 +44,7 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
     }
 
     // 末端の列挙（docs/コンパイラプラグイン設計02.md §2）: コンパイラの継承者リスト（FQN 順に正規化済み）を走査し、
-    // 中間 sealed に到達したらその継承者リストへ再帰的に降りる。並べ替えは一切行わない（§3）
+    // 中間 sealed に到達したらその継承者リストへ再帰的に降りる。並べ替えは一切行わない（docs/コンパイラプラグイン設計02.md §3）
     private fun collectLeaves(base: IrClass): List<IrClass> {
         val result = mutableListOf<IrClass>()
         collectLeavesInto(base, result, LinkedHashSet())

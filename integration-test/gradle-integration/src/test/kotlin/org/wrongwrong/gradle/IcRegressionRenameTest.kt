@@ -99,7 +99,7 @@ class IcRegressionRenameTest {
         )
     }
 
-    // 基底自身の改名（TC-IC-055。§5.3 #6 は末端・外側の改名で、基底改名は別扱い）:
+    // 基底自身の改名（TC-IC-055。docs/コンパイラプラグイン設計00.md §5.3 #6 は末端・外側の改名で、基底改名は別扱い）:
     // 生成物の全 ClassId が変わるが、末端の ClassId は不変のため entries の内容・相対順は不変。
     // valueOf の失敗メッセージ（enumizedRootClass.simpleName 由来）だけが SX へ変わる
     @Test
