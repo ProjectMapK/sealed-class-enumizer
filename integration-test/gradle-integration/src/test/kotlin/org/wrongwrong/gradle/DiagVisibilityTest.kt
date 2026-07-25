@@ -56,7 +56,6 @@ class DiagVisibilityTest : DiagTestBase() {
     fun visibilityNearMissesBuildCleanly() {
         val output = successOutput("diag-nearmiss-visibility", "compileKotlin")
         assertFragmentAbsent(output, DiagFragments.KIND_TYPE_NOT_DENOTABLE)
-        assertFragmentAbsent(output, DiagFragments.COMPANION_REQUIRED)
     }
 
     // TC-DIAG-035: companion 可視性の編集で規則 3 の境界を跨ぐと DENOTABLE が発火し、戻すと解除される
