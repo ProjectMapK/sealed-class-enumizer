@@ -1,4 +1,4 @@
-// Gradle TestKit ホスト（docs/テストケース管理.md モジュール一覧）。
+// Gradle TestKit ホスト（docs/test/テスト戦略.md §4）。
 // resources/fixtures 配下の合成ビルドを GradleRunner で駆動し、IC 回帰・決定性・
 // 跨モジュール負値診断・ABI 伝播・旧バイナリ差し替え・基底不在ラウンドを検証する
 plugins { kotlin("jvm") }
@@ -17,7 +17,7 @@ dependencies {
 // フィクスチャの展開先（IcTestSupport が使う）。テスト毎に一意なディレクトリを掘るため、
 // 実行を重ねると際限なく溜まり、テスト時間が実行毎に悪化する（実測: 蓄積なし 255 秒に対し
 // 10 回分の蓄積で 763 秒）。失敗解析のため実行後は残し、次回の実行開始時に作り直す
-// （docs/テストケース管理.md フィクスチャ展開先の回収）
+// （docs/test/フィクスチャ構成.md §4（フィクスチャ展開先の回収））
 val fixtureWorkRoot = layout.buildDirectory.dir("testkit-fixtures")
 
 // TestKit の 1 テストは別プロセスの Gradle デーモンと Kotlin デーモンを 1 本ずつ占有する。
@@ -36,7 +36,7 @@ val cleanFixtureWorkRoot =
 tasks.test {
     dependsOn(cleanFixtureWorkRoot)
     // フィクスチャはプラグイン一式をローカル Maven から解決するため、テスト前に公開しておく
-    // （docs/テストケース管理.md Gradle TestKit 方針の local-repo 経路）
+    // （docs/test/フィクスチャ構成.md §4 の local-repo 経路）
     dependsOn(gradle.includedBuild("sealed-class-enumizer").task(":publishAllToMavenLocal"))
     useJUnitPlatform()
     systemProperty("enumizer.fixtureWorkRoot", fixtureWorkRoot.get().asFile.absolutePath)

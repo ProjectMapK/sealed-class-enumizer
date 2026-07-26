@@ -3,7 +3,7 @@ package org.wrongwrong.sweep.xnuse
 import org.wrongwrong.sweep.xn.SwXnWideBase
 import org.wrongwrong.sweep.xn.SwXnWideLeaf
 
-// TC-VIS-038: 基底より広い末端でも、kind 単位の網羅 when の土台となる sealed 親
+// docs/test/ケース05-境界横断.md XMP-17: 基底より広い末端でも、kind 単位の網羅 when の土台となる sealed 親
 // （SwXnWideBase.Enumish）が internal で不可視のため、外側では階層単位の when を構成できない
 // （= sealed 親の名指し自体が言語の可視性エラー）
 fun useWideDenote(l: SwXnWideLeaf): SwXnWideBase.Enumish = l.asEnumish()

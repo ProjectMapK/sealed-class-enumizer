@@ -29,6 +29,17 @@ object DiagAsserts {
         assertTrue(positioned.isEmpty(), "診断が $file:$line に出ている: $positioned")
     }
 
+    // 指定ファイルの診断行（e:/w:）に、指定断片をすべて含む行があることを検査する（行番号は問わない。
+    // 言語診断のように報告行がプラグイン管轄外のケース用）
+    fun assertDiagnosticInFile(output: String, file: String, vararg fragments: String) {
+        val lines =
+            output.lineSequence().filter { it.contains("$file:") && isDiagnosticLine(it) }.toList()
+        assertTrue(
+            lines.any { candidate -> fragments.all(candidate::contains) },
+            "期待した診断が $file に無い: ${fragments.toList()}\n$file の診断行: $lines",
+        )
+    }
+
     // 出力全体に指定断片が現れないことを検査する（診断の非発火確認）
     fun assertFragmentAbsent(output: String, fragment: String) {
         val hits = output.lineSequence().filter { it.contains(fragment) }.toList()

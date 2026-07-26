@@ -1,5 +1,5 @@
 // TestKit フィクスチャ: プラグイン一式をローカル Maven から解決する
-// （docs/テストケース管理.md Gradle TestKit 方針。%% プレースホルダは TestKitHarness が置換する）
+// （docs/test/フィクスチャ構成.md §4。%% プレースホルダは TestKitHarness が置換する）
 pluginManagement {
     repositories {
         mavenLocal()

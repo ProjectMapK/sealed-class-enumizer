@@ -1,4 +1,4 @@
 package org.wrongwrong.sweep.xn
 
-// TC-XM-010 負値側用の public 末端（外側から名指しできる側）
+// docs/test/ケース05-境界横断.md XMP-13 用の public 末端（外側から名指しできる側）
 data object SwXnPub : SwXnMix

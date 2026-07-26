@@ -4,6 +4,7 @@ package org.wrongwrong.icfix
 fun main() {
     println("OUT:ENTRIES=" + SI.Enumish.entries.joinToString(",") { it.label })
     println("OUT:TI_ENTRIES=" + TI.Enumish.entries.joinToString(",") { it.label })
+    println("OUT:NB_ENTRIES=" + NbHost.NB.Enumish.entries.joinToString(",") { it.label })
     println("OUT:DESCRIBE=" + describe(Foo(1)) + "," + describe(Bar) + "," + describe(Outer.Leaf))
     println("OUT:PROBE_FOO=" + probe("Foo"))
     println("OUT:PROBE_LEAF=" + probe("Leaf"))

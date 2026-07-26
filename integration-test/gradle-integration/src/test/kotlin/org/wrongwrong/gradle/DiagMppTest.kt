@@ -3,55 +3,63 @@ package org.wrongwrong.gradle
 import kotlin.test.Test
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
+import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsentAt
 
-// G 軸: MPP 負値（ENUMIZE_ON_EXPECT / ENUMIZE_ON_ACTUAL / 別ソースセット継承者の言語エラー）と MPP near-miss
-// （docs/テストケース管理.md TC-DIAG-009〜012・061〜062、docs/概要.md §7・§8）。
-// フィクスチャは jvm 単一ターゲットの KMP ビルド（commonMain / jvmMain のソースセット分割で十分なため）
+// MPP 境界の診断（docs/test/ケース04-診断.md DIA-06〜10）。
+// diag-mpp フィクスチャは jvm 単一ターゲット KMP の fail モジュール（buildAndFail）と
+// ok モジュール（成功ビルド）を持ち、DiagTestBase の複数ビルドキャッシュで各 1 回だけ実行する
 class DiagMppTest : DiagTestBase() {
-    // TC-DIAG-009: expect 宣言への @Enumize（報告位置 = expect 宣言）
+    private fun fail(): String = failOutput("diag-mpp", ":fail:compileKotlinJvm")
+
+    private fun ok(): String = successOutput("diag-mpp", ":ok:compileKotlinJvm")
+
+    // docs/test/ケース04-診断.md DIA-06: expect 宣言への @Enumize → ENUMIZE_ON_EXPECT
     @Test
     fun enumizeOnExpectIsReported() {
-        assertDiagnosticAt(
-            failOutput("diag-mpp-expect", "compileKotlinJvm"),
-            "MppE.kt",
-            6,
-            DiagFragments.ON_EXPECT,
-        )
+        assertDiagnosticAt(fail(), "MppE.kt", 6, DiagFragments.ON_EXPECT)
     }
 
-    // TC-DIAG-010: actual 宣言への @Enumize（報告位置 = actual 宣言）
+    // docs/test/ケース04-診断.md DIA-06: 非 sealed × expect は NS 単独
+    // （checkBase の早期リターンで ON_EXPECT 不在 = 抑止範囲の固定）
+    @Test
+    fun notSealedExpectReportsNsOnly() {
+        val output = fail()
+        assertDiagnosticAt(output, "MppNs.kt", 7, DiagFragments.NOT_SEALED)
+        assertFragmentAbsentAt(output, "MppNs.kt", DiagFragments.ON_EXPECT)
+    }
+
+    // docs/test/ケース04-診断.md DIA-07: actual 宣言への @Enumize → ENUMIZE_ON_ACTUAL 単独
     @Test
     fun enumizeOnActualIsReported() {
-        assertDiagnosticAt(
-            failOutput("diag-mpp-actual", "compileKotlinJvm"),
-            "MppAJvm.kt",
-            6,
-            DiagFragments.ON_ACTUAL,
-        )
+        val output = fail()
+        assertDiagnosticAt(output, "MppAJvm.kt", 6, DiagFragments.ON_ACTUAL)
+        assertFragmentAbsentAt(output, "MppAJvm.kt", DiagFragments.ON_EXPECT)
     }
 
-    // TC-DIAG-061: 階層の継承者が別ソースセット → コンパイラ本体の sealed 制約エラーへ合流する
-    // （buildAndFail）。プラグイン側の補足診断は持たず本体診断に委ねる方針のため、その言語エラーが
-    // 十分に説明的であること（同一モジュール制約を明示すること）をここで固定する（docs/コンパイラプラグイン設計01.md §7.2）
+    // docs/test/ケース04-診断.md DIA-08: 非 expect/actual の sealed（common 完結・platform 専用）は非発火
     @Test
-    fun crossSourceSetInheritorFailsBuild() {
-        assertDiagnosticAt(
-            failOutput("diag-mpp-cross-source-set", "compileKotlinJvm"),
-            "MppCJvm.kt",
-            4,
-            "e: ",
-            DiagFragments.LANG_SEALED_DIFFERENT_MODULE,
-        )
-    }
-
-    // TC-DIAG-012: platform 専用 sealed（actual でない）は ON_ACTUAL / ON_EXPECT とも非発火
-    @Test
-    fun platformOnlySealedDoesNotReport() {
-        val output = successOutput("diag-mpp-platform-only", "compileKotlinJvm")
+    fun nonExpectActualSealedDoesNotReport() {
+        val output = ok()
         assertFragmentAbsent(output, DiagFragments.ON_EXPECT)
         assertFragmentAbsent(output, DiagFragments.ON_ACTUAL)
     }
 
-    // TC-DIAG-011（common の通常 sealed が非発火で全ターゲット成立 = V5 前提）と TC-DIAG-062
-    // （基底と全末端が同一ソースセット）は mpp-producer モジュールのビルド成功が実証済み
+    // docs/test/ケース04-診断.md DIA-09: expect/actual 末端は ON_EXPECT / ON_ACTUAL 対象外。
+    // 言語の sealed 制約エラー（different module）は actual 宣言側に出て expect 側は無診断
+    @Test
+    fun expectActualLeafMergesIntoLanguageError() {
+        val output = fail()
+        assertFragmentAbsentAt(output, "MelLeaf.kt", "e: ")
+        assertFragmentAbsentAt(output, "MelLeaf.kt", DiagFragments.ON_EXPECT)
+        assertDiagnosticAt(output, "MelLeafJvm.kt", 4, DiagFragments.LANG_SEALED_DIFFERENT_MODULE)
+        assertFragmentAbsentAt(output, "MelLeafJvm.kt", DiagFragments.ON_ACTUAL)
+    }
+
+    // docs/test/ケース04-診断.md DIA-10: common 基底 × platform 末端は言語 sealed 制約エラーのみ
+    @Test
+    fun crossSourceSetLeafFailsWithLanguageErrorOnly() {
+        val output = fail()
+        assertDiagnosticAt(output, "MppCJvm.kt", 5, DiagFragments.LANG_SEALED_DIFFERENT_MODULE)
+        assertFragmentAbsentAt(output, "MppCJvm.kt", DiagFragments.NESTED_IN_HIERARCHY)
+    }
 }

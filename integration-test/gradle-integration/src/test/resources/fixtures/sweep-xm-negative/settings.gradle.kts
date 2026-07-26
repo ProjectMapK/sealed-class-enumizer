@@ -1,4 +1,4 @@
-// sweep-xm-negative フィクスチャ（docs/テストケース管理.md 残ケース掃討・跨モジュール可視性の負値）
+// sweep-xm-negative フィクスチャ（docs/test/ケース05-境界横断.md XMP-13/15/17 の跨モジュール可視性負値）
 pluginManagement {
     repositories {
         mavenLocal()

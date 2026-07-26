@@ -1,4 +1,4 @@
-// TestKit フィクスチャ: 同一ファイルに 2 階層を同居させる境界（docs/テストケース管理.md TC-IC-062）
+// TestKit フィクスチャ: 同一ファイルに 2 階層を同居させる境界（docs/test/ケース06-ビルド動態.md BLD-32）
 pluginManagement {
     repositories {
         mavenLocal()

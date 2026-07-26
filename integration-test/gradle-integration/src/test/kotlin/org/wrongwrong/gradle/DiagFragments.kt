@@ -26,6 +26,7 @@ object DiagFragments {
 
     // ---- 言語（コンパイラ本体）診断: プラグイン診断との切り分け・合流確認に使う実測断片 ----
     const val LANG_WRONG_ANNOTATION_TARGET = "not applicable to target"
+    const val LANG_CONFLICTING_DECLARATIONS = "Conflicting declarations:"
     const val LANG_SEALED_FUN_INTERFACE = "'sealed fun interface' is unsupported"
     const val LANG_EXPOSED_SUPER_CLASS = "subclass exposes its"
     const val LANG_ABSTRACT_MEMBER_NOT_IMPLEMENTED = "does not implement abstract"
@@ -36,4 +37,9 @@ object DiagFragments {
     const val LANG_SEALED_DIFFERENT_MODULE = "different module"
     const val LANG_SUPERTYPE_APPEARS_TWICE = "supertype appears twice"
     const val LANG_PLATFORM_DECLARATION_CLASH = "Inherited platform declarations clash"
+    const val LANG_PROJECTION_IN_ARGUMENT = "Projection"
+    const val LANG_UPPER_BOUND_VIOLATED = "bound"
+    const val LANG_CANNOT_WEAKEN_ACCESS = "weaken"
+    const val LANG_EXPOSED_RETURN_TYPE = "exposes"
+    const val LANG_UNRESOLVED_REFERENCE = "Unresolved reference"
 }

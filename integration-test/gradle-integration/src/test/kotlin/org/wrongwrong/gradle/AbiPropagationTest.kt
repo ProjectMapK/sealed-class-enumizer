@@ -5,23 +5,21 @@ import kotlin.test.assertTrue
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 
-// 跨モジュール ABI 伝播（docs/コンパイラプラグイン設計00.md §5.3 #11・docs/概要.md §7・docs/テストケース管理.md TC-XM-013〜015・
-// TC-IC-027/044/046/056・TC-XM-044）: producer の sealed リスト変化が ABI 差分として未編集の
-// consumer の再コンパイルを誘発し、else 無し kind-when が再検査されること（V1-b）を検証する
+// 跨 module ABI 伝播（docs/test/ケース06-ビルド動態.md BLD-34/35）:
+// producer の sealed リスト変化が ABI 差分として未編集 consumer の再コンパイルを誘発し、
+// else 無し kind-when が再検査されること（V1-b）と、その負値系（削除・@Enumize 除去）を検証する
 class AbiPropagationTest {
     private val fixtureName = "abi-propagation"
     private val siFile = "producer/src/main/kotlin/org/wrongwrong/abifix/Si.kt"
     private val fooFile = "producer/src/main/kotlin/org/wrongwrong/abifix/Foo.kt"
     private val bazFile = "producer/src/main/kotlin/org/wrongwrong/abifix/Baz.kt"
     private val useFile = "consumer/src/main/kotlin/org/wrongwrong/abiuse/Use.kt"
-    private val rogueFile = "consumer/src/main/kotlin/org/wrongwrong/abiuse/Rogue.kt"
     private val baselineOut = listOf("ENTRIES=Bar,Foo", "KINDS=bar,foo")
 
-    // #11 末端追加（TC-XM-013 = TC-IC-027・TC-IC-044）: 未編集の consumer が UP-TO-DATE にならず
-    // 再コンパイルされ、else 無し kind-when が網羅性エラーになる（V1-b）。枝追加で復帰し、
-    // 実行時 entries へ新末端が反映される（TC-XM-015）
+    // docs/test/ケース06-ビルド動態.md BLD-34: #11 末端追加で未編集 consumer が再コンパイルされ
+    // 非網羅エラー → 枝追加で entries へ反映される
     @Test
-    fun leafAdditionRecompilesConsumerAndFailsNonExhaustiveWhen() {
+    fun leafAdditionRecompilesConsumerAndReverifiesWhen() {
         val dir = IcTestSupport.prepare(fixtureName, "abi1-")
         val first = TestKitHarness.build(dir, ":consumer:runMain")
         assertEquals(baselineOut, IcTestSupport.outLines(first))
@@ -34,7 +32,7 @@ class AbiPropagationTest {
         TestKitHarness.writeFile(
             dir,
             bazFile,
-            "package org.wrongwrong.abifix\n\n// #11 で追加される末端（docs/テストケース管理.md TC-XM-013）\ndata object Baz : SI\n",
+            "package org.wrongwrong.abifix\n\n// #11 で追加される末端（docs/test/ケース06-ビルド動態.md BLD-34）\ndata object Baz : SI\n",
         )
         // producer 側は基底不在ラウンド（新規ファイルでの末端追加）を IC 直行で通り、
         // 検証対象の consumer 側は未編集のまま IC で再検査される
@@ -65,32 +63,14 @@ class AbiPropagationTest {
         )
     }
 
-    // 末端削除（TC-XM-014 = TC-IC-046）・@Enumize 除去（TC-IC-056）・跨モジュール手動実装
-    // （TC-XM-044: 生成 Enumish は sealed のため別モジュールから実装できない）の負値系
+    // docs/test/ケース06-ビルド動態.md BLD-35: 末端削除 = consumer の名指し未解決・
+    // @Enumize 除去 = Enumish 未解決 + producer の stale 掃除
     @Test
-    fun leafDeletionEnumizeRemovalAndCrossModuleManualImplFail() {
+    fun leafDeletionAndEnumizeRemovalFailConsumer() {
         val dir = IcTestSupport.prepare(fixtureName, "abi2-")
         TestKitHarness.build(dir, ":consumer:compileKotlin")
 
-        // TC-XM-044: 別モジュールの object Rogue : SI.Enumish は sealed の言語制約でコンパイル不能
-        TestKitHarness.writeFile(
-            dir,
-            rogueFile,
-            "package org.wrongwrong.abiuse\n\nimport kotlin.reflect.KClass\nimport org.wrongwrong.abifix.SI\n\n" +
-                "// 跨モジュールの手動実装（sealed 制約により不可 = docs/テストケース管理.md TC-XM-044）\n" +
-                "object Rogue : SI.Enumish {\n" +
-                "    override val label: String get() = \"Rogue\"\n\n" +
-                "    override val enumizedClass: KClass<out SI> get() = SI::class\n" +
-                "}\n",
-        )
-        val sealedViolation = TestKitHarness.buildAndFail(dir, ":consumer:compileKotlin")
-        assertTrue(
-            "Rogue.kt" in sealedViolation.output,
-            "跨モジュール手動実装の拒否:\n${sealedViolation.output}",
-        )
-        TestKitHarness.deleteFile(dir, rogueFile)
-
-        // TC-XM-014: 末端削除で、削除 kind を名指しする consumer がコンパイルエラーになる
+        // 末端削除で、削除 kind を名指しする consumer がコンパイルエラーになる
         val fooContent = IcTestSupport.readFile(dir, fooFile)
         TestKitHarness.deleteFile(dir, fooFile)
         val deletion = TestKitHarness.buildAndFail(dir, ":consumer:compileKotlin")
@@ -102,7 +82,7 @@ class AbiPropagationTest {
         TestKitHarness.writeFile(dir, fooFile, fooContent)
         TestKitHarness.build(dir, ":consumer:compileKotlin")
 
-        // TC-IC-056: @Enumize 除去で生成 API が消え、consumer の参照が未解決・producer の stale が掃除される
+        // @Enumize 除去で生成 API が消え、consumer の参照が未解決・producer の stale が掃除される
         TestKitHarness.replaceInFile(
             dir,
             siFile,

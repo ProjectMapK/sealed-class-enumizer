@@ -1,4 +1,4 @@
-// sweep-mpp-metadata-diag フィクスチャ（docs/テストケース管理.md TC-MPP-065 = common 診断の metadata 発火）
+// sweep-mpp-metadata-diag フィクスチャ（docs/test/ケース04-診断.md DIA-12 = common 診断の metadata 発火）
 pluginManagement {
     repositories {
         mavenLocal()

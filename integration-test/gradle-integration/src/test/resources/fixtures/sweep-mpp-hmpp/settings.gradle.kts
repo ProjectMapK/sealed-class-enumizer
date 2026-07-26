@@ -1,4 +1,4 @@
-// sweep-mpp-hmpp フィクスチャ（docs/テストケース管理.md TC-MPP-051 = HMPP 派生ソースセットへの末端逸脱）
+// sweep-mpp-hmpp フィクスチャ（docs/test/ケース04-診断.md DIA-11 = HMPP 派生ソースセットへの末端逸脱）
 pluginManagement {
     repositories {
         mavenLocal()

@@ -1,4 +1,4 @@
-// diag-cross-absorb フィクスチャ（docs/テストケース管理.md「Gradle TestKit 方針」・G 軸 診断カタログ）
+// diag-cross-absorb フィクスチャ（docs/test/フィクスチャ構成.md §4「TestKit 運用方針」）
 pluginManagement {
     repositories {
         mavenLocal()

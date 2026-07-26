@@ -1,4 +1,4 @@
 package org.wrongwrong.abifix
 
-// 末端 class（削除編集 = TC-XM-014 / TC-IC-046 の対象）
+// 末端 class（削除編集 = docs/test/ケース06-ビルド動態.md BLD-35 の対象）
 class Foo(val v: Int) : SI

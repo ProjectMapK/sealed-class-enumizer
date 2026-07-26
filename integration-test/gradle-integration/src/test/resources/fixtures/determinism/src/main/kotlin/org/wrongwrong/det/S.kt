@@ -2,7 +2,7 @@ package org.wrongwrong.det
 
 import org.wrongwrong.sealedClassEnumizer.Enumize
 
-// 決定性フィクスチャの基底（docs/概要.md §5・docs/テストケース管理.md TC-ORD 系）。
+// 決定性フィクスチャの基底（docs/概要.md §5・docs/test/ケース06-ビルド動態.md §1）。
 // ネスト末端・可視性混在・toString 2 原則の対象を同居させる
 @Enumize
 sealed interface S {

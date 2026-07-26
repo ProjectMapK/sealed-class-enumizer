@@ -1,5 +1,5 @@
 // TestKit フィクスチャ: MPP（jvm + js / wasmJs の klib）での末端追加ラウンド
-// docs/テストケース管理.md TC-IC-069（V8 の klib IC）
+// docs/test/ケース06-ビルド動態.md BLD-42（V8 の klib IC）
 pluginManagement {
     repositories {
         mavenLocal()

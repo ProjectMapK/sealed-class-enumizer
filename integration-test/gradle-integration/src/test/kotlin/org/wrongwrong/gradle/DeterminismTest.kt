@@ -5,25 +5,26 @@ import kotlin.test.assertTrue
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Test
 
-// 決定性検証（docs/コンパイラプラグイン設計00.md §9-3・docs/コンパイラプラグイン設計02.md §6・docs/テストケース管理.md TC-IC-031〜034 など）:
-// (a) clean、(b) 無編集の再ビルド、(c) clean 後の from-cache 復元、(d) 別ディレクトリへの relocated
-// ビルド、(e) 宣言順の入れ替え編集、の生成 .class バイト一致と実行時 OUT: 行の一致を検証する。
-// フィクスチャは順序境界（中間 sealed の入れ子展開・ネスト/トップレベル/可視性の混在）と
-// toString の 2 原則・valueOf 失敗メッセージを 1 階層へ集約している
+// 決定性検証（docs/test/ケース06-ビルド動態.md BLD-02〜06・BLD-32/33）:
+// clean / UP-TO-DATE / from-cache / relocated / 宣言順（中間 sealed 内部の並べ替え・
+// 階層内手動実装込み = inheritors 正規化）/ ロケールのバイト一致と、toString の別ファイル依存編集。
+// determinism フィクスチャは順序境界 + toString 2 原則 + 手動実装を 1 階層へ集約し、
+// file-granularity 境界（BLD-32）は ic-shared-file が担う
 class DeterminismTest {
     private val fixtureName = "determinism"
     private val sFile = "src/main/kotlin/org/wrongwrong/det/S.kt"
+    private val midFile = "src/main/kotlin/org/wrongwrong/det/Mid.kt"
 
-    // プラグイン生成物（S$Enumish / その Companion / DefaultImpls / $EntriesHolder）だけを指す接頭辞。
-    // 利用者宣言のネストクラス（S$Aaa 等）は宣言順の入れ替えで LineNumberTable が変わり
-    // バイトが揺れるため、宣言順非依存の主張（docs/コンパイラプラグイン設計02.md §6 規則 1）は生成物側にのみ適用する
+    // プラグイン生成物（S$Enumish 一式）だけを指す接頭辞。利用者宣言のネストクラスは
+    // 宣言順の入れ替えで LineNumberTable が変わりバイトが揺れるため、宣言順非依存の主張
+    // （docs/コンパイラプラグイン設計02.md §6 規則 1）は生成物側にのみ適用する
     private val generatedPrefix = "org/wrongwrong/det/S\$Enumish"
 
-    // 実行時基準値。ENTRIES は FQN 序数順の途中に Mid の入れ子展開（Bbb）が挟まる形
-    // （docs/概要.md §5。可視性違い Inn / Priv も並びへ通常どおり算入される = TC-ORD-059）
+    // 実行時基準値。ENTRIES は FQN 序数順の途中に Mid の入れ子展開（Bbb, MA, MB）が挟まる形
+    // （docs/概要.md §5。手動実装 ManualLeaf は kind を成さず entries に載らない）
     private val expectedOut =
         listOf(
-            "ENTRIES=Nested,Inherited,Inn,Bbb,PlainObj,Aaa,Custom,Priv,Zzz",
+            "ENTRIES=Nested,Inherited,Inn,ManualLeaf,Bbb,MA,MB,PlainObj,Aaa,Custom,Priv,Zzz",
             "TOSTR=PlainObj,parent,custom!,Aaa",
             "NOLABEL=IAE:No enumish entry with label 'X' in S",
         )
@@ -39,46 +40,29 @@ class DeterminismTest {
             "        }\n" +
             "    }"
 
-    // (a)(b)(c)(e): clean 基準 → 無編集再ビルド（UP-TO-DATE）→ clean 後の FROM-CACHE 復元 →
-    // 宣言順入れ替え後の incremental、のすべてで生成物バイトと実行時挙動が一致する
-    // （TC-IC-031/032・TC-ORD-006/023/028/065、TC-IC-036/037 の toString・失敗メッセージ決定性を含む）
+    // docs/test/ケース06-ビルド動態.md BLD-02/06: clean → 無編集再実行（UP_TO_DATE）→
+    // キャッシュ復元（FROM_CACHE）で全生成物バイト一致（toString・kind アクセサ込み）
     @Test
-    fun cleanIncrementalFromCacheAndDeclarationReorderProduceIdenticalOutputs() {
+    fun cleanIncrementalAndFromCacheProduceIdenticalBytes() {
         val dir = IcTestSupport.prepare(fixtureName, "det1-")
         val first = TestKitHarness.build(dir, "runMain")
         assertEquals(expectedOut, IcTestSupport.outLines(first))
         val digests0 = IcTestSupport.classDigests(dir)
 
-        // (b) 無編集の再ビルド: コンパイルは走らず出力不変
         val second = TestKitHarness.build(dir, "runMain")
         assertEquals(TaskOutcome.UP_TO_DATE, second.task(":compileKotlin")?.outcome)
         assertEquals(expectedOut, IcTestSupport.outLines(second))
         assertEquals(digests0, IcTestSupport.classDigests(dir))
 
-        // (c) clean 後の再ビルド: build cache から復元され、復元物がバイト一致
         TestKitHarness.build(dir, "clean")
         val third = TestKitHarness.build(dir, "runMain")
         assertEquals(TaskOutcome.FROM_CACHE, third.task(":compileKotlin")?.outcome)
         assertEquals(expectedOut, IcTestSupport.outLines(third))
         assertEquals(digests0, IcTestSupport.classDigests(dir))
-
-        // (e) 宣言順の入れ替え（ORD-006/023/065）: entries の並びも生成物のバイトも変わらない
-        TestKitHarness.replaceInFile(
-            dir,
-            sFile,
-            "$aaaBlock\n\n$customBlock",
-            "$customBlock\n\n$aaaBlock",
-        )
-        val fourth = TestKitHarness.build(dir, "runMain")
-        assertEquals(expectedOut, IcTestSupport.outLines(fourth))
-        assertEquals(
-            digests0.filterKeys { it.startsWith(generatedPrefix) },
-            IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) },
-        )
     }
 
-    // (d) relocated ビルド（TC-IC-033・TC-ORD-029）: 同一内容を別の絶対パスへ複製したビルドが
-    // relocatable なキャッシュヒットになり、生成物が元ディレクトリとバイト一致する
+    // docs/test/ケース06-ビルド動態.md BLD-03: 別絶対パスへの複製ビルドが FROM_CACHE でヒットし
+    // バイト一致する（relocatable キャッシュ）
     @Test
     fun relocatedBuildHitsCacheAndMatchesBytes() {
         val dirA = IcTestSupport.prepare(fixtureName, "detA-")
@@ -95,47 +79,60 @@ class DeterminismTest {
         assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dirB, "runMain")))
     }
 
-    // kind の toString の生成条件が別ファイルの supertype の toString 増減に依存する（TC-IC-049・V11）:
-    // 階層外の親クラス WithToString の具象 toString を除去すると原則 2 により kind へ生成が入り
-    // （表示が label へ）、復元すると生成が止まる（継承採用へ戻る）。各状態で実行時挙動が決定的
+    // docs/test/ケース06-ビルド動態.md BLD-04: ファイル内宣言順の入替（基底本体 + 中間 sealed 内部の
+    // 並べ替え・階層内手動実装込み = inheritors の登録順非依存 FQN 正規化）で OUT・生成物バイト一致
     @Test
-    fun case49ToStringGenerationFollowsSupertypeAcrossFiles() {
-        val dir = IcTestSupport.prepare(fixtureName, "det49-")
-        val withToStringFile = "src/main/kotlin/org/wrongwrong/det/WithToString.kt"
+    fun declarationReorderKeepsBytes() {
+        val dir = IcTestSupport.prepare(fixtureName, "det4-")
         assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+        val generated0 =
+            IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) }
 
-        // 親クラスの具象 toString を除去 → Inherited の kind へ label を返す toString が生成される
+        // 基底本体内の宣言順入替
         TestKitHarness.replaceInFile(
             dir,
-            withToStringFile,
-            "    override fun toString(): String = \"parent\"",
-            "    fun placeholderNote(): Int = 1",
+            sFile,
+            "$aaaBlock\n\n$customBlock",
+            "$customBlock\n\n$aaaBlock",
         )
+        // 中間 sealed 内部の並べ替え
+        TestKitHarness.replaceInFile(
+            dir,
+            midFile,
+            "    data object MA : Mid\n\n    data object MB : Mid",
+            "    data object MB : Mid\n\n    data object MA : Mid",
+        )
+        assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
         assertEquals(
-            listOf(
-                "ENTRIES=Nested,Inherited,Inn,Bbb,PlainObj,Aaa,Custom,Priv,Zzz",
-                "TOSTR=PlainObj,Inherited,custom!,Aaa",
-                "NOLABEL=IAE:No enumish entry with label 'X' in S",
-            ),
-            IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")),
+            generated0,
+            IcTestSupport.classDigests(dir).filterKeys { it.startsWith(generatedPrefix) },
         )
-
-        // 復元 → 継承採用（生成しない）へ戻り、基準値と一致する
-        TestKitHarness.replaceInFile(
-            dir,
-            withToStringFile,
-            "    fun placeholderNote(): Int = 1",
-            "    override fun toString(): String = \"parent\"",
-        )
-        assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
     }
 
-    // 同一ファイルに 2 階層（TC-IC-062）: 片方の階層の編集で再コンパイル単位（ファイル）ごと
-    // 両階層が再生成されるが、未編集側 SB の生成物はバイト一致のまま（P1/P2 = 継承者集合非依存）。
-    // L-41（別ファイル配置では非共連れ）の対極となる file-granularity 境界
+    // docs/test/ケース06-ビルド動態.md BLD-05: 既定ロケールと tr-TR の clean 出力がバイト一致
+    // （collator・'I'/'i' 特殊変換の非混入。順序はコンパイル時に確定する）
     @Test
-    fun case62TwoHierarchiesInOneFileRegenerateTogetherButKeepBytes() {
-        val dir = IcTestSupport.prepare("ic-shared-file", "det62-")
+    fun turkishLocaleBuildMatchesDefaultLocaleBytes() {
+        val defaultDir = IcTestSupport.prepare(fixtureName, "detloc1-")
+        val turkishDir = IcTestSupport.prepare(fixtureName, "detloc2-")
+        val properties = IcTestSupport.readFile(turkishDir, "gradle.properties")
+        TestKitHarness.writeFile(
+            turkishDir,
+            "gradle.properties",
+            properties + "\norg.gradle.jvmargs=-Xmx1g -Duser.language=tr -Duser.country=TR\n",
+        )
+
+        TestKitHarness.build(defaultDir, "compileKotlin")
+        TestKitHarness.build(turkishDir, "compileKotlin")
+
+        assertEquals(IcTestSupport.classDigests(defaultDir), IcTestSupport.classDigests(turkishDir))
+    }
+
+    // docs/test/ケース06-ビルド動態.md BLD-32: 同一ファイル 2 階層の片側編集は両階層をファイル単位で
+    // 再生成するが、未編集側の生成物はバイト一致（P3 は論理集約・物理は共連れ）
+    @Test
+    fun sharedFileHierarchiesRegenerateTogetherKeepBytes() {
+        val dir = IcTestSupport.prepare("ic-shared-file", "det32-")
         val twoFile = "src/main/kotlin/org/wrongwrong/shared/Two.kt"
         val sbPrefix = "org/wrongwrong/shared/SB\$Enumish"
         assertEquals(
@@ -163,5 +160,39 @@ class DeterminismTest {
             sbGenerated0,
             IcTestSupport.classDigests(dir).filterKeys { it.startsWith(sbPrefix) },
         )
+    }
+
+    // docs/test/ケース06-ビルド動態.md BLD-33: 階層外親の具象 toString 除去 / 復元で kind の表示が
+    // label ⇔ 継承表示へ追随する（原則 2 の跨ファイル判定）
+    @Test
+    fun toStringFollowsSupertypeEditAcrossFiles() {
+        val dir = IcTestSupport.prepare(fixtureName, "det33-")
+        val withToStringFile = "src/main/kotlin/org/wrongwrong/det/WithToString.kt"
+        assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+
+        // 親クラスの具象 toString を除去 → Inherited の kind へ label を返す toString が生成される
+        TestKitHarness.replaceInFile(
+            dir,
+            withToStringFile,
+            "    override fun toString(): String = \"parent\"",
+            "    fun placeholderNote(): Int = 1",
+        )
+        assertEquals(
+            listOf(
+                "ENTRIES=Nested,Inherited,Inn,ManualLeaf,Bbb,MA,MB,PlainObj,Aaa,Custom,Priv,Zzz",
+                "TOSTR=PlainObj,Inherited,custom!,Aaa",
+                "NOLABEL=IAE:No enumish entry with label 'X' in S",
+            ),
+            IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")),
+        )
+
+        // 復元 → 継承採用（生成しない）へ戻り、基準値と一致する
+        TestKitHarness.replaceInFile(
+            dir,
+            withToStringFile,
+            "    fun placeholderNote(): Int = 1",
+            "    override fun toString(): String = \"parent\"",
+        )
+        assertEquals(expectedOut, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
     }
 }

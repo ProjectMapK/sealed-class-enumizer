@@ -1,4 +1,4 @@
-// IC 回帰フィクスチャ本体（docs/コンパイラプラグイン設計00.md §5.3・docs/テストケース管理.md C 軸）
+// IC 回帰フィクスチャ本体（docs/コンパイラプラグイン設計00.md §5.3・docs/test/ケース06-ビルド動態.md §2）
 plugins {
     kotlin("jvm")
     id("org.wrongwrong.sealed-class-enumizer")
