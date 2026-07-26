@@ -67,25 +67,25 @@ class DiagSingleFailTest : DiagTestBase() {
         assertFragmentAbsentAt(output, "NsTargets.kt", DiagFragments.NOT_SEALED)
     }
 
-    // docs/test/ケース04-診断.md DIA-13: 兄弟 2 基底の交差で MF + 基底 FQN 2 件
+    // docs/test/ケース04-診断.md DIA-13: 兄弟 2 基底の交差で MH + 基底 FQN 2 件
     @Test
-    fun siblingFamilyCrossingIsReported() {
+    fun siblingHierarchyCrossingIsReported() {
         assertDiagnosticAt(
             fail(),
-            "FamCross.kt",
+            "MultCross.kt",
             4,
-            DiagFragments.MULTIPLE_FAMILIES,
-            "FamA",
-            "FamB",
+            DiagFragments.MULTIPLE_HIERARCHIES,
+            "MultA",
+            "MultB",
         )
     }
 
     // docs/test/ケース04-診断.md DIA-14: 中間 sealed の交差は中間と末端の双方の宣言へ報告される
     @Test
-    fun intermediateFamilyCrossingReportsBothParticipants() {
+    fun intermediateHierarchyCrossingReportsBothParticipants() {
         val output = fail()
-        assertDiagnosticAt(output, "FamMid.kt", 4, DiagFragments.MULTIPLE_FAMILIES)
-        assertDiagnosticAt(output, "FamMidLeaf.kt", 4, DiagFragments.MULTIPLE_FAMILIES)
+        assertDiagnosticAt(output, "MultMid.kt", 4, DiagFragments.MULTIPLE_HIERARCHIES)
+        assertDiagnosticAt(output, "MultMidLeaf.kt", 4, DiagFragments.MULTIPLE_HIERARCHIES)
     }
 
     // docs/test/ケース04-診断.md DIA-15: 階層メンバー（末端・中間）自身への @Enumize は NESTED。
@@ -95,19 +95,19 @@ class DiagSingleFailTest : DiagTestBase() {
         val output = fail()
         assertDiagnosticAt(
             output,
-            "FamNested.kt",
+            "MultNested.kt",
             9,
             DiagFragments.NESTED_IN_HIERARCHY,
-            "FamNested",
+            "MultNested",
         )
-        assertDiagnosticAt(output, "FamNestedMid.kt", 9, DiagFragments.NESTED_IN_HIERARCHY)
-        assertDiagnosticAt(output, "FamNested.kt", 9, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
+        assertDiagnosticAt(output, "MultNestedMid.kt", 9, DiagFragments.NESTED_IN_HIERARCHY)
+        assertDiagnosticAt(output, "MultNested.kt", 9, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
     }
 
-    // docs/test/ケース04-診断.md DIA-15: @Enumize 付き中間の配下末端には MF（上向き探索は 2 基底へ到達）
+    // docs/test/ケース04-診断.md DIA-15: @Enumize 付き中間の配下末端には MH（上向き探索は 2 基底へ到達）
     @Test
-    fun leafBelowAnnotatedIntermediateReportsMultipleFamilies() {
-        assertDiagnosticAt(fail(), "FamNestedMid.kt", 11, DiagFragments.MULTIPLE_FAMILIES)
+    fun leafBelowAnnotatedIntermediateReportsMultipleHierarchies() {
+        assertDiagnosticAt(fail(), "MultNestedMid.kt", 11, DiagFragments.MULTIPLE_HIERARCHIES)
     }
 
     // docs/test/ケース04-診断.md DIA-17: 末端サブタイプ + 基底直接実装形・2 末端 interface 実装形の AK
@@ -365,12 +365,12 @@ class DiagSingleFailTest : DiagTestBase() {
         assertDiagnosticInFile(output, "Ms9Si.kt", "e: ")
     }
 
-    // docs/test/ケース04-診断.md DIA-50: 他階層 Enumish の Enumized 直接実装は MSM であって MF でない
+    // docs/test/ケース04-診断.md DIA-50: 他階層 Enumish の Enumized 直接実装は MSM であって MH でない
     @Test
-    fun crossFamilyEnumizedIsMismatchNotMultipleFamilies() {
+    fun crossHierarchyEnumizedIsMismatchNotMultipleHierarchies() {
         val output = fail()
         assertDiagnosticAt(output, "TfCross.kt", 6, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
-        assertFragmentAbsentAt(output, "TfCross.kt", DiagFragments.MULTIPLE_FAMILIES)
+        assertFragmentAbsentAt(output, "TfCross.kt", DiagFragments.MULTIPLE_HIERARCHIES)
     }
 
     // docs/test/ケース04-診断.md DIA-53: projection / nullable 型引数は言語が先回りし MSM 不到達

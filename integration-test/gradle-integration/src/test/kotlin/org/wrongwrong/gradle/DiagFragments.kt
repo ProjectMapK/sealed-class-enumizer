@@ -11,7 +11,7 @@ object DiagFragments {
     const val NOT_SEALED = "is applicable only to a sealed class or a sealed interface"
     const val ON_EXPECT = "cannot be applied to an expect declaration"
     const val ON_ACTUAL = "cannot be applied to an actual declaration"
-    const val MULTIPLE_FAMILIES = "belongs to more than one"
+    const val MULTIPLE_HIERARCHIES = "belongs to more than one"
     const val NESTED_IN_HIERARCHY = "cannot be applied to a member of the"
     const val AMBIGUOUS_KIND = "The kind of this type is ambiguous"
     const val INNER_LEAF = "cannot be an inner class because an inner class"

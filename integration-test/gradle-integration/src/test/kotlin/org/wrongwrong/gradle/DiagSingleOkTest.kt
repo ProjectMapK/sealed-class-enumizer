@@ -33,11 +33,11 @@ class DiagSingleOkTest : DiagTestBase() {
         assertFragmentAbsent(output, DiagFragments.NOT_SEALED)
     }
 
-    // docs/test/ケース04-診断.md DIA-16: 併用・ダイヤモンド・独立 2 階層は MF / NESTED 非発火
+    // docs/test/ケース04-診断.md DIA-16: 併用・ダイヤモンド・独立 2 階層は MH / NESTED 非発火
     @Test
-    fun familyNearMissesDoNotReport() {
+    fun hierarchyNearMissesDoNotReport() {
         val output = ok()
-        assertFragmentAbsent(output, DiagFragments.MULTIPLE_FAMILIES)
+        assertFragmentAbsent(output, DiagFragments.MULTIPLE_HIERARCHIES)
         assertFragmentAbsent(output, DiagFragments.NESTED_IN_HIERARCHY)
     }
 

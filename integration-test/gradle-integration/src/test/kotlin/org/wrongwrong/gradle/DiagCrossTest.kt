@@ -26,12 +26,12 @@ class DiagCrossTest : DiagTestBase() {
     }
 
     // docs/test/ケース04-診断.md DIA-22: 2 階層の末端 interface 実装は言語 INCONSISTENT_TYPE_ARGS のみ
-    // （Enumized の型引数不一致で言語が塞ぎ MF / AK 不在）
+    // （Enumized の型引数不一致で言語が塞ぎ MH / AK 不在）
     @Test
-    fun twoFamilyImplementationFailsWithLanguageErrorOnly() {
+    fun twoHierarchyImplementationFailsWithLanguageErrorOnly() {
         val output = fail()
         assertDiagnosticInFile(output, "Cross2.kt", DiagFragments.LANG_INCONSISTENT_TYPE_ARGS)
-        assertFragmentAbsentAt(output, "Cross2.kt", DiagFragments.MULTIPLE_FAMILIES)
+        assertFragmentAbsentAt(output, "Cross2.kt", DiagFragments.MULTIPLE_HIERARCHIES)
         assertFragmentAbsentAt(output, "Cross2.kt", DiagFragments.AMBIGUOUS_KIND)
     }
 
