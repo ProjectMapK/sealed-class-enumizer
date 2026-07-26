@@ -4,57 +4,97 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
-import org.wrongwrong.fixtures.emptyhier.Empty
-import org.wrongwrong.fixtures.midvis.ViaMid
-import org.wrongwrong.fixtures.mixedorder.S
-import org.wrongwrong.fixtures.nested.NestedRoot
+import kotlin.test.assertSame
+import org.wrongwrong.fixtures.bounds.Empty
+import org.wrongwrong.fixtures.order.flat.FlatRoot
+import org.wrongwrong.fixtures.order.mid.MidRoot
+import org.wrongwrong.fixtures.vis.pub.MA
+import org.wrongwrong.fixtures.vis.pub.VisRoot
 
-// entries の順序・集合の跨モジュール観測（docs/概要.md §5・§7、docs/テストケース管理.md
-// TC-ORD-040 / TC-XM-046 / TC-ORD-062 / TC-XM-047 / TC-GAP-016 / TC-GAP-018）
+// entries の順序・集合の跨 module 観測（docs/test/ケース05-境界横断.md XMP-06〜XMP-08。
+// 順序値の正典はケース03。期待列は producer 側フィクスチャのコメントおよび OrderTest と同一）
 class CrossModuleOrderTest {
-    // TC-ORD-040: 混在配置（ネスト・トップレベル・小文字始まり）の FQN 序数順が跨モジュールでも
-    // 保存される（定義モジュールのコンパイル時に決定され、実行時にホルダーで解決される）
+    // docs/test/ケース05-境界横断.md XMP-06: 混在配置 17 末端の FQN UTF-16 序数順が跨 module で保存される
+    // （定義モジュールのコンパイル時に決定され、実行時にホルダーで解決される）
     @Test
-    fun mixedPlacementEntriesKeepFqnOrderAcrossModule() {
+    fun mixedPlacementKeepsFqnOrder() {
         assertEquals(
-            listOf("Bbb", "Mmm", "Aaa", "Zzz", "aLower"),
-            S.Enumish.entries.map { it.label },
+            listOf(
+                "A1",
+                "AA",
+                "AB1",
+                "A_",
+                "Ab2",
+                "Az",
+                "Bbb",
+                "Aaa",
+                "Foo",
+                "FooBar",
+                "Mmm",
+                "Q",
+                "Sep0",
+                "Zzz",
+                "aB3",
+                "aLower",
+                "ab4",
+            ),
+            FlatRoot.Enumish.entries.map { it.label },
         )
     }
 
-    // TC-XM-046 / TC-ORD-062: 中間 sealed の入れ子展開順（break 順序）が跨モジュールで保存される。
-    // 末端集合を FQN 順に並べた [Aaa, Bbb] にはならず、label 探索（valueOf）は順序非依存で両方解決する
+    // docs/test/ケース05-境界横断.md XMP-06: 中間 sealed の DFS 入れ子展開順（break 込み）が
+    // 跨 module で保存される。label 探索（valueOf）は順序非依存で break の両側を解決する
     @Test
-    fun intermediateBreakOrderIsPreservedAcrossModule() {
-        assertEquals(listOf("Bbb", "Aaa"), NestedRoot.Enumish.entries.map { it.label })
+    fun intermediateBreakOrderIsPreserved() {
         assertEquals(
-            listOf("Aaa", "Bbb"),
-            listOf(NestedRoot.Enumish.valueOf("Aaa").label, NestedRoot.Enumish.valueOf("Bbb").label),
+            listOf(
+                "Aaa",
+                "Bottom",
+                "Wide",
+                "NestA",
+                "NestB",
+                "Outpost",
+                "Early",
+                "Late",
+                "Probe",
+                "Bb",
+                "Zzz",
+            ),
+            MidRoot.Enumish.entries.map { it.label },
+        )
+        assertEquals(
+            listOf("Early", "Wide"),
+            listOf(MidRoot.Enumish.valueOf("Early").label, MidRoot.Enumish.valueOf("Wide").label),
         )
     }
 
-    // TC-XM-047: sealedSubclasses（直接の継承者・中間 sealed 含む）と entries（末端までフラット化）は
-    // 要素の集合も並びも一致しない（docs/概要.md §3「リフレクション連携」。kotlin-reflect はテスト観測用）
+    // docs/test/ケース05-境界横断.md XMP-06: internal 中間 sealed（HiddenMid）経由の public 末端 MA も
+    // 跨 module で通常どおり観測でき、FQN 位置（VisRoot.kt の期待列 index 9）に載る
     @Test
-    fun entriesDifferFromSealedSubclassesAcrossModule() {
-        val direct = NestedRoot::class.sealedSubclasses.map { it.simpleName ?: "" }
-        val entryLabels = NestedRoot.Enumish.entries.map { it.label }
-        assertEquals(listOf("Bbb", "Mid"), direct)
-        assertEquals(listOf("Bbb", "Aaa"), entryLabels)
+    fun internalIntermediateHierarchyIsObservable() {
+        assertSame(MA, VisRoot.Enumish.valueOf("MA"))
+        assertSame(MA, MA.asEnumish())
+        assertEquals("MA", VisRoot.Enumish.entries[9].label)
+    }
+
+    // docs/test/ケース05-境界横断.md XMP-07: sealedSubclasses（直接継承者・中間 sealed 含む）と
+    // entries（末端フラット化）は集合も並びも一致しない（kotlin-reflect はテスト観測用。
+    // sealedSubclasses 自体の順序は言語保証外のため整列して比較する）
+    @Test
+    fun entriesDifferFromSealedSubclasses() {
+        val direct = MidRoot::class.sealedSubclasses.map { it.simpleName ?: "" }
+        val entryLabels = MidRoot.Enumish.entries.map { it.label }
+        assertEquals(
+            listOf("Aaa", "Bb", "MidIn", "MidMulti", "MidNest", "MidTop", "Probe", "Zzz"),
+            direct.sorted(),
+        )
         assertNotEquals(direct.toSet(), entryLabels.toSet())
     }
 
-    // TC-GAP-016（静的側）: internal 中間 sealed を経由する階層も跨モジュールで通常どおり観測できる
-    // （中間には何も生成されず可視性も影響しない。IC での並び再配置検査は gradle-integration 担当）
+    // docs/test/ケース05-境界横断.md XMP-08: 空階層は entries = []・valueOf 常時失敗が跨 module でも
+    // 保たれる（MPP 全ターゲット面は mpp-producer / mpp-consumer が担う）
     @Test
-    fun internalIntermediateHierarchyIsObservableAcrossModule() {
-        assertEquals(listOf("MA", "MB"), ViaMid.Enumish.entries.map { it.label })
-    }
-
-    // TC-GAP-018（JVM 跨モジュール面）: 空階層の entries は空・valueOf は常に失敗し文言も保たれる
-    // （MPP common 面は mpp-* 担当）
-    @Test
-    fun emptyHierarchyIsObservableAcrossModule() {
+    fun emptyHierarchyIsObservable() {
         assertEquals(emptyList(), Empty.Enumish.entries.map { it.label })
         val failure =
             assertFailsWith<IllegalArgumentException> { Empty.Enumish.valueOf("Anything") }

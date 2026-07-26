@@ -5,72 +5,96 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertSame
-import org.wrongwrong.fixtures.handler.Event
-import org.wrongwrong.fixtures.shape.Shape
+import org.wrongwrong.fixtures.zoo.Zoo
 import org.wrongwrong.sealedClassEnumizer.label
 
 // 下流モジュール（プラグイン未適用）でのサブタイプ定義と kind 吸収の box 検証
-// （docs/概要.md §3・§7、docs/テストケース管理.md TC-XM-016〜018 / TC-XM-020 / TC-XM-052 /
-//  TC-LEAF-039 / TC-ORD-055 / TC-BOX-081）
+// （docs/test/ケース05-境界横断.md XMP-18 / XMP-19 / XMP-20）
 class DownstreamAbsorptionTest {
-    // TC-XM-016 / TC-BOX-081: 別モジュールのサブタイプは asEnumish を Polygon から継承して
-    // Polygon の kind に吸収される（プラグイン未適用でも成立 = 生成物の帰属は producer 側に閉じる）
+    // docs/test/ケース05-境界横断.md XMP-18: abstract 末端の別 module サブタイプは asEnumish を
+    // AbstractLeaf から継承して AbstractLeaf の kind に吸収される
+    // （プラグイン未適用でも成立 = 生成物の帰属は producer 側に閉じる）
     @Test
-    fun subtypeIsAbsorbedIntoAbstractLeafKind() {
-        val triangle: Shape = Triangle()
-        assertSame(Shape.Polygon.Companion, triangle.asEnumish())
-        assertEquals("Polygon", triangle.label)
+    fun subtypeIsAbsorbedIntoLeafKind() {
+        val triangle: Zoo = Triangle()
+        assertSame(Zoo.AbstractLeaf.Companion, triangle.asEnumish())
+        assertEquals("AbstractLeaf", triangle.label)
     }
 
-    // TC-XM-017: interface 末端の実装は default の asEnumish を継承して吸収される（V10-b）
+    // docs/test/ケース05-境界横断.md XMP-18: interface 末端の実装は default の asEnumish を継承して
+    // IfaceLeaf の kind（明示 public companion）に吸収される
     @Test
-    fun interfaceImplementationIsAbsorbedIntoLeafKind() {
-        val custom: Shape = MyCustom()
-        assertSame(Shape.Custom.Companion, custom.asEnumish())
-        assertEquals("Custom", custom.label)
+    fun interfaceImplementationIsAbsorbed() {
+        val custom: Zoo = MyCustom()
+        assertSame(Zoo.IfaceLeaf.Companion, custom.asEnumish())
+        assertEquals("IfaceLeaf", custom.label)
     }
 
-    // TC-LEAF-039 / TC-ORD-055: 下流でサブタイプ（Triangle / MyCustom）を定義しても
-    // entries は集合・並びとも不変（entries は階層内の末端で決まり階層外サブタイプに非依存）
+    // docs/test/ケース05-境界横断.md XMP-18: fun interface 末端の SAM ラムダ実装も新 kind を作らず
+    // FunLeaf の kind に吸収される（asEnumish は default 実装が埋めるため SAM は go 1 つに保たれる）
     @Test
-    fun entriesSetAndOrderUnaffectedByDownstreamSubtypes() {
-        assertEquals(listOf("Circle", "Custom", "Polygon"), Shape.Enumish.entries.map { it.label })
+    fun samLambdaIsAbsorbed() {
+        val leaf: Zoo.FunLeaf = Zoo.FunLeaf { 41 }
+        assertEquals(41, leaf.go())
+        val value: Zoo = leaf
+        assertSame(Zoo.FunLeaf.Companion, value.asEnumish())
+        assertEquals("FunLeaf", value.label)
     }
 
-    // TC-XM-018: enumizedClass は分類の代表（末端自身）を返し、値の実行時クラス（Triangle::class）とは
-    // 一致しない（docs/概要.md §2 の明記どおり）
+    // docs/test/ケース05-境界横断.md XMP-18: 下流でサブタイプ（Triangle / MyCustom / SAM ラムダ）を
+    // 定義しても entries は末端 12 のまま集合・並びとも不変
+    // （entries は階層内の末端で決まり階層外サブタイプに非依存）
     @Test
-    fun enumizedClassReturnsRepresentativeNotRuntimeClass() {
+    fun entriesSetAndOrderUnaffected() {
+        assertEquals(
+            listOf(
+                "AbstractLeaf",
+                "DataLeaf",
+                "EnumLeaf",
+                "FinalLeaf",
+                "FunAuto",
+                "FunLeaf",
+                "Ghost",
+                "IfaceLeaf",
+                "ObjectLeaf",
+                "OpenLeaf",
+                "PlainObject",
+                "ValueLeaf",
+            ),
+            Zoo.Enumish.entries.map { it.label },
+        )
+    }
+
+    // docs/test/ケース05-境界横断.md XMP-19: enumizedClass は分類の代表（末端自身）を返し、
+    // 値の実行時クラス（Triangle::class）とは一致しない
+    @Test
+    fun enumizedClassReturnsRepresentative() {
         val kindClass = Triangle().asEnumish().enumizedClass
-        assertEquals(Shape.Polygon::class, kindClass)
+        assertEquals(Zoo.AbstractLeaf::class, kindClass)
         assertNotEquals<KClass<*>>(Triangle::class, kindClass)
     }
 
-    // TC-XM-020: 値単位 when は is 末端 の枝が下流サブタイプをすべて覆い、else 無しで網羅する
-    // （分類の粒度を固定したまま実装を開けておける設計の跨モジュール成立）
+    // docs/test/ケース05-境界横断.md XMP-20: 値単位 when は is 末端枝が下流サブタイプをすべて覆い、
+    // else 無しで網羅する（分類の粒度を固定したまま実装を開けておける設計の跨 module 成立）
     @Test
-    fun valueWhenLeafBranchesCoverDownstreamSubtypes() {
-        val shapes: List<Shape> = listOf(Shape.Circle(1.0), Triangle(), MyCustom())
-        val branches = shapes.map { shape ->
-            when (shape) {
-                is Shape.Circle -> "circle"
-                is Shape.Custom -> "custom"
-                is Shape.Polygon -> "polygon"
+    fun valueWhenCoversDownstreamSubtypes() {
+        val values: List<Zoo> = listOf(Triangle(), MyCustom(), Zoo.FunLeaf { 1 }, Zoo.DataLeaf(1))
+        val branches = values.map { zoo ->
+            when (zoo) {
+                is Zoo.DataLeaf -> "data"
+                Zoo.ObjectLeaf -> "dataobj"
+                Zoo.PlainObject -> "obj"
+                is Zoo.FinalLeaf -> "final"
+                is Zoo.OpenLeaf -> "open"
+                is Zoo.AbstractLeaf -> "abstract"
+                is Zoo.IfaceLeaf -> "iface"
+                is Zoo.FunLeaf -> "fun"
+                is Zoo.FunAuto -> "funauto"
+                is Zoo.Ghost -> "ghost"
+                is Zoo.EnumLeaf -> "enum"
+                is Zoo.ValueLeaf -> "value"
             }
         }
-        assertEquals(listOf("circle", "polygon", "custom"), branches)
-    }
-
-    // TC-XM-052: fun interface 末端の SAM ラムダ実装も新 kind を作らず Handler の kind に吸収される
-    // （asEnumish は default 実装が埋めるため SAM は handle 1 つに保たれる = V10-c）
-    @Test
-    fun samLambdaIsAbsorbedIntoFunInterfaceLeafKind() {
-        val handler: Event.Handler = Event.Handler { it + 1 }
-        assertEquals(42, handler.handle(41))
-        val value: Event = handler
-        assertSame(Event.Handler.Companion, value.asEnumish())
-        assertEquals("Handler", value.label)
-        assertEquals(Event.Handler::class, value.asEnumish().enumizedClass)
-        assertEquals(listOf("Handler", "Listener"), Event.Enumish.entries.map { it.label })
+        assertEquals(listOf("abstract", "iface", "fun", "data"), branches)
     }
 }

@@ -2,9 +2,12 @@ package org.wrongwrong.javaconsumer;
 
 import kotlin.jvm.JvmClassMappingKt;
 import org.junit.jupiter.api.Test;
-import org.wrongwrong.fixtures.SI;
+import org.wrongwrong.fixtures.si.SI;
 import org.wrongwrong.sealedClassEnumizer.EnumizedLabelKt;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -13,11 +16,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 // Java 消費側: @JvmStatic 非付与（v1）のため、interface 上に公開される static フィールド Companion を
-// 経由して生成 API を呼ぶ（docs/概要.md §3「Java からの利用」・docs/テストケース管理.md TC-XM-026 /
-// TC-XM-029 / TC-BOX-054）。SI.Enumish.getEntries() 形の static アクセスが不可なこと（TC-XM-027）は
-// コンパイル失敗を要するため gradle-integration 担当
+// 経由して生成 API を呼ぶ（docs/test/ケース05-境界横断.md XMP-27 / XMP-28）
 class JavaCompanionAccessTest {
-    // TC-XM-026 / TC-BOX-054: Companion フィールド経由の getEntries / valueOf / valueOfOrNull
+    // docs/test/ケース05-境界横断.md XMP-27: Companion フィールド経由の getEntries / valueOf / valueOfOrNull
     //（entries はプロパティなので Java では getEntries() になる）
     @Test
     void entriesAndValueOfResolveViaCompanionField() {
@@ -28,17 +29,29 @@ class JavaCompanionAccessTest {
         assertNull(SI.Enumish.Companion.valueOfOrNull("X"));
     }
 
-    // TC-XM-026: valueOf 失敗時の IllegalArgumentException 文言の Java からの観測
+    // docs/test/ケース05-境界横断.md XMP-27: valueOf 失敗時の IllegalArgumentException 文言の Java 観測
     @Test
-    void valueOfFailureMessageIsObservableFromJava() {
+    void valueOfFailureMessageIsObservable() {
         IllegalArgumentException failure =
                 assertThrows(IllegalArgumentException.class, () -> SI.Enumish.Companion.valueOf("X"));
         assertEquals("No enumish entry with label 'X' in SI", failure.getMessage());
     }
 
-    // TC-XM-029: kind のメンバー（getLabel / getEnumizedClass / getEnumishCompanion）と値側の
-    // asEnumish() / label 拡張（Java からはトップレベル static の EnumizedLabelKt.getLabel）。
-    // 共変 override の bridge メソッドが Java から正しく解決される
+    // docs/test/ケース05-境界横断.md XMP-27: @JvmStatic 非付与のため、SI.Enumish.getEntries() 形で呼べる
+    // static アクセサは interface 上に存在しない（reflection で不在を固定。Companion フィールド経由が唯一の経路）
+    @Test
+    void noStaticAccessorsExistWithoutJvmStatic() {
+        List<String> staticAccessors = Arrays.stream(SI.Enumish.class.getDeclaredMethods())
+                .filter(method -> Modifier.isStatic(method.getModifiers()))
+                .map(Method::getName)
+                .filter(name -> name.equals("getEntries") || name.equals("valueOf") || name.equals("valueOfOrNull"))
+                .toList();
+        assertEquals(List.of(), staticAccessors);
+    }
+
+    // docs/test/ケース05-境界横断.md XMP-28: kind のメンバー（getLabel / getEnumizedClass /
+    // getEnumishCompanion）と値側の asEnumish() / label 拡張（Java からはトップレベル static の
+    // EnumizedLabelKt.getLabel）が、共変 override の bridge メソッド経由で Java から解決される
     @Test
     void kindMembersResolveViaBridges() {
         assertEquals("Foo", SI.Foo.Companion.getLabel());

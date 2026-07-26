@@ -4,17 +4,17 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
-import org.wrongwrong.fixtures.SI
+import org.wrongwrong.fixtures.si.SI
 import org.wrongwrong.sealedClassEnumizer.Enumish
 
-// 基底 Enumish の手動実装が跨モジュールで無制約なことの観測（docs/概要.md §8 許容・
-// docs/テストケース管理.md TC-XM-045 / TC-MAN-009）。sealed 制約の対象は生成 Enumish のみで
-// 基底 Enumish には及ばない
+// 基底 Enumish の自由実装が跨 module で無制約なことの観測（docs/test/ケース05-境界横断.md XMP-26）。
+// sealed 制約の対象は生成 Enumish のみで基底 Enumish には及ばない
 class BaseEnumishFreeImplTest {
-    // MyThing（このモジュールの手動実装）は SI 階層の kind ではないため、enumishCompanion に SI 階層の
-    // ものを借用していても entries / valueOf には現れない（enum 的 API の保証は kind に閉じる）
+    // docs/test/ケース05-境界横断.md XMP-26: MyThing（このモジュールの自由実装）は SI 階層の kind では
+    // ないため、enumishCompanion に SI 階層のものを借用していても entries / valueOf には現れない
+    // （enum 的 API の保証は kind に閉じる）
     @Test
-    fun baseEnumishImplementationIsUnrestrictedAcrossModule() {
+    fun baseEnumishImplementationIsUnrestricted() {
         val thing: Enumish = MyThing
         assertEquals("MyThing", thing.label)
         assertEquals(listOf("Bar", "Foo"), SI.Enumish.entries.map { it.label })

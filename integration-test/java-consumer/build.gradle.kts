@@ -1,4 +1,4 @@
-// Java 消費側（docs/テストケース管理.md モジュール一覧・docs/概要.md §3「Java からの利用」）。
+// Java 消費側（docs/test/テスト戦略.md §4・docs/概要.md §3「Java からの利用」）。
 // Java 21 パターンマッチング switch（JEP 441）のためこのモジュールだけ toolchain 21 を使う
 plugins { java }
 
