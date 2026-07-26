@@ -24,7 +24,7 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
                     "Apply '@Enumize' to a non-actual sealed declaration instead.",
             )
             map.put(
-                EnumizeErrors.ENUMIZE_MULTIPLE_FAMILIES,
+                EnumizeErrors.ENUMIZE_MULTIPLE_HIERARCHIES,
                 "This declaration belongs to more than one '@Enumize' hierarchy ({0} and {1}). " +
                     "Keep the declaration in a single '@Enumize' hierarchy.",
                 CommonRenderers.STRING,

@@ -61,7 +61,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         if (belongingBases.size >= 2) {
             reporter.reportOn(
                 declaration.source,
-                EnumizeErrors.ENUMIZE_MULTIPLE_FAMILIES,
+                EnumizeErrors.ENUMIZE_MULTIPLE_HIERARCHIES,
                 belongingBases[0].classId.asFqNameString(),
                 belongingBases[1].classId.asFqNameString(),
                 context,

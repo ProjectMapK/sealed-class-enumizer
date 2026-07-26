@@ -17,7 +17,7 @@ object EnumizeErrors : KtDiagnosticsContainer() {
     val ENUMIZE_NOT_SEALED: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_ON_EXPECT: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_ON_ACTUAL: KtDiagnosticFactory0 by error0<PsiElement>()
-    val ENUMIZE_MULTIPLE_FAMILIES: KtDiagnosticFactory2<String, String> by
+    val ENUMIZE_MULTIPLE_HIERARCHIES: KtDiagnosticFactory2<String, String> by
         error2<PsiElement, String, String>()
     val ENUMIZE_NESTED_IN_HIERARCHY: KtDiagnosticFactory1<String> by error1<PsiElement, String>()
     val ENUMIZE_AMBIGUOUS_KIND: KtDiagnosticFactory2<String, String> by
