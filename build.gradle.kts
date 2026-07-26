@@ -1,7 +1,7 @@
 import com.ncorti.ktfmt.gradle.KtfmtPlugin
 
 // ルートプロジェクトは集約のみを担う。各モジュールの構成は各自の build.gradle.kts が持つ。
-// integration-test は独立した composite build であり、ここには含めない（docs/テストケース管理.md）。
+// integration-test は独立した composite build であり、ここには含めない（docs/test/テスト戦略.md）。
 //
 // plugins ブロックは適用せず宣言のみ行う（apply false）。サブプロジェクト毎に異なるプラグイン集合を
 // 要求するとクラスローダが分裂し、KGP の共有 build service（KotlinNativeBundleBuildService）が
@@ -25,7 +25,7 @@ allprojects {
 }
 
 // integration-test の TestKit フィクスチャ向けに、3 モジュールのローカル Maven 公開を集約する
-// （docs/テストケース管理.md Gradle TestKit 方針の local-repo 経路）。ローカル Maven を使うのは
+// （docs/test/フィクスチャ構成.md §4 の local-repo 経路）。ローカル Maven を使うのは
 // 非タイムスタンプの SNAPSHOT が上書き公開され、Gradle が成果物をキャッシュしないため
 tasks.register("publishAllToMavenLocal") {
     dependsOn(subprojects.map { "${it.path}:publishToMavenLocal" })

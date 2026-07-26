@@ -1,5 +1,5 @@
 // integration-test は「その内側で完結する独立した Gradle ビルド」であり、親ビルド
-// （runtime-api / compiler-plugin / gradle-plugin）を composite 参照する（docs/テストケース管理.md）。
+// （runtime-api / compiler-plugin / gradle-plugin）を composite 参照する（docs/test/テスト戦略.md）。
 // 親ビルドには include しない（プラグインの自己適用・依存循環の回避・重いテストの分離のため）。
 pluginManagement {
     includeBuild("..")
@@ -28,7 +28,7 @@ rootProject.name = "enumize-integration-test"
 
 includeBuild("..")
 
-// docs/テストケース管理.md のモジュール一覧（8 モジュール）
+// docs/test/テスト戦略.md のモジュール一覧（8 モジュール）
 include(
     ":producer-jvm",
     ":consumer-pure-jvm",

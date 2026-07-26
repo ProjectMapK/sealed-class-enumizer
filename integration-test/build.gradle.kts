@@ -1,6 +1,6 @@
 import com.ncorti.ktfmt.gradle.KtfmtPlugin
 
-// ルートは集約のみ。各サブプロジェクトの構成は各自の build.gradle.kts が持つ（docs/テストケース管理.md）。
+// ルートは集約のみ。各サブプロジェクトの構成は各自の build.gradle.kts が持つ（docs/test/テスト戦略.md）。
 //
 // plugins ブロックは適用せず宣言のみ行う（apply false）。jvm 系と multiplatform 系のサブプロジェクトが
 // それぞれの plugins DSL で KGP をロードするとクラスローダが分裂して NodeJsRootPlugin 等の共有
