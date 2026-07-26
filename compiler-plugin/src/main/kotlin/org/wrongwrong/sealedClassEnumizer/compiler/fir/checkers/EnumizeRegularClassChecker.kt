@@ -221,7 +221,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             reporter.reportOn(declaration.source, EnumizeErrors.ENUMIZE_INNER_LEAF, context)
             return
         }
-        checkManualMemberConflicts(declaration, base, resolver, context, reporter)
+        checkMemberConflicts(declaration, base, resolver, context, reporter)
         if (symbol.classKind == ClassKind.OBJECT) return
         checkCompanionOfLeafClass(declaration, base, resolver, context, reporter)
     }
@@ -281,7 +281,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     }
 
     // 生成対象メンバーの手動宣言・階層外 interface からの具象実装の継承（toString は対象外 = docs/コンパイラプラグイン設計01.md §7.2）
-    private fun checkManualMemberConflicts(
+    private fun checkMemberConflicts(
         declaration: FirRegularClass,
         base: FirRegularClassSymbol,
         resolver: EnumizeHierarchyResolver,
@@ -320,7 +320,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         for (member in manualMembersNamed(declaration, names, resolver)) {
             reporter.reportOn(
                 member.source,
-                EnumizeErrors.ENUMIZE_MANUAL_MEMBER_CONFLICT,
+                EnumizeErrors.ENUMIZE_MEMBER_CONFLICT,
                 memberNameOf(member)?.asString().orEmpty(),
                 context,
             )
@@ -328,7 +328,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         for (name in inheritedConcreteConflicts(symbol, names, base, resolver)) {
             reporter.reportOn(
                 declaration.source,
-                EnumizeErrors.ENUMIZE_MANUAL_MEMBER_CONFLICT,
+                EnumizeErrors.ENUMIZE_MEMBER_CONFLICT,
                 name.asString(),
                 context,
             )

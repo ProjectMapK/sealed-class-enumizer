@@ -28,7 +28,7 @@ object EnumizeErrors : KtDiagnosticsContainer() {
     val ENUMIZE_COMPANION_LEAF_CONFLICT: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_LABEL_CLASH: KtDiagnosticFactory2<String, String> by
         error2<PsiElement, String, String>()
-    val ENUMIZE_MANUAL_MEMBER_CONFLICT: KtDiagnosticFactory1<String> by error1<PsiElement, String>()
+    val ENUMIZE_MEMBER_CONFLICT: KtDiagnosticFactory1<String> by error1<PsiElement, String>()
     val ENUMIZE_MANUAL_IMPL_OUTSIDE_HIERARCHY: KtDiagnosticFactory1<String> by
         error1<PsiElement, String>()
     val ENUMIZE_MANUAL_SUPERTYPE_MISMATCH: KtDiagnosticFactory2<String, String> by

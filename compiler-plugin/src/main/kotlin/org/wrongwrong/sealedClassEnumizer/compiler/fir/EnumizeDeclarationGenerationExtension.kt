@@ -278,7 +278,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         if (resolver.hasUserDeclaredNestedEnumish(base)) emptySet()
         else setOf(EnumizeNames.ENUMISH_NAME)
 
-    // ユーザーが同名メンバーを手動宣言している場合は生成しない（ENUMIZE_MANUAL_MEMBER_CONFLICT はチェッカーが報告）
+    // ユーザーが同名メンバーを手動宣言している場合は生成しない（ENUMIZE_MEMBER_CONFLICT はチェッカーが報告）
     private fun notManuallyDeclared(symbol: FirRegularClassSymbol, vararg names: Name): Set<Name> {
         val declared = resolver.declaredCallableNames(symbol)
         return names.filterNotTo(mutableSetOf()) { it in declared }

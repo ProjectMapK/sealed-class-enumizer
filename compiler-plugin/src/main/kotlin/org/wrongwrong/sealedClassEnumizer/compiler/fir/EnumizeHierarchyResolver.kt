@@ -187,7 +187,7 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
         symbol.resolvedSuperTypeRefs.any { it.coneType.classId == classId }
 
     // 解決済み supertype の全閉包（sealed に限らない全エッジ）。継承経路を見る診断（AMBIGUOUS_KIND・
-    // MANUAL_SUPERTYPE_MISMATCH・MANUAL_MEMBER_CONFLICT・EXTENSION_SHADOWED）の判定に使う
+    // MANUAL_SUPERTYPE_MISMATCH・MEMBER_CONFLICT・EXTENSION_SHADOWED）の判定に使う
     fun supertypeClosure(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> {
         val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
         collectClosure(symbol, result)
