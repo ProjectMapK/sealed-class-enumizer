@@ -84,7 +84,7 @@ K9 の表記変種（import 別名・FQN・star import・typealias）と診断�
 | ID | 次元/値 | 観測と期待 | 実装 | 備考(関連V/診断) |
 |---|---|---|---|---|
 | API-33 | K10=原則 2（生成形） | 明示実装の無い kind（companion kind・非 data object）へ toString=label を必ず生成 | ToStringTest#kindsWithoutExplicitToStringGetLabel | V11・si/plain でも観測 |
-| API-34 | K10=原則 1(a) 手動宣言 | kind 自身の手動 toString を尊重し非生成（data object 手動 Manual・companion 手動 Styled） | ToStringTest#manualToStringIsRespected | MMC 対象外の非発火→ケース04 |
+| API-34 | K10=原則 1(a) 手動宣言 | kind 自身の手動 toString を尊重し非生成（data object 手動 Manual・companion 手動 Styled） | ToStringTest#manualToStringIsRespected | MC 対象外の非発火→ケース04 |
 | API-35 | K10=原則 1(b) 継承具象 | 継承経路の Any 以外の具象 toString で非生成（companion 継承 ViaBase・object 自身継承 ObjViaBase）・final 継承 ViaFixed も衝突なしスキップ | ToStringTest#inheritedConcreteToStringSkipsGeneration | V11 |
 | API-36 | K10=原則 1(c) data object | data object は言語合成 toString のまま非生成・data class 値インスタンスの data 合成 toString も kind 側と管轄分離で不変 | SiContractTest#dataObjectKeepsSynthesizedToString | V11 |
 | API-37 | K10=抽象再宣言 | supertype の toString 抽象再宣言は kind 側手動実装で充足（生成は充足に使えない） | ToStringTest#abstractRedeclarationSatisfiedManually | 未実装時の言語エラー→ケース04 |
