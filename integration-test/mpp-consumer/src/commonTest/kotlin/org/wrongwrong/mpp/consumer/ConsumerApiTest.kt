@@ -10,8 +10,8 @@ import org.wrongwrong.mpp.fixtures.SI
 import org.wrongwrong.sealedClassEnumizer.label
 
 // 跨モジュール × MPP: プラグイン未適用モジュールの共通コードから mpp-producer の生成 API を
-// 参照して各 platform で動作することの box テスト（docs/テストケース管理.md mpp-consumer 行・
-// TC-MPP-015/018 の跨モジュール面・TC-GAP-018）
+// 参照して各 platform で動作することの box テスト（docs/test/ケース05-境界横断.md
+// XMP-37/XMP-08）
 class ConsumerApiTest {
     // 生成 API 一式が共通メタデータ / klib 経由で解決・動作する
     @Test
@@ -33,14 +33,14 @@ class ConsumerApiTest {
         assertEquals(listOf("Bar", "Foo"), consumerLabels())
     }
 
-    // 失敗メッセージは跨モジュールでも全プラットフォーム同一文言（TC-MPP-013 の跨モジュール面）
+    // XMP-37: 失敗メッセージは跨モジュールでも全プラットフォーム同一文言
     @Test
     fun valueOfFailureMessageIsUniform() {
         val failure = assertFailsWith<IllegalArgumentException> { SI.Enumish.valueOf("NoSuch") }
         assertEquals("No enumish entry with label 'NoSuch' in SI", failure.message)
     }
 
-    // TC-GAP-018: 空階層の跨モジュール / MPP 観測（entries = []・valueOf は常に失敗）
+    // XMP-08: 空階層の跨モジュール / MPP 観測（entries = []・valueOf は常に失敗）
     @Test
     fun emptyHierarchyIsObservableAcrossModules() {
         assertEquals(emptyList(), EmptyRoot.Enumish.entries)
@@ -51,7 +51,7 @@ class ConsumerApiTest {
     // 末端 class の kind を companion 名で参照する（docs/概要.md §1）。共通ソース由来の
     // 生成 companion がメタデータ / klib のネスト分類子として跨モジュールで解決できる
     @Test
-    fun generatedCompanionIsNameableAcrossModules() {
+    fun generatedCompanionIsNameable() {
         assertSame(SI.Foo.Companion, SI.Enumish.valueOf("Foo"))
         assertEquals(
             listOf("foo", "bar"),

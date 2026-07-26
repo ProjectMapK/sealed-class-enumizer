@@ -8,18 +8,20 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import org.wrongwrong.sealedClassEnumizer.label
 
-// 全 API 表面の box テスト（docs/テストケース管理.md TC-MPP-001〜005/007/008/010/011/013/014/022/061）。
+// 全 API 表面の box テスト（docs/test/ケース05-境界横断.md XMP-33）。
 // commonTest に置くことで同一のテストが jvm / js / wasmJs / wasmWasi / native(host) の
-// 各ターゲットで実行され、観測結果がターゲット間で割れないこと（V8）を検証する
+// 各ターゲットで実行され、観測結果がターゲット間で割れないこと（V8）を検証する。
+// js / wasmJs / wasmWasi での実行成立自体が DCE/リンク経路の $EntriesHolder 到達
+// （docs/test/ケース05-境界横断.md XMP-48）の実証を兼ねる
 class SiApiSurfaceTest {
-    // TC-MPP-005: クロスターゲット・ゴールデン一致の期待値（1 回の assertEquals で比較する）
+    // XMP-33: クロスターゲット・ゴールデン一致の期待値（1 回の assertEquals で比較する）
     private data class EntriesSnapshot(
         val labels: List<String>,
         val simpleNames: List<String?>,
         val strings: List<String>,
     )
 
-    // TC-MPP-005/008: label 列・enumizedClass.simpleName 列・toString 列が全ターゲットで
+    // XMP-33: label 列・enumizedClass.simpleName 列・toString 列が全ターゲットで
     // 同一の期待 data class に一致する（simpleName のみ使用 = no-reflection 原則の範囲）
     @Test
     fun goldenSnapshotMatchesOnEveryTarget() {
@@ -38,7 +40,7 @@ class SiApiSurfaceTest {
         assertEquals(expected, actual)
     }
 
-    // TC-MPP-001〜004/061/022: entries の内容・FQN 順・kind シングルトン性。
+    // XMP-33: entries の内容・FQN 順・kind シングルトン性。
     // 末端 class の kind は生成 companion の名指し（SI.Foo.Companion）で観測する
     @Test
     fun entriesAreKindSingletonsInFqnOrder() {
@@ -48,16 +50,16 @@ class SiApiSurfaceTest {
         assertSame(SI.Foo.Companion, entries[1])
     }
 
-    // TC-MPP-026/027: 遅延初期化は初回のみ構築され、以降は同一インスタンスを返す
+    // docs/test/ケース05-境界横断.md XMP-45: 遅延初期化は初回のみ構築され、以降は同一インスタンスを返す
     // （Native 新MM / JS・Wasm シングルスレッドのいずれでも意味論は不変）
     @Test
-    fun entriesReturnsSameInstanceOnRepeatedAccess() {
+    fun entriesReturnSameInstanceOnRepeatedAccess() {
         assertSame(SI.Enumish.entries, SI.Enumish.entries)
     }
 
-    // TC-MPP-013/014: valueOf / valueOfOrNull と失敗メッセージの全プラットフォーム同一文言
+    // XMP-33: valueOf / valueOfOrNull と失敗メッセージの全プラットフォーム同一文言
     @Test
-    fun valueOfResolvesAndFailsWithUniformMessage() {
+    fun valueOfFailsWithUniformMessage() {
         val foo: SI = SI.Foo(0)
         assertSame(foo.asEnumish(), SI.Enumish.valueOf("Foo"))
         assertSame(SI.Bar, SI.Enumish.valueOfOrNull("Bar"))
@@ -66,9 +68,9 @@ class SiApiSurfaceTest {
         assertEquals("No enumish entry with label 'NoSuch' in SI", failure.message)
     }
 
-    // TC-MPP-007: 値が別でも asEnumish は同一 companion への参照（末端 object は自身）
+    // XMP-33: 値が別でも asEnumish は同一 companion への参照（末端 object は自身）
     @Test
-    fun asEnumishReturnsSameSingletonAcrossInstances() {
+    fun asEnumishReturnsSameSingleton() {
         assertNotEquals(SI.Foo(42), SI.Foo(43))
         val first: SI = SI.Foo(42)
         val second: SI = SI.Foo(43)
@@ -77,14 +79,14 @@ class SiApiSurfaceTest {
         assertSame(SI.Bar, bar.asEnumish())
     }
 
-    // TC-MPP-011: label 拡張プロパティ（コード生成不要）が全ターゲットで一致
+    // XMP-33: label 拡張プロパティ（コード生成不要）が全ターゲットで一致
     @Test
     fun labelExtensionMatchesKindLabel() {
         val si: SI = SI.Foo(1)
         assertEquals(listOf("Foo", "Foo"), listOf(si.label, si.asEnumish().label))
     }
 
-    // TC-MPP-010: enumishCompanion の共変 override により具体型で型付く
+    // XMP-33: enumishCompanion の共変 override により具体型で型付く
     @Test
     fun enumishCompanionIsCovariantlyTyped() {
         val kind: SI.Enumish = SI.Bar

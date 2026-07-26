@@ -6,9 +6,9 @@ import kotlin.test.assertSame
 import org.wrongwrong.sealedClassEnumizer.label
 
 // 末端 fun interface の SAM が全ターゲットで 1 メソッドに保たれることの box テスト
-// （docs/テストケース管理.md TC-MPP-054・V10-c）。ラムダで Handler.Fn を生成できること自体が
+// （docs/test/ケース05-境界横断.md XMP-34・V10-c）。ラムダで Handler.Fn を生成できること自体が
 // 「生成 asEnumish が default 実装で SAM を壊していない」ことの実証になる
-class HandlerSamTest {
+class SamTest {
     // SAM ラムダ生成が成立し、抽象メソッドは handle の 1 つに保たれている
     @Test
     fun samConversionStillWorksOnLeafFunInterface() {

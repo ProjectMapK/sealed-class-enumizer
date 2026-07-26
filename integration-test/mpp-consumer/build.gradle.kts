@@ -1,4 +1,4 @@
-// MPP 純消費側（docs/テストケース管理.md モジュール一覧）。プラグイン未適用の KMP モジュールの
+// MPP 純消費側（docs/test/テスト戦略.md §4）。プラグイン未適用の KMP モジュールの
 // 共通コードから mpp-producer の生成 API を参照できること（跨モジュール × MPP）を検証する
 plugins { kotlin("multiplatform") }
 

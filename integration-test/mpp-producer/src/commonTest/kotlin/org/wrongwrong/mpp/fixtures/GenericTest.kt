@@ -7,7 +7,7 @@ import kotlin.test.assertSame
 import org.wrongwrong.sealedClassEnumizer.label
 
 // 型パラメータ付き基底 / 末端の kind と enumizedClass（star projection 相当）が
-// 全ターゲットで一致することの box テスト（docs/テストケース管理.md TC-MPP-043）
+// 全ターゲットで一致することの box テスト（docs/test/ケース05-境界横断.md XMP-34）
 class GenericTest {
     // 型引数は kind の同一性に影響しない（Box<Int> / Box<String> は同一 kind）。
     // 末端型受け手からの asEnumish()（返り値型 = 生成 companion）で直接観測する

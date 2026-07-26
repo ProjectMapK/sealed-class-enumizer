@@ -6,10 +6,10 @@ import kotlin.test.assertSame
 import org.wrongwrong.sealedClassEnumizer.label
 
 // platform 専用ソースセット（jvmMain）の @Enumize が V5 非依存で正常生成されることの box テスト
-// （docs/テストケース管理.md TC-MPP-062）
+// （docs/test/ケース05-境界横断.md XMP-41）
 class JvmOnlyHierarchyTest {
     @Test
-    fun platformOnlyHierarchyGeneratesNormally() {
+    fun platformOnlyHierarchyGenerates() {
         assertEquals(listOf("A", "B"), JvmOnly.Enumish.entries.map { it.label })
         assertSame(JvmOnly.A, JvmOnly.Enumish.valueOf("A"))
         assertSame(JvmOnly.B.Companion, JvmOnly.B(1).asEnumish())
@@ -18,7 +18,7 @@ class JvmOnlyHierarchyTest {
 
     // kind 単位の網羅 when（else 省略）も platform 配置で成立する
     @Test
-    fun kindWhenIsExhaustiveWithoutElse() {
+    fun kindWhenIsExhaustive() {
         val branches =
             JvmOnly.Enumish.entries.map { kind ->
                 when (kind) {

@@ -6,8 +6,8 @@ import kotlin.test.assertSame
 import org.wrongwrong.sealedClassEnumizer.label
 
 // value class 末端の boxing 挙動が全ターゲットで整合することの box テスト
-// （docs/テストケース管理.md TC-MPP-012）
-class ValueClassBoxingTest {
+// （docs/test/ケース05-境界横断.md XMP-34）
+class ValueBoxingTest {
     // インライン表現・boxed 表現のどちらから呼んでも kind は同一シングルトン
     // （value class 型の受け手からの直接呼び出しと基底型経由が同じ kind を返す）
     @Test

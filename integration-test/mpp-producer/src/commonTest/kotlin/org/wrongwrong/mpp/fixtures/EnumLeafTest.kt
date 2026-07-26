@@ -6,8 +6,8 @@ import kotlin.test.assertSame
 import org.wrongwrong.sealedClassEnumizer.label
 
 // enum 末端の label と Enum.name の併存が全ターゲットで一致することの box テスト
-// （docs/テストケース管理.md TC-MPP-044・V4・docs/概要.md §1）
-class CommandTest {
+// （docs/test/ケース05-境界横断.md XMP-34・V4・docs/概要.md §1）
+class EnumLeafTest {
     // enum は全体で 1 kind（定数毎には展開しない）
     @Test
     fun enumLeafIsSingleKind() {

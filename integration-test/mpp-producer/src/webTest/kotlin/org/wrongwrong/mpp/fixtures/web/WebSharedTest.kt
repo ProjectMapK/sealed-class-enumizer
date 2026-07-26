@@ -7,7 +7,7 @@ import org.wrongwrong.sealedClassEnumizer.label
 
 // 中間ソースセット（webMain）の @Enumize 階層が、中間 metadata コンパイルを通り
 // 共有先の各 platform（js / wasmJs）で動作することの box テスト
-// （docs/テストケース管理.md TC-MPP-046 の web 共有代替形）
+// （docs/test/ケース05-境界横断.md XMP-40 の web 共有代替形）
 class WebSharedTest {
     // 生成 companion の名指し・末端型受け手の asEnumish() が中間ソースセット由来の階層でも成立する
     @Test

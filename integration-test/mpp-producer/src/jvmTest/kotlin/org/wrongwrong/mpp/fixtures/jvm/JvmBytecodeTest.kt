@@ -6,11 +6,11 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.wrongwrong.mpp.fixtures.SI
 
-// JVM 固有のバイトコード観測（docs/テストケース管理.md TC-MPP-031/035/036 と TC-MPP-010 の
-// bridge 半面）。テストコードからの java.lang.reflect 利用は no-reflection 原則
+// JVM 固有のバイトコード観測（docs/test/ケース05-境界横断.md XMP-28/XMP-29/XMP-31）。
+// テストコードからの java.lang.reflect 利用は no-reflection 原則
 // （runtime-api / 生成コード側の制約）の対象外である
 class JvmBytecodeTest {
-    // TC-MPP-031: jvmTarget 17+ で基底 sealed に PermittedSubclasses 属性が出力される
+    // XMP-29: jvmTarget 17+ で基底 sealed に PermittedSubclasses 属性が出力される
     @Test
     fun sealedBaseHasPermittedSubclasses() {
         val si = SI::class.java
@@ -18,9 +18,9 @@ class JvmBytecodeTest {
         assertEquals(setOf(SI.Foo::class.java, SI.Bar::class.java), si.permittedSubclasses.toSet())
     }
 
-    // TC-MPP-031: 生成 Enumish（sealed。V1 成立）にも PermittedSubclasses が出る
+    // XMP-29: 生成 Enumish（sealed。V1 成立）にも PermittedSubclasses が出る
     @Test
-    fun generatedEnumishIsSealedWithPermittedSubclasses() {
+    fun generatedEnumishHasPermittedSubclasses() {
         val enumish = SI.Enumish::class.java
         assertTrue(enumish.isSealed)
         assertEquals(
@@ -29,7 +29,7 @@ class JvmBytecodeTest {
         )
     }
 
-    // TC-MPP-035: $EntriesHolder は @Metadata に載らず Kotlin からは不可視だが、JVM では
+    // XMP-31: $EntriesHolder は @Metadata に載らず Kotlin からは不可視だが、JVM では
     // $ 入り出力名のネストクラスとして Java から見える（ABI 保証外）
     @Test
     fun entriesHolderIsJavaVisibleWithDollarName() {
@@ -42,7 +42,7 @@ class JvmBytecodeTest {
         assertTrue(holder.simpleName.startsWith("$"), "simpleName=${holder.simpleName}")
     }
 
-    // TC-MPP-036/010: 共変 override（enumishCompanion / asEnumish）にコンパイラ本体が
+    // XMP-28: 共変 override（enumishCompanion / asEnumish）にコンパイラ本体が
     // bridge メソッドを生成する（プラグイン非関与の JVM 固有 lowering）。
     // enumishCompanion の実装本体は interface（SI.Enumish）の default メソッド側にあり、
     // 実装クラス側（Bar）へは delegation stub が bridge として生成される（実測形）

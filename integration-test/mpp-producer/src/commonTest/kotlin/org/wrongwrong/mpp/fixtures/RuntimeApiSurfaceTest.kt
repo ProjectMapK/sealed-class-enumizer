@@ -7,12 +7,13 @@ import org.wrongwrong.sealedClassEnumizer.EnumishCompanion
 import org.wrongwrong.sealedClassEnumizer.Enumized
 import org.wrongwrong.sealedClassEnumizer.label
 
-// runtime-api の基底型が common から解決され全ターゲットでリンクすること（TC-MPP-057）と、
-// 複数階層の Companion を宣言側共変で束ねられること（TC-MPP-058）の box テスト
+// runtime-api の基底型が common から解決され全ターゲットでリンクすること
+// （docs/test/ケース05-境界横断.md XMP-25）と、複数階層の Companion を宣言側共変で
+// 束ねられること（docs/test/ケース05-境界横断.md XMP-22）の box テスト
 class RuntimeApiSurfaceTest {
-    // TC-MPP-057: Enumish / Enumized / label 拡張が commonTest から型付きで利用できる
+    // XMP-25: Enumish / Enumized / label 拡張が commonTest から型付きで利用できる
     @Test
-    fun runtimeApiTypesResolveFromCommonCode() {
+    fun runtimeApiTypesResolveFromCommon() {
         val kind: Enumish = SI.Bar
         val value: Enumized<SI.Enumish> = SI.Foo(1)
         assertEquals(
@@ -21,9 +22,9 @@ class RuntimeApiSurfaceTest {
         )
     }
 
-    // TC-MPP-058: List<EnumishCompanion<Enumish>> へ射影なしで束ね、各 entries を走査できる
+    // XMP-22: List<EnumishCompanion<Enumish>> へ射影なしで束ね、各 entries を走査できる
     @Test
-    fun companionsOfMultipleHierarchiesBundleCovariantly() {
+    fun companionsBundleCovariantly() {
         val companions: List<EnumishCompanion<Enumish>> = listOf(SI.Enumish, Command.Enumish)
         assertEquals(
             listOf(listOf("Bar", "Foo"), listOf("Builtin", "Custom")),

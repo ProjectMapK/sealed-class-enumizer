@@ -6,9 +6,9 @@ import kotlin.test.assertSame
 import org.wrongwrong.sealedClassEnumizer.label
 
 // 非 final 末端のサブタイプ吸収が全ターゲットで成立することの box テスト
-// （docs/テストケース管理.md TC-MPP-045/053・V10）。サブタイプはこのテストクラスに
+// （docs/test/ケース05-境界横断.md XMP-34・V10）。サブタイプはこのテストクラスに
 // ネスト定義する（サブタイプの定義位置は階層外なら任意でよい）
-class ShapeAbsorptionTest {
+class AbsorptionTest {
     private class CtTriangle : Shape.Polygon()
 
     private object CtCustom : Shape.Custom
@@ -19,7 +19,7 @@ class ShapeAbsorptionTest {
         assertEquals(listOf("Circle", "Custom", "Polygon"), Shape.Enumish.entries.map { it.label })
     }
 
-    // TC-MPP-045: abstract class 末端のサブタイプは asEnumish を継承して kind に吸収される
+    // abstract class 末端のサブタイプは asEnumish を継承して kind に吸収される
     @Test
     fun subclassOfAbstractLeafIsAbsorbed() {
         val triangle: Shape = CtTriangle()
@@ -27,7 +27,7 @@ class ShapeAbsorptionTest {
         assertEquals("Polygon", triangle.label)
     }
 
-    // TC-MPP-053: interface 末端の default asEnumish 実装が全ターゲットで動作する（V10-b）
+    // interface 末端の default asEnumish 実装が全ターゲットで動作する（V10-b）
     @Test
     fun interfaceLeafDefaultAsEnumishWorks() {
         val custom: Shape = CtCustom

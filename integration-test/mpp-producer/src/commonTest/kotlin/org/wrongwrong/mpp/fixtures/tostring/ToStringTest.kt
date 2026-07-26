@@ -4,8 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 // kind の toString 2 原則が全バックエンドで成立することの box テスト
-// （docs/テストケース管理.md TC-MPP-009・docs/概要.md §4・V11）
-class ToStringMixTest {
+// （docs/test/ケース05-境界横断.md XMP-35・docs/概要.md §4・V11）
+class ToStringTest {
     // 生成対象（Plain）は label を返し、明示実装（合成 = Auto・手動 = Manual/Styled・
     // 継承具象 = Inherited）はそれを尊重する。IR-only override（V11）が klib 直列化と
     // 各バックエンドの仮想ディスパッチを通ることの観測を兼ねる

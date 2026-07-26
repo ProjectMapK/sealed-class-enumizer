@@ -8,7 +8,7 @@ import org.wrongwrong.sealedClassEnumizer.label
 
 // 非 final 末端（common）のサブタイプを platform ソースセットに置く構成が
 // sealed のソースセット制約に掛からず kind に吸収されることの box テスト
-// （docs/テストケース管理.md TC-MPP-050。コンパイル成立自体がその実証）
+// （docs/test/ケース05-境界横断.md XMP-42。コンパイル成立自体がその実証）
 class JvmSubtypeTest {
     @Test
     fun platformSourceSetSubtypeIsAbsorbed() {
@@ -19,7 +19,7 @@ class JvmSubtypeTest {
 
     // サブタイプを platform に足しても entries は増えない
     @Test
-    fun entriesAreUnchangedBySubtype() {
+    fun entriesUnchangedBySubtype() {
         assertEquals(listOf("Circle", "Custom", "Polygon"), Shape.Enumish.entries.map { it.label })
     }
 }

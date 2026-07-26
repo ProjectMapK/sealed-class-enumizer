@@ -2,7 +2,7 @@ package org.wrongwrong.mpp.fixtures.tostring
 
 import org.wrongwrong.sealedClassEnumizer.Enumize
 
-// kind の toString 2 原則の混在フィクスチャ（docs/概要.md §4・docs/テストケース管理.md TC-MPP-009）。
+// kind の toString 2 原則の混在フィクスチャ（docs/概要.md §4・docs/test/ケース05-境界横断.md XMP-35）。
 // 生成対象（Plain）と明示実装持ち（手動 = Manual/Styled・継承具象 = Inherited・data object 合成 = Auto）を
 // 混在させ、IR-only 生成（V11）が klib 直列化と各バックエンドの仮想ディスパッチを通ることを観測する
 @Enumize
