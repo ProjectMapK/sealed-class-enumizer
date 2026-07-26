@@ -3,6 +3,7 @@
 package org.wrongwrong.sealedClassEnumizer.compiler.fir.checkers
 
 import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
@@ -19,6 +20,7 @@ import org.jetbrains.kotlin.fir.declarations.utils.isExpect
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
+import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeKotlinTypeProjection
@@ -280,7 +282,8 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         }
     }
 
-    // 生成対象メンバーの手動宣言・階層外 interface からの具象実装の継承（toString は対象外 = docs/コンパイラプラグイン設計01.md §7.2）
+    // 生成対象メンバーの手動宣言・階層外 interface からの具象 default 実装の継承・
+    // クラス supertype からの final 具象の継承（toString は対象外 = docs/コンパイラプラグイン設計01.md §7.2）
     private fun checkMemberConflicts(
         declaration: FirRegularClass,
         base: FirRegularClassSymbol,
@@ -325,7 +328,11 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
                 context,
             )
         }
-        for (name in inheritedConcreteConflicts(symbol, names, base, resolver)) {
+        val inheritedConflicts =
+            (inheritedConcreteConflicts(symbol, names, base, resolver) +
+                    inheritedFinalClassConflicts(symbol, names, resolver))
+                .distinct()
+        for (name in inheritedConflicts) {
             reporter.reportOn(
                 declaration.source,
                 EnumizeErrors.ENUMIZE_MEMBER_CONFLICT,
@@ -389,6 +396,43 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
                 else -> false
             }
         }
+
+    // クラス supertype（階層内外を問わない）から継承する final 具象メンバーの検出。
+    // 生成 override が final メンバーを踏む構成は FE 診断の無いままコンパイルを通過し、
+    // 実行時のクラスロードで IncompatibleClassChangeError になるため、コンパイル時にエラーとする。
+    // 対象は JVM シグネチャが実際に衝突する宣言種別のみ（label / enumizedClass はプロパティ・
+    // asEnumish は引数なし関数。種別交差は衝突せず成立するため対象外）
+    private fun inheritedFinalClassConflicts(
+        symbol: FirRegularClassSymbol,
+        names: Set<Name>,
+        resolver: EnumizeHierarchyResolver,
+    ): List<Name> {
+        val classSupertypes =
+            resolver.supertypeClosure(symbol).filter { it.classKind == ClassKind.CLASS }
+        return names.filter { name ->
+            classSupertypes.any { superClass -> declaresFinalConflictingMember(superClass, name) }
+        }
+    }
+
+    private fun declaresFinalConflictingMember(symbol: FirRegularClassSymbol, name: Name): Boolean =
+        symbol.fir.declarations.any { member -> isFinalConflictingMember(member, name) }
+
+    private fun isFinalConflictingMember(member: FirDeclaration, name: Name): Boolean =
+        if (name == EnumizeNames.AS_ENUMISH) {
+            member is FirNamedFunction &&
+                member.name == name &&
+                member.valueParameters.isEmpty() &&
+                member.receiverParameter == null &&
+                isFinalNonPrivateMember(member.symbol)
+        } else {
+            member is FirProperty && member.name == name && isFinalNonPrivateMember(member.symbol)
+        }
+
+    // private はサブクラスの override 解決に参加しないため衝突しない（final でも生成側が独立に成立する）
+    private fun isFinalNonPrivateMember(symbol: FirCallableSymbol<*>): Boolean {
+        val status = symbol.resolvedStatus
+        return status.modality == Modality.FINAL && status.visibility != Visibilities.Private
+    }
 
     // ---- kind の一意対応（AMBIGUOUS_KIND）: 階層内・利用側（プラグイン適用モジュール）の双方 ----
 
