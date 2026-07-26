@@ -135,15 +135,15 @@ class DiagSingleOkTest : DiagTestBase() {
         assertNoDiagnosticAt(output, "WlPriv.kt", 9)
     }
 
-    // docs/test/ケース04-診断.md DIA-44: toString は手動宣言・継承具象とも MMC 対象外
+    // docs/test/ケース04-診断.md DIA-44: toString は手動宣言・継承具象とも MC 対象外
     @Test
     fun toStringIsExemptFromMemberConflict() {
         val output = ok()
-        assertFragmentAbsentAt(output, "NmTsLeaf.kt", DiagFragments.MANUAL_MEMBER_CONFLICT)
-        assertFragmentAbsentAt(output, "NmTsMan.kt", DiagFragments.MANUAL_MEMBER_CONFLICT)
+        assertFragmentAbsentAt(output, "NmTsLeaf.kt", DiagFragments.MEMBER_CONFLICT)
+        assertFragmentAbsentAt(output, "NmTsMan.kt", DiagFragments.MEMBER_CONFLICT)
     }
 
-    // docs/test/ケース04-診断.md DIA-70: 階層外クラスからの open 具象継承は MMC 非発火
+    // docs/test/ケース04-診断.md DIA-70: 階層外クラスからの open 具象継承は MC 非発火
     // （検査は interface 限定・生成 override が勝つ。final 具象側は ProbeGateTest）
     @Test
     fun classInheritedOpenMembersDoNotConflict() {
@@ -158,7 +158,7 @@ class DiagSingleOkTest : DiagTestBase() {
     fun nonGeneratedTargetsDoNotConflict() {
         val output = ok()
         listOf("OkM.kt", "OkC.kt", "OkKca.kt").forEach { file ->
-            assertFragmentAbsentAt(output, file, DiagFragments.MANUAL_MEMBER_CONFLICT)
+            assertFragmentAbsentAt(output, file, DiagFragments.MEMBER_CONFLICT)
         }
     }
 

@@ -4,4 +4,4 @@ import org.wrongwrong.sealedClassEnumizer.Enumize
 
 // docs/test/ケース04-診断.md DIA-42 用の基底
 @Enumize
-sealed interface Mm2Si
+sealed interface Mc5Si

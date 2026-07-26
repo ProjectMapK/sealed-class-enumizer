@@ -123,7 +123,7 @@ class DiagSingleFailTest : DiagTestBase() {
     fun innerLeafIsReportedAlone() {
         val output = fail()
         assertDiagnosticAt(output, "InnerHost.kt", 6, DiagFragments.INNER_LEAF)
-        assertFragmentAbsentAt(output, "InnerHost.kt", DiagFragments.MANUAL_MEMBER_CONFLICT)
+        assertFragmentAbsentAt(output, "InnerHost.kt", DiagFragments.MEMBER_CONFLICT)
         assertFragmentAbsentAt(output, "InnerHost.kt", DiagFragments.KIND_TYPE_NOT_DENOTABLE)
     }
 
@@ -215,102 +215,54 @@ class DiagSingleFailTest : DiagTestBase() {
     }
 
     // docs/test/ケース04-診断.md DIA-40: 末端 object の label / enumizedClass / asEnumish 手動宣言で
-    // 各 MMC + メンバー名（末端 object は kind 自身のため ES 警告は不発）
+    // 各 MC + メンバー名（末端 object は kind 自身のため ES 警告は不発）
     @Test
     fun manualMembersOnLeafObjectConflict() {
         val output = fail()
-        assertDiagnosticAt(output, "Mm1Si.kt", 11, DiagFragments.MANUAL_MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(
-            output,
-            "Mm1Si.kt",
-            13,
-            DiagFragments.MANUAL_MEMBER_CONFLICT,
-            "enumizedClass",
-        )
-        assertDiagnosticAt(
-            output,
-            "Mm1Si.kt",
-            15,
-            DiagFragments.MANUAL_MEMBER_CONFLICT,
-            "asEnumish",
-        )
-        assertFragmentAbsentAt(output, "Mm1Si.kt", DiagFragments.EXTENSION_SHADOWED)
+        assertDiagnosticAt(output, "Mc1Si.kt", 11, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "Mc1Si.kt", 13, DiagFragments.MEMBER_CONFLICT, "enumizedClass")
+        assertDiagnosticAt(output, "Mc1Si.kt", 15, DiagFragments.MEMBER_CONFLICT, "asEnumish")
+        assertFragmentAbsentAt(output, "Mc1Si.kt", DiagFragments.EXTENSION_SHADOWED)
     }
 
     // docs/test/ケース04-診断.md DIA-40: 判定は callable 名単位（関数形 label・ctor プロパティ
-    // val asEnumish・引数付き過負荷の宣言種別交差でも MMC）
+    // val asEnumish・引数付き過負荷の宣言種別交差でも MC）
     @Test
     fun memberKindCrossDeclarationsAlsoConflict() {
         val output = fail()
-        assertDiagnosticAt(output, "Mm5Si.kt", 9, DiagFragments.MANUAL_MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(
-            output,
-            "Mm5Si.kt",
-            12,
-            DiagFragments.MANUAL_MEMBER_CONFLICT,
-            "asEnumish",
-        )
-        assertDiagnosticAt(
-            output,
-            "Mm5Si.kt",
-            17,
-            DiagFragments.MANUAL_MEMBER_CONFLICT,
-            "asEnumish",
-        )
+        assertDiagnosticAt(output, "Mc2Si.kt", 9, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "Mc2Si.kt", 12, DiagFragments.MEMBER_CONFLICT, "asEnumish")
+        assertDiagnosticAt(output, "Mc2Si.kt", 17, DiagFragments.MEMBER_CONFLICT, "asEnumish")
     }
 
-    // docs/test/ケース04-診断.md DIA-41: 手動 kind companion（既定名・enum companion）の手動宣言で MMC
+    // docs/test/ケース04-診断.md DIA-41: 手動 kind companion（既定名・enum companion）の手動宣言で MC
     @Test
     fun manualMembersOnKindCompanionConflict() {
         val output = fail()
-        assertDiagnosticAt(output, "McSi.kt", 11, DiagFragments.MANUAL_MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(
-            output,
-            "McSi.kt",
-            13,
-            DiagFragments.MANUAL_MEMBER_CONFLICT,
-            "enumizedClass",
-        )
-        assertDiagnosticAt(output, "McEnum.kt", 13, DiagFragments.MANUAL_MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "Mc3Si.kt", 11, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "Mc3Si.kt", 13, DiagFragments.MEMBER_CONFLICT, "enumizedClass")
+        assertDiagnosticAt(output, "Mc4Enum.kt", 13, DiagFragments.MEMBER_CONFLICT, "label")
     }
 
-    // docs/test/ケース04-診断.md DIA-42: 末端 class / interface の asEnumish 手動宣言で MMC
+    // docs/test/ケース04-診断.md DIA-42: 末端 class / interface の asEnumish 手動宣言で MC
     @Test
     fun manualAsEnumishOnLeafClassConflicts() {
         val output = fail()
-        assertDiagnosticAt(
-            output,
-            "Mm2Leaf.kt",
-            7,
-            DiagFragments.MANUAL_MEMBER_CONFLICT,
-            "asEnumish",
-        )
-        assertDiagnosticAt(output, "IaSi.kt", 9, DiagFragments.MANUAL_MEMBER_CONFLICT, "asEnumish")
+        assertDiagnosticAt(output, "Mc5Leaf.kt", 7, DiagFragments.MEMBER_CONFLICT, "asEnumish")
+        assertDiagnosticAt(output, "Mc6Si.kt", 9, DiagFragments.MEMBER_CONFLICT, "asEnumish")
     }
 
-    // docs/test/ケース04-診断.md DIA-43: 階層外 interface からの同名具象 default 継承で MMC
+    // docs/test/ケース04-診断.md DIA-43: 階層外 interface からの同名具象 default 継承で MC
     // （label・asEnumish・enumizedClass 継承具象の変種）
     @Test
     fun inheritedDefaultMemberConflicts() {
         val output = fail()
-        assertDiagnosticAt(output, "Mm4Leaf.kt", 4, DiagFragments.MANUAL_MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(
-            output,
-            "MhLeaf.kt",
-            4,
-            DiagFragments.MANUAL_MEMBER_CONFLICT,
-            "asEnumish",
-        )
-        assertDiagnosticAt(
-            output,
-            "EcLeaf.kt",
-            4,
-            DiagFragments.MANUAL_MEMBER_CONFLICT,
-            "enumizedClass",
-        )
+        assertDiagnosticAt(output, "Mc7Leaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "Mc8Leaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "asEnumish")
+        assertDiagnosticAt(output, "Mc9Leaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "enumizedClass")
     }
 
-    // docs/test/ケース04-診断.md DIA-62: toString 抽象再宣言は言語 abstract 未実装のみ・MMC 不在
+    // docs/test/ケース04-診断.md DIA-62: toString 抽象再宣言は言語 abstract 未実装のみ・MC 不在
     @Test
     fun abstractToStringRedeclarationFailsInLanguage() {
         val output = fail()
@@ -319,7 +271,7 @@ class DiagSingleFailTest : DiagTestBase() {
             "AtLeaf.kt",
             DiagFragments.LANG_ABSTRACT_MEMBER_NOT_IMPLEMENTED,
         )
-        assertFragmentAbsentAt(output, "AtLeaf.kt", DiagFragments.MANUAL_MEMBER_CONFLICT)
+        assertFragmentAbsentAt(output, "AtLeaf.kt", DiagFragments.MEMBER_CONFLICT)
     }
 
     // docs/test/ケース04-診断.md DIA-46: 基底の Enumized<別型> 直接継承で MSM（報告位置 = supertype ref）
@@ -410,7 +362,7 @@ class DiagSingleFailTest : DiagTestBase() {
         assertDiagnosticInFile(output, "AlienPkg.kt", "e: ", "package")
     }
 
-    // docs/test/ケース04-診断.md DIA-60: MMC / MSM 発火時も形状生成は継続し隣接参照は未解決にならない
+    // docs/test/ケース04-診断.md DIA-60: MC / MSM 発火時も形状生成は継続し隣接参照は未解決にならない
     @Test
     fun conflictingDeclarationsKeepShapeGeneration() {
         assertFragmentAbsentAt(fail(), "ShapeProbe.kt", "e: ")
