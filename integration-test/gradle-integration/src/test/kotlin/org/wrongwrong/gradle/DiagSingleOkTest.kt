@@ -143,13 +143,15 @@ class DiagSingleOkTest : DiagTestBase() {
         assertFragmentAbsentAt(output, "NmTsMan.kt", DiagFragments.MEMBER_CONFLICT)
     }
 
-    // docs/test/ケース04-診断.md DIA-70: 階層外クラスからの open 具象継承は MC 非発火
-    // （検査は interface 限定・生成 override が勝つ。final 具象側は ProbeGateTest）
+    // docs/test/ケース04-診断.md DIA-70: クラス継承の非発火側 — open 具象（companion 経由・末端 object
+    // 直接）は生成 override が勝ち、宣言種別交差（final 関数 label）と private は衝突しない
     @Test
-    fun classInheritedOpenMembersDoNotConflict() {
+    fun classInheritanceNearMissesDoNotConflict() {
         val output = ok()
-        assertFragmentAbsentAt(output, "OkCi.kt", "e: ")
-        assertFragmentAbsentAt(output, "OkCi.kt", "w: ")
+        listOf("OkCi.kt", "OkCiOpen.kt", "OkCiFn.kt", "OkCiPv.kt").forEach { file ->
+            assertFragmentAbsentAt(output, file, "e: ")
+            assertFragmentAbsentAt(output, file, "w: ")
+        }
     }
 
     // docs/test/ケース04-診断.md DIA-45: 生成先違い（末端本体 enumizedClass・kind companion の

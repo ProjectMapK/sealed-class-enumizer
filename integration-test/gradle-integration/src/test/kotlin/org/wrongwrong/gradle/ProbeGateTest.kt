@@ -4,9 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAnywhere
 import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
-import org.wrongwrong.gradle.DiagAsserts.assertFragmentAbsent
 
-// 実挙動固定 5 態様（docs/test/ケース04-診断.md DIA-66〜70）。
+// 実挙動固定 4 態様（docs/test/ケース04-診断.md DIA-66〜69）。
 // 各メソッドは実測で確定した挙動を回帰ゲートとして固定する
 // （probe-* フィクスチャは 1 態様 1 フィクスチャ。ICE 等の既知の制限は docs/test/保留.md §2）
 class ProbeGateTest : DiagTestBase() {
@@ -55,16 +54,5 @@ class ProbeGateTest : DiagTestBase() {
         val dir = prepare("probe-delegation")
         val out = IcTestSupport.outLines(TestKitHarness.build(dir, "runMain"))
         assertEquals(listOf("DEL=Del", "ENTRIES=Del,Ok"), out)
-    }
-
-    // docs/test/ケース04-診断.md DIA-70: 階層外クラスからの final 具象（label）継承末端は
-    // コンパイルが黙って通り、生成 override が final を踏むため実行時のクラスロードで
-    // IncompatibleClassChangeError になる（docs/test/保留.md GATE-03）
-    @Test
-    fun finalInheritedMemberBehaviorIsPinned() {
-        val dir = prepare("probe-final-member")
-        val fail = TestKitHarness.buildAndFail(dir, "runMain")
-        assertFragmentAbsent(fail.output, "Task :compileKotlin FAILED")
-        assertDiagnosticAnywhere(fail.output, "IncompatibleClassChangeError", "overrides final")
     }
 }

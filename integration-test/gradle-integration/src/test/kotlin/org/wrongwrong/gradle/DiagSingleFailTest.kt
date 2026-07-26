@@ -262,6 +262,19 @@ class DiagSingleFailTest : DiagTestBase() {
         assertDiagnosticAt(output, "Mc9Leaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "enumizedClass")
     }
 
+    // docs/test/ケース04-診断.md DIA-70: クラス supertype の final 具象継承で MC — 階層外の直接継承・
+    // 中間クラス介在・引数なし関数 asEnumish・階層内 sealed class 基底の ctor プロパティ・
+    // 手動 kind companion（報告位置 = companion 宣言）
+    @Test
+    fun inheritedFinalClassMembersConflict() {
+        val output = fail()
+        assertDiagnosticAt(output, "FiLeaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "FiViaMid.kt", 4, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "FiAsLeaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "asEnumish")
+        assertDiagnosticAt(output, "FiScLeaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "FiCls.kt", 5, DiagFragments.MEMBER_CONFLICT, "label")
+    }
+
     // docs/test/ケース04-診断.md DIA-62: toString 抽象再宣言は言語 abstract 未実装のみ・MC 不在
     @Test
     fun abstractToStringRedeclarationFailsInLanguage() {
