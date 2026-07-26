@@ -2,7 +2,8 @@ package org.wrongwrong.fixtures.reentry
 
 import org.wrongwrong.sealedClassEnumizer.Enumize
 
-// 初期化再入の禁止（TC-BOX-053）: companion（kind）の初期化子から valueOf を参照する構成
+// 初期化再入（docs/test/ケース01-生成と実行時API.md API-45 の valueOf 経路）:
+// companion（kind）の初期化子から valueOf を参照する構成
 @Enumize
 sealed interface ReValueOf {
     class Leaf(val v: Int) : ReValueOf {
