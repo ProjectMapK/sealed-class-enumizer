@@ -3,6 +3,7 @@ package org.wrongwrong.gradle
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
+import org.wrongwrong.gradle.DiagAsserts.assertDiagnosticAt
 
 // IC 回帰マトリクス（docs/test/ケース06-ビルド動態.md BLD-01・BLD-07〜14・BLD-19/20/22/23/26/27）。
 // ic-basic フィクスチャ（多ファイル分散 SI + 独立階層 TI + ネスト基底 NB + 無関係ファイル）で
@@ -581,5 +582,36 @@ class IcRegressionTest {
                 key.startsWith("${IcBasicFixture.CLASS_PREFIX}/Outer")
         }
         assertEquals(digests0.filterKeys(leafKeys), digests1.filterKeys(leafKeys))
+    }
+
+    // docs/test/ケース06-ビルド動態.md BLD-47: 階層外クラスの label open⇄final 編集トグルで
+    // 末端側の ENUMIZE_MEMBER_CONFLICT が発火・解除され、発火側は clean と失敗パリティ一致する
+    @Test
+    fun finalMemberToggleMatchesCleanFailureParity() {
+        val dir = IcTestSupport.prepare("ic-member-conflict", "icmc-")
+        val baseline = IcTestSupport.outLines(TestKitHarness.build(dir, "runMain"))
+        assertEquals(listOf("LABEL=McLeaf", "ENTRIES=McLeaf"), baseline)
+        val digests0 = IcTestSupport.classDigests(dir)
+
+        // final 化 → 親クラス単独編集のラウンドでも末端の MC 発火が clean と一致する
+        val outFile = "src/main/kotlin/org/wrongwrong/icmc/McOut.kt"
+        TestKitHarness.replaceInFile(dir, outFile, "open val label", "val label")
+        val incremental = TestKitHarness.buildAndFail(dir, "compileKotlin")
+        assertDiagnosticAt(
+            incremental.output,
+            "McLeaf.kt",
+            4,
+            DiagFragments.MEMBER_CONFLICT,
+            "label",
+        )
+        val cleanDir = IcTestSupport.prepare("ic-member-conflict", "icmcc-")
+        TestKitHarness.replaceInFile(cleanDir, outFile, "open val label", "val label")
+        val clean = TestKitHarness.buildAndFail(cleanDir, "compileKotlin")
+        assertDiagnosticAt(clean.output, "McLeaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "label")
+
+        // 復元 → 基準出力・全生成物バイト一致まで復帰
+        TestKitHarness.replaceInFile(dir, outFile, "val label", "open val label")
+        assertEquals(baseline, IcTestSupport.outLines(TestKitHarness.build(dir, "runMain")))
+        assertEquals(digests0, IcTestSupport.classDigests(dir))
     }
 }
