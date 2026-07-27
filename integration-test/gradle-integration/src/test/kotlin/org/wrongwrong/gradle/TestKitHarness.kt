@@ -52,14 +52,7 @@ object TestKitHarness {
                     path.isDirectory() -> target.createDirectories()
                     isTextFile(path) -> {
                         target.parent.createDirectories()
-                        target.writeText(
-                            path
-                                .readText()
-                                .replace(
-                                    "%%BUILD_CACHE_DIR%%",
-                                    cacheDir.toString().replace('\\', '/'),
-                                )
-                        )
+                        target.writeText(expandTextFixture(path.readText(), cacheDir))
                     }
                     else -> {
                         target.parent.createDirectories()
@@ -70,6 +63,15 @@ object TestKitHarness {
         }
         appendDaemonSettings(projectDir)
     }
+
+    // フィクスチャのテキストは checkout 環境の改行コードに左右されうるため、展開時に LF へ確定させる。
+    // replaceInFile 等の下流はテストコード中の LF 文字列と直接照合するので、
+    // ここで正規化しないと CRLF の作業ツリーで一致に失敗する。行数は変わらないため、
+    // 診断の行番号を検証するフィクスチャの前提は保たれる（docs/test/フィクスチャ構成.md §4）
+    private fun expandTextFixture(text: String, cacheDir: Path): String =
+        text
+            .replace("\r\n", "\n")
+            .replace("%%BUILD_CACHE_DIR%%", cacheDir.toString().replace('\\', '/'))
 
     // フィクスチャ側の宣言（org.gradle.caching 等）を残したまま共通設定を後置きで追記する
     // （properties は後勝ちのため、同じキーを持つフィクスチャがあれば共通設定が優先される）
