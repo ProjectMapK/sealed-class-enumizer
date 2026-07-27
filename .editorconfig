@@ -1,0 +1,13 @@
+root = true
+
+# エディタ／IDE 側が作成・保存するファイルの改行コードを LF に固定する。
+# git 側は .gitattributes で正規化されるが、それは checkout / add の変換のみを制御し、
+# 作業ツリーへ直接書き込まれる内容には及ばないため、両方が必要となる。
+[*]
+end_of_line = lf
+charset = utf-8
+insert_final_newline = true
+
+# Windows 専用スクリプトのみ CRLF（.gitattributes と対応させる）
+[*.{bat,cmd}]
+end_of_line = crlf
