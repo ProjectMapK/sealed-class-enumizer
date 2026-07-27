@@ -1,0 +1,15 @@
+# リポジトリ内容は LF で正規化し、作業ツリーも全プラットフォームで LF に統一する。
+# 環境側の core.autocrlf 設定より .gitattributes が優先されるため、
+# Windows/macOS/Linux のいずれで clone しても同一の改行コードになる。
+* text=auto eol=lf
+
+# Windows 専用スクリプトのみ CRLF を維持する。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# バイナリ（改行変換・テキスト差分の対象外）。
+*.jar binary
+*.zip binary
+*.png binary
+*.gif binary
+*.ico binary
