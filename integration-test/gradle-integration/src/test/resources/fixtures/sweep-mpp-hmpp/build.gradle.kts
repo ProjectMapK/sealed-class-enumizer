@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
     kotlin("multiplatform")
     id("org.wrongwrong.sealed-class-enumizer")
@@ -14,6 +16,8 @@ kotlin {
     js {
         nodejs()
     }
+    // wasm 系のターゲット宣言 DSL は KGP でまだ実験的であり、明示的なオプトインを要求する
+    @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         nodejs()
     }

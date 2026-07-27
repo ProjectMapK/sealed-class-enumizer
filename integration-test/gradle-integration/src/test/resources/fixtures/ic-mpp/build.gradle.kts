@@ -1,5 +1,8 @@
 // MPP の末端追加ラウンド用フィクスチャ。commonMain に多ファイル sealed 階層を置き、
 // klib（js / wasmJs）・metadata・jvm の各コンパイルを同一ラウンドで観測する
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
     kotlin("multiplatform")
     id("org.wrongwrong.sealed-class-enumizer")
@@ -17,6 +20,8 @@ kotlin {
     js {
         nodejs()
     }
+    // wasm 系のターゲット宣言 DSL は KGP でまだ実験的であり、明示的なオプトインを要求する
+    @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         nodejs()
     }

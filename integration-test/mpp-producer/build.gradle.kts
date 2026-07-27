@@ -1,6 +1,9 @@
 // MPP 生成側（docs/test/テスト戦略.md §4）。commonMain の @Enumize 階層を
 // 全ターゲット（jvm / js / native(host) / wasmJs / wasmWasi）で box 検証する。
 // native ターゲットはホスト依存でゲートする（docs/test/フィクスチャ構成.md §4）
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
     kotlin("multiplatform")
     id("org.wrongwrong.sealed-class-enumizer")
@@ -15,8 +18,10 @@ kotlin {
 
     jvm()
     js { nodejs() }
-    wasmJs { nodejs() }
-    wasmWasi { nodejs() }
+    // wasm 系のターゲット宣言 DSL は KGP でまだ実験的であり、明示的なオプトインを要求する
+    @OptIn(ExperimentalWasmDsl::class) wasmJs { nodejs() }
+
+    @OptIn(ExperimentalWasmDsl::class) wasmWasi { nodejs() }
     val os = System.getProperty("os.name")
     when {
         os.startsWith("Windows") -> mingwX64()

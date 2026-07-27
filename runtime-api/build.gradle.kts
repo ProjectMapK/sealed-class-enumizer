@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     `maven-publish`
@@ -12,8 +14,10 @@ kotlin {
 
     jvm()
     js { nodejs() }
-    wasmJs { nodejs() }
-    wasmWasi { nodejs() }
+    // wasm 系のターゲット宣言 DSL は KGP でまだ実験的であり、明示的なオプトインを要求する
+    @OptIn(ExperimentalWasmDsl::class) wasmJs { nodejs() }
+
+    @OptIn(ExperimentalWasmDsl::class) wasmWasi { nodejs() }
     linuxX64()
     macosX64()
     macosArm64()
