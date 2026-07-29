@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm")
-    id("org.wrongwrong.sealed-class-enumizer")
+    id("io.github.projectmapk.sealed-class-enumizer")
 }
 
 repositories {

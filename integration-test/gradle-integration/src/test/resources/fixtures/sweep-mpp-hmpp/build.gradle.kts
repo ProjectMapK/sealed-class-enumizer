@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     kotlin("multiplatform")
-    id("org.wrongwrong.sealed-class-enumizer")
+    id("io.github.projectmapk.sealed-class-enumizer")
 }
 
 repositories {

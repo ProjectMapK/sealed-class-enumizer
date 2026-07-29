@@ -3,7 +3,7 @@
 // 跨モジュール負値診断・ABI 伝播・旧バイナリ差し替え・基底不在ラウンドを検証する
 plugins { kotlin("jvm") }
 
-group = "org.wrongwrong"
+group = "io.github.projectmapk"
 
 version = "1.0-SNAPSHOT"
 

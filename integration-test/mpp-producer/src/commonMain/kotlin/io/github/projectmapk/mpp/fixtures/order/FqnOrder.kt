@@ -1,0 +1,9 @@
+package io.github.projectmapk.mpp.fixtures.order
+
+import io.github.projectmapk.sealedClassEnumizer.Enumize
+
+// entries 順序（FQN 序数順）の MPP 版フィクスチャ（docs/概要.md §5 の実測形・
+// docs/test/ケース05-境界横断.md XMP-36）。ネスト末端 S.Aaa / Box.Bbb とトップレベル末端
+// Mmm / Zzz / aLower を混在させ、entries = [Bbb, Mmm, Aaa, Zzz, aLower]（FQN 序数順）が
+// 全ターゲットで一致することを観測する。継承者はファイル分散で定義する
+@Enumize sealed interface FqnOrder

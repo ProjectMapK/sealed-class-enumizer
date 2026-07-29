@@ -9,5 +9,5 @@ dependencies {
 
 tasks.register<JavaExec>("runMain") {
     classpath = files(sourceSets.main.get().runtimeClasspath)
-    mainClass.set("org.wrongwrong.abiuse.MainKt")
+    mainClass.set("io.github.projectmapk.abiuse.MainKt")
 }

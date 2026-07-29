@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm")
-    id("org.wrongwrong.sealed-class-enumizer")
+    id("io.github.projectmapk.sealed-class-enumizer")
 }
 
 repositories {
@@ -10,5 +10,5 @@ repositories {
 
 tasks.register<JavaExec>("runMain") {
     classpath = files(sourceSets.main.get().runtimeClasspath)
-    mainClass.set("org.wrongwrong.probe.deleg.MainKt")
+    mainClass.set("io.github.projectmapk.probe.deleg.MainKt")
 }

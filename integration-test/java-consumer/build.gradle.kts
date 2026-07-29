@@ -2,7 +2,7 @@
 // Java 21 パターンマッチング switch（JEP 441）のためこのモジュールだけ toolchain 21 を使う
 plugins { java }
 
-group = "org.wrongwrong"
+group = "io.github.projectmapk"
 
 version = "1.0-SNAPSHOT"
 

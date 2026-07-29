@@ -2,10 +2,10 @@
 // 負値診断（コンパイル失敗を要するもの）は gradle-integration の TestKit 側に置く
 plugins {
     kotlin("jvm")
-    id("org.wrongwrong.sealed-class-enumizer")
+    id("io.github.projectmapk.sealed-class-enumizer")
 }
 
-group = "org.wrongwrong"
+group = "io.github.projectmapk"
 
 version = "1.0-SNAPSHOT"
 

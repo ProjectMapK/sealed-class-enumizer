@@ -4,7 +4,7 @@ plugins {
     `maven-publish`
 }
 
-group = "org.wrongwrong"
+group = "io.github.projectmapk"
 
 version = "1.0-SNAPSHOT"
 
@@ -15,9 +15,9 @@ dependencies { compileOnly(libs.kotlin.gradle.plugin.api) }
 gradlePlugin {
     plugins {
         create("sealedClassEnumizer") {
-            id = "org.wrongwrong.sealed-class-enumizer"
+            id = "io.github.projectmapk.sealed-class-enumizer"
             implementationClass =
-                "org.wrongwrong.sealedClassEnumizer.gradle.SealedClassEnumizerGradlePlugin"
+                "io.github.projectmapk.sealedClassEnumizer.gradle.SealedClassEnumizerGradlePlugin"
         }
     }
 }

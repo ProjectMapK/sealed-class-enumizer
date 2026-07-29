@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins { kotlin("multiplatform") }
 
-group = "org.wrongwrong"
+group = "io.github.projectmapk"
 
 version = "1.0-SNAPSHOT"
 

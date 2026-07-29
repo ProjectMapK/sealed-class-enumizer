@@ -2,7 +2,7 @@
 // 生成 API がメタデータ経由で普通に参照できること（docs/概要.md §7）を検証する
 plugins { kotlin("jvm") }
 
-group = "org.wrongwrong"
+group = "io.github.projectmapk"
 
 version = "1.0-SNAPSHOT"
 

@@ -2,7 +2,7 @@
 // サブクラス化に @Enumize は要らないためプラグインは未適用
 plugins { kotlin("jvm") }
 
-group = "org.wrongwrong"
+group = "io.github.projectmapk"
 
 version = "1.0-SNAPSHOT"
 

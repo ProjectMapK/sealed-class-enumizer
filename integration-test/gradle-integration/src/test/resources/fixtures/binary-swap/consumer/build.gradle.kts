@@ -11,7 +11,7 @@ dependencies {
     implementation(files(v1Jar))
     // producer を raw jar（files）で参照するため推移的メタデータが無く、runtime-api の明示宣言が必要。
     // これは gradle-plugin の api 自動公開とは独立の恒久要件（生成 API の supertype 解決に要る）
-    implementation("org.wrongwrong:runtime-api:1.0-SNAPSHOT")
+    implementation("io.github.projectmapk:runtime-api:1.0-SNAPSHOT")
 }
 
 // 実行時クラスパスから producer jar を除いた共通部分（main 出力 + runtime-api + stdlib）
@@ -21,11 +21,11 @@ fun runtimeWithoutProducer() = sourceSets.main.get().runtimeClasspath.filter {
 
 tasks.register<JavaExec>("runV1") {
     classpath = runtimeWithoutProducer() + files(v1Jar)
-    mainClass.set("org.wrongwrong.swapuse.MainKt")
+    mainClass.set("io.github.projectmapk.swapuse.MainKt")
 }
 
 tasks.register<JavaExec>("runV2") {
     // コンパイル時 v1・実行時 v2 の組合せ（entries は実行時に存在する版の集合を返す）
     classpath = runtimeWithoutProducer() + files(v2Jar)
-    mainClass.set("org.wrongwrong.swapuse.MainKt")
+    mainClass.set("io.github.projectmapk.swapuse.MainKt")
 }

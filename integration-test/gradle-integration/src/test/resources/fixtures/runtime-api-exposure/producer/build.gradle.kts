@@ -3,7 +3,7 @@
 // （api 公開前の状況＝runtime-api が利用側へ伝播しない状態を意図的に再現する。docs/test/ケース06-ビルド動態.md BLD-41）
 plugins {
     kotlin("jvm")
-    id("org.wrongwrong.sealed-class-enumizer")
+    id("io.github.projectmapk.sealed-class-enumizer")
 }
 
 if (project.hasProperty("hideRuntimeApi")) {
@@ -11,6 +11,6 @@ if (project.hasProperty("hideRuntimeApi")) {
         addRuntimeDependency.set(false)
     }
     dependencies {
-        implementation("org.wrongwrong:runtime-api:1.0-SNAPSHOT")
+        implementation("io.github.projectmapk:runtime-api:1.0-SNAPSHOT")
     }
 }

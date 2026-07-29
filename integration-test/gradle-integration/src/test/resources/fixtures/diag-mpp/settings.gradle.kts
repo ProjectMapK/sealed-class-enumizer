@@ -9,7 +9,7 @@ pluginManagement {
     }
     plugins {
         kotlin("multiplatform") version "2.4.20-Beta1"
-        id("org.wrongwrong.sealed-class-enumizer") version "1.0-SNAPSHOT"
+        id("io.github.projectmapk.sealed-class-enumizer") version "1.0-SNAPSHOT"
     }
 }
 

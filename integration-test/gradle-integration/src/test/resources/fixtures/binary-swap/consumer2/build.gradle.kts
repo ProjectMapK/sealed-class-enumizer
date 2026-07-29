@@ -11,7 +11,7 @@ dependencies {
     // コンパイルは常に v2（3 末端）に対して行う（テストが先に :producer-v2:jar を組み立てる）
     implementation(files(v2Jar))
     // raw jar（files）参照のため推移的メタデータが無く、runtime-api の明示宣言が必要
-    implementation("org.wrongwrong:runtime-api:1.0-SNAPSHOT")
+    implementation("io.github.projectmapk:runtime-api:1.0-SNAPSHOT")
 }
 
 // 実行時クラスパスから producer jar を除いた共通部分（main 出力 + runtime-api + stdlib）
@@ -22,10 +22,10 @@ fun runtimeWithoutProducer() = sourceSets.main.get().runtimeClasspath.filter {
 tasks.register<JavaExec>("runV1") {
     // コンパイル時 v2・実行時 v1 の組合せ（消えた label の valueOf は実行時 IAE になる）
     classpath = runtimeWithoutProducer() + files(v1Jar)
-    mainClass.set("org.wrongwrong.swapuse2.MainKt")
+    mainClass.set("io.github.projectmapk.swapuse2.MainKt")
 }
 
 tasks.register<JavaExec>("runV2") {
     classpath = runtimeWithoutProducer() + files(v2Jar)
-    mainClass.set("org.wrongwrong.swapuse2.MainKt")
+    mainClass.set("io.github.projectmapk.swapuse2.MainKt")
 }

@@ -5,7 +5,7 @@ plugins {
     `maven-publish`
 }
 
-group = "org.wrongwrong"
+group = "io.github.projectmapk"
 
 version = "1.0-SNAPSHOT"
 

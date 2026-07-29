@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     kotlin("multiplatform")
-    id("org.wrongwrong.sealed-class-enumizer")
+    id("io.github.projectmapk.sealed-class-enumizer")
 }
 
 repositories {
@@ -31,5 +31,5 @@ kotlin {
 tasks.register<JavaExec>("runMain") {
     val jvmMain = kotlin.jvm().compilations.getByName("main")
     classpath = files(jvmMain.output.allOutputs, jvmMain.runtimeDependencyFiles)
-    mainClass.set("org.wrongwrong.icmpp.MainKt")
+    mainClass.set("io.github.projectmapk.icmpp.MainKt")
 }
