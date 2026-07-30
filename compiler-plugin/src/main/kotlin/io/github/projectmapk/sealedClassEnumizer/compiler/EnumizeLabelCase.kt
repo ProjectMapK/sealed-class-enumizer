@@ -24,8 +24,7 @@ enum class EnumizeLabelCase {
     abstract fun convert(simpleName: String): String
 
     companion object {
-        // オプション欠落時（gradle プラグインを経ないビルド）の組み込み既定。gradle プラグインの
-        // convention と同値に固定し、二重既定の乖離を防ぐ（docs/概要.md §4）
+        // labelCase オプション欠落時の組み込み既定（docs/概要.md §4）
         val BUILT_IN_DEFAULT: EnumizeLabelCase = AS_DECLARED
 
         fun fromNameOrNull(name: String): EnumizeLabelCase? = entries.firstOrNull {

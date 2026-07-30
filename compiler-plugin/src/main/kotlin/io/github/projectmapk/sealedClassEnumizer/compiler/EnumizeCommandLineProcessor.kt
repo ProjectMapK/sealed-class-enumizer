@@ -31,12 +31,11 @@ class EnumizeCommandLineProcessor : CommandLineProcessor {
     }
 
     companion object {
-        // gradle-plugin の getCompilerPluginId と一致していなければならない
+        // プラグイン ID の正定義。コンパイラはオプション（plugin:<ID>:<キー>=<値>）をこの ID で本プラグインへ振り分ける
         const val PLUGIN_ID: String = "io.github.projectmapk.sealed-class-enumizer"
 
-        // gradle-plugin が SubpluginOption で渡すキーと一致していなければならない。
         // 名前は @Enumize の引数名（EnumizeNames.LABEL_CASE_PARAMETER が compiler-plugin 内の
-        // 単一定義）から導出して 3 面（引数・CLI オプション・gradle DSL）で同名に揃える。
+        // 単一定義）から導出し、アノテーション引数と CLI オプションを同名に揃える。
         // 値は具体ケースのみ（PROJECT_DEFAULT は受け取らない。docs/概要.md §4）
         val LABEL_CASE_OPTION_NAME: String = EnumizeNames.LABEL_CASE_PARAMETER.asString()
 
