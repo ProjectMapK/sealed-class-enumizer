@@ -19,7 +19,7 @@ class EnumizeCompilerPluginRegistrar : CompilerPluginRegistrar() {
 
     override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
         val defaultLabelCase =
-            configuration.get(EnumizeCommandLineProcessor.LABEL_CASE_KEY)
+            configuration[EnumizeCommandLineProcessor.LABEL_CASE_KEY]
                 ?: EnumizeLabelCase.BUILT_IN_DEFAULT
         FirExtensionRegistrarAdapter.registerExtension(
             EnumizeFirExtensionRegistrar(defaultLabelCase)
