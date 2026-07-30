@@ -200,4 +200,13 @@ class DiagSingleOkTest : DiagTestBase() {
             assertFragmentAbsentAt(output, file, "e: ")
         }
     }
+
+    // docs/test/ケース04-診断.md DIA-76: 中間 sealed への任意のユーザーアノテーションは基底判定を
+    // 壊さず（回帰: 未解決の型参照による ICE）、末端への正当な @EnumishLabel も無診断
+    @Test
+    fun annotatedMidAndValidEnumishLabelReportNothing() {
+        val output = ok()
+        assertFragmentAbsentAt(output, "LblOkMid.kt", "e: ")
+        assertFragmentAbsentAt(output, "LblOkMid.kt", "w: ")
+    }
 }

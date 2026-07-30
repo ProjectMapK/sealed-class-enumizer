@@ -381,12 +381,6 @@ class DiagSingleFailTest : DiagTestBase() {
         assertFragmentAbsentAt(fail(), "ShapeProbe.kt", "e: ")
     }
 
-    // docs/test/ケース04-診断.md DIA-61: @EnumizeLabel は v1 に存在せず未解決参照になる
-    @Test
-    fun enumizeLabelDoesNotExistInV1() {
-        assertDiagnosticInFile(fail(), "Elabel.kt", "EnumizeLabel")
-    }
-
     // docs/test/ケース04-診断.md DIA-61: reified ヘルパは v1 に存在せず未解決参照になる
     @Test
     fun reifiedHelpersDoNotExist() {
@@ -421,5 +415,38 @@ class DiagSingleFailTest : DiagTestBase() {
         assertDiagnosticInFile(output, "TsLeaf.kt", "e: ")
         assertFragmentAbsentAt(output, "TsLeaf.kt", DiagFragments.NESTED_IN_HIERARCHY)
         assertFragmentAbsentAt(output, "TsLeaf.kt", DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY)
+    }
+
+    // docs/test/ケース04-診断.md DIA-72: @EnumishLabel の付与先が末端でない 4 形（基底・中間 sealed・
+    // 末端 class の companion = kind・階層外クラス）で INVALID_LABEL が各付与位置に発火する
+    @Test
+    fun enumishLabelOnNonLeafIsInvalid() {
+        val output = fail()
+        listOf(8, 11, 16, 20).forEach { line ->
+            assertDiagnosticAt(output, "LblTargets.kt", line, DiagFragments.INVALID_LABEL_TARGET)
+        }
+    }
+
+    // docs/test/ケース04-診断.md DIA-73: 空白のみの明示 label は付与先が正当な末端でも INVALID_LABEL
+    @Test
+    fun blankEnumishLabelIsInvalid() {
+        assertDiagnosticAt(fail(), "LblBlank.kt", 9, DiagFragments.INVALID_LABEL_BLANK)
+    }
+
+    // docs/test/ケース04-診断.md DIA-74: ケース変換で初めて衝突する単純名は最終 label で判定され、
+    // 両末端に LABEL_CLASH（変換後 label がメッセージに現れる）
+    @Test
+    fun conversionInducedLabelClashIsReported() {
+        val output = fail()
+        assertDiagnosticAt(output, "LblCaseClash.kt", 10, DiagFragments.LABEL_CLASH, "FOO_BAR")
+        assertDiagnosticAt(output, "LblCaseClash.kt", 12, DiagFragments.LABEL_CLASH, "FOO_BAR")
+    }
+
+    // docs/test/ケース04-診断.md DIA-75: 明示 label と他末端の既定 label の衝突も両末端に LABEL_CLASH
+    @Test
+    fun aliasVersusDefaultLabelClashIsReported() {
+        val output = fail()
+        assertDiagnosticAt(output, "LblAliasClash.kt", 9, DiagFragments.LABEL_CLASH, "First")
+        assertDiagnosticAt(output, "LblAliasClash.kt", 11, DiagFragments.LABEL_CLASH, "First")
     }
 }

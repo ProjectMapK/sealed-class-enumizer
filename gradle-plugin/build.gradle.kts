@@ -10,7 +10,14 @@ version = "1.0-SNAPSHOT"
 
 kotlin { jvmToolchain(17) }
 
-dependencies { compileOnly(libs.kotlin.gradle.plugin.api) }
+dependencies {
+    compileOnly(libs.kotlin.gradle.plugin.api)
+    // DSL の LabelCase と runtime-api の宣言の一致検証（LabelCaseTest）のため、依存はテストにのみ持つ
+    testImplementation(project(":runtime-api"))
+    testImplementation(libs.kotlin.test)
+}
+
+tasks.test { useJUnitPlatform() }
 
 gradlePlugin {
     plugins {

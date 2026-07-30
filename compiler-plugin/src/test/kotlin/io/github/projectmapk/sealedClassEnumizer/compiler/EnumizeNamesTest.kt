@@ -3,6 +3,7 @@ package io.github.projectmapk.sealedClassEnumizer.compiler
 import io.github.projectmapk.sealedClassEnumizer.Enumish
 import io.github.projectmapk.sealedClassEnumizer.EnumishCompanion
 import io.github.projectmapk.sealedClassEnumizer.EnumishEntriesHolder
+import io.github.projectmapk.sealedClassEnumizer.EnumishLabel
 import io.github.projectmapk.sealedClassEnumizer.Enumize
 import io.github.projectmapk.sealedClassEnumizer.Enumized
 import kotlin.reflect.KFunction
@@ -23,6 +24,9 @@ class EnumizeNamesTest {
     private fun namesFromDeclarations(): Map<String, String> =
         mapOf(
             "Enumize" to Enumize::class.java.name,
+            "Enumize.labelCase" to Enumize::labelCase.name,
+            "EnumishLabel" to EnumishLabel::class.java.name,
+            "EnumishLabel.value" to EnumishLabel::value.name,
             "Enumish" to Enumish::class.java.name,
             "EnumishCompanion" to EnumishCompanion::class.java.name,
             "Enumized" to Enumized::class.java.name,
@@ -47,6 +51,11 @@ class EnumizeNamesTest {
     private fun namesFromConstants(): Map<String, String> =
         mapOf(
             "Enumize" to EnumizeNames.ENUMIZE_ANNOTATION_CLASS_ID.asFqNameString(),
+            "Enumize.labelCase" to EnumizeNames.LABEL_CASE_PARAMETER.asString(),
+            "EnumishLabel" to EnumizeNames.ENUMISH_LABEL_ANNOTATION_CLASS_ID.asFqNameString(),
+            // EnumishLabel.value と EnumishCompanion.valueOf の値引数は名前が一致しているだけの
+            // 別宣言だが、定数は VALUE_PARAMETER を共用している（entries と同じ扱い）
+            "EnumishLabel.value" to EnumizeNames.VALUE_PARAMETER.asString(),
             "Enumish" to EnumizeNames.ENUMISH_CLASS_ID.asFqNameString(),
             "EnumishCompanion" to EnumizeNames.ENUMISH_COMPANION_CLASS_ID.asFqNameString(),
             "Enumized" to EnumizeNames.ENUMIZED_CLASS_ID.asFqNameString(),
