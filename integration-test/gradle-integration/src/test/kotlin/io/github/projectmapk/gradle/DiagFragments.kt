@@ -9,6 +9,7 @@ package io.github.projectmapk.gradle
 object DiagFragments {
     // ---- プラグイン診断（ENUMIZE_*） ----
     const val NOT_SEALED = "is applicable only to a sealed class or a sealed interface"
+    const val ALIASED_ANNOTATION = "applied through a typealias or an import alias"
     const val ON_EXPECT = "cannot be applied to an expect declaration"
     const val ON_ACTUAL = "cannot be applied to an actual declaration"
     const val MULTIPLE_HIERARCHIES = "belongs to more than one"

@@ -45,6 +45,12 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         val resolver = context.session.enumizeHierarchyResolver
         val annotated =
             context.session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, declaration)
+        // typealias / import 別名表記の @Enumize は述語（エイリアス展開前に確定）に載らず生成が
+        // 走らない。CHECKERS では解決済みアノテーションとして観測できるため、この差分をエラーにする
+        // （静かな非生成を許さない。docs/コンパイラプラグイン設計01.md §7.2）
+        if (!annotated && resolver.tracker.hasResolvedEnumizeAnnotation(symbol)) {
+            reporter.reportOn(declaration.source, EnumizeErrors.ENUMIZE_ALIASED_ANNOTATION, context)
+        }
         // 階層の一意性を見る診断だけは異常状態（非所属・複数所属）の内訳が要るため一覧を生読みする。
         // 以降の検査へ取り回すのは正常な所属（membership。異常時は null）のみ
         val belongingBases = resolver.basesOf(symbol)

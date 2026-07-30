@@ -14,6 +14,13 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
                     "Make the declaration sealed or remove the annotation.",
             )
             map.put(
+                EnumizeErrors.ENUMIZE_ALIASED_ANNOTATION,
+                "'@Enumize' is applied through a typealias or an import alias. The plugin must " +
+                    "recognize '@Enumize' before aliases are resolved, so no API is generated for " +
+                    "this declaration. Apply the annotation by its direct name or its fully " +
+                    "qualified name.",
+            )
+            map.put(
                 EnumizeErrors.ENUMIZE_ON_EXPECT,
                 "'@Enumize' cannot be applied to an expect declaration: the hierarchy may differ per actual. " +
                     "Apply '@Enumize' to a non-expect sealed declaration instead.",

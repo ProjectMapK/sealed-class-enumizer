@@ -1,6 +1,5 @@
 package io.github.projectmapk.gradle
 
-import io.github.projectmapk.gradle.DiagAsserts.assertDiagnosticAnywhere
 import io.github.projectmapk.gradle.DiagAsserts.assertDiagnosticAt
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,22 +18,18 @@ class ProbeGateTest : DiagTestBase() {
         assertDiagnosticAt(output, "CcLeaf.kt", 7, DiagFragments.LANG_CONFLICTING_DECLARATIONS)
     }
 
-    // docs/test/ケース04-診断.md DIA-67: @Enumize の import 別名・typealias 表記は候補判定が
-    // 未解決のアノテーション型参照に触れて ICE（docs/test/保留.md GATE-02）。FQN 表記のみ生成へ到達する
+    // docs/test/ケース04-診断.md DIA-67: @Enumize の import 別名・typealias 表記は述語
+    // （エイリアス展開前に確定）に載らず生成が走らないため ENUMIZE_ALIASED_ANNOTATION。
+    // FQN 表記のみ生成へ到達する
     @Test
     fun annotationNotationBehaviorIsPinned() {
         val dir = prepare("probe-annotation-alias")
-        val importAlias = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertDiagnosticAnywhere(importAlias.output, "AaImport.kt", "Expected FirResolvedTypeRef")
+        val aliased = TestKitHarness.buildAndFail(dir, "compileKotlin")
+        assertDiagnosticAt(aliased.output, "AaImport.kt", 7, DiagFragments.ALIASED_ANNOTATION)
+        assertDiagnosticAt(aliased.output, "AaTypealias.kt", 5, DiagFragments.ALIASED_ANNOTATION)
         TestKitHarness.deleteFile(
             dir,
             "src/main/kotlin/io/github/projectmapk/probe/alias/AaImport.kt",
-        )
-        val typealiasNotation = TestKitHarness.buildAndFail(dir, "compileKotlin")
-        assertDiagnosticAnywhere(
-            typealiasNotation.output,
-            "AaTypealias.kt",
-            "Expected FirResolvedTypeRef",
         )
         TestKitHarness.deleteFile(
             dir,

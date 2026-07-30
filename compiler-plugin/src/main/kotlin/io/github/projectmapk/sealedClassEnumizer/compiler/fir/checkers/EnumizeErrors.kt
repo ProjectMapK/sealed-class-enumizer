@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.diagnostics.warning1
 // 診断 ID は英語の識別子であり、本文の日本語用語とは独立に安定させる
 object EnumizeErrors : KtDiagnosticsContainer() {
     val ENUMIZE_NOT_SEALED: KtDiagnosticFactory0 by error0<PsiElement>()
+    val ENUMIZE_ALIASED_ANNOTATION: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_ON_EXPECT: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_ON_ACTUAL: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_MULTIPLE_HIERARCHIES: KtDiagnosticFactory2<String, String> by

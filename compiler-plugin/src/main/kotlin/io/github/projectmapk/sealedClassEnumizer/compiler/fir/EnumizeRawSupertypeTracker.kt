@@ -8,7 +8,6 @@ import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeNames
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.FirImport
-import org.jetbrains.kotlin.fir.declarations.hasAnnotation
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
 import org.jetbrains.kotlin.fir.resolve.providers.firProvider
@@ -17,12 +16,14 @@ import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeAliasSymbol
+import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.FirUserTypeRef
 import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.coneTypeSafe
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.ClassIdBasedLocality
 import org.jetbrains.kotlin.name.FqName
@@ -65,10 +66,28 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         reachesSupertype(classSymbol, targetClassId, LinkedHashSet())
 
     // 述語はソース宣言にしかマッチしないため、IC ラウンド外のファイル由来（前ラウンドの
-    // メタデータからの逆直列化）はアノテーションの直接照合で判定する（Retention が BINARY のため残る）
+    // メタデータからの逆直列化）はアノテーションの直接照合（hasResolvedEnumizeAnnotation）で
+    // 判定する（Retention が BINARY のため残る）
     fun isEnumizeBase(symbol: FirRegularClassSymbol): Boolean =
         session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, symbol.fir) ||
-            symbol.fir.hasAnnotation(EnumizeNames.ENUMIZE_ANNOTATION_CLASS_ID, session)
+            hasResolvedEnumizeAnnotation(symbol)
+
+    // 解決済みアノテーションからの @Enumize 照合。未解決の型参照は許容して読み飛ばす —
+    // 本判定は SUPER_TYPES 中にも呼ばれ、その時点のソース宣言には型未解決のアノテーション
+    // （述語登録済みのアノテーションと組み込みの compiler-required 以外の任意の
+    // ユーザーアノテーション）が付きうる。標準の hasAnnotation は未解決参照の coneType 取得で
+    // ICE になるため使えない。読み飛ばしが安全なのは、ソース由来の直接名 / FQN 表記の @Enumize は
+    // COMPILER_REQUIRED_ANNOTATIONS で解決済み（述語登録の効果）であるため。
+    // typealias / import 別名表記の @Enumize は述語索引（エイリアス展開前）に載らず、生成フェーズでは
+    // 未解決のため基底と認識されない（＝生成なし）。CHECKERS では解決済みとなり本照合が真になるため、
+    // その差分を ENUMIZE_ALIASED_ANNOTATION がエラーとして検出する（docs/コンパイラプラグイン設計01.md §7.2）
+    fun hasResolvedEnumizeAnnotation(symbol: FirRegularClassSymbol): Boolean =
+        symbol.fir.annotations.any { annotation ->
+            annotation.annotationTypeRef
+                .coneTypeSafe<ConeClassLikeType>()
+                ?.fullyExpandedType(session)
+                ?.classId == EnumizeNames.ENUMIZE_ANNOTATION_CLASS_ID
+        }
 
     fun isRawSealed(symbol: FirRegularClassSymbol): Boolean =
         symbol.rawStatus.modality == Modality.SEALED
