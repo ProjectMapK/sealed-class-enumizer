@@ -121,3 +121,16 @@ K9 の表記変種（import 別名・FQN・star import・typealias）と診断�
 | API-48 | K5=継承者ゼロ | 空階層: entries 空かつ memoize・valueOf 常時例外＋文言・valueOfOrNull=null・診断なし | BoundsTest#emptyHierarchyContract | — |
 | API-49 | K5=下限境界 | 単一末端階層・継承者ゼロ中間（空展開）でも全 API 成立 | BoundsTest#singleLeafHierarchyWorks | 順序面→ケース03 |
 | API-50 | O4=順序 API 非公開 | 生成 Enumish・kind は ordinal 相当メンバー・Comparable を提供しない（enum との意図的差異・順序取得は entries 限定）を NG コメントと実行時型検査で固定 | SiContractTest#kindsExposeNoOrdinalOrComparable | 序数永続化禁止の根拠 |
+
+## 14. label カスタマイズ（K16）
+
+変換規則（単語分割・ロケール非依存）の単体固定は compiler-plugin の EnumizeLabelCaseTest が担い
+（kotlinx.serialization 準拠の期待値列挙）、本節は生成物経由の実行時観測を担う。  
+プロジェクト既定の DSL 指定側はケース06 BLD-48、衝突・不正付与の発火側はケース04 DIA-72〜75。
+
+| ID | 次元/値 | 観測と期待 | 実装 | 備考(関連V/診断) |
+|---|---|---|---|---|
+| API-53 | K16=labelCase 一律適用 | @Enumize(labelCase=UPPER_SNAKE_CASE) が enum 末端の kind を含む全末端へ適用・valueOf は最終 label 照合（変換前の単純名は不一致） | LabelCustomizationTest#labelCaseAppliesToAllLeaves | 変換規則自体は EnumizeLabelCaseTest |
+| API-54 | K16=明示 label 優先 | @EnumishLabel は変換より優先・kind の toString は label へ追随・data object の toString は言語合成のまま乖離 | LabelCustomizationTest#explicitLabelWinsAndToStringFollows | 概要 §4 原則 1 |
+| API-55 | K16=PROJECT_DEFAULT 明示 | labelCase=PROJECT_DEFAULT の明示指定はプロジェクト既定（DSL 未設定 = convention の AS_DECLARED）へ解決 | LabelCustomizationTest#projectDefaultResolvesToProjectSetting | DSL 指定側は BLD-48 |
+| API-56 | K16=明示 label による衝突解消 | 同一単純名の 2 末端を @EnumishLabel で解消・entries の順序（ClassId 由来）は label 値に不干渉 | LabelCustomizationTest#aliasResolvesSimpleNameClash | 発火側は DIA-74/75 |
