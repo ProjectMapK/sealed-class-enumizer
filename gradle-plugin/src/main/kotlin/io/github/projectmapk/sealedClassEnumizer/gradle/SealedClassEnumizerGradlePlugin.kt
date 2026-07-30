@@ -31,7 +31,18 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
     ): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
         addRuntimeDependencyIfEnabled(project, kotlinCompilation)
-        return project.provider { emptyList() }
+        // プロジェクト既定の label ケースを常に具体値で渡す（convention 込み。docs/概要.md §4）。
+        // キーはコンパイラプラグインの EnumizeCommandLineProcessor.LABEL_CASE_OPTION_NAME と
+        // 一致していなければならない
+        val extension = project.extensions.getByType(SealedClassEnumizerExtension::class.java)
+        return project.provider {
+            listOf(
+                SubpluginOption(
+                    key = LABEL_CASE_OPTION_NAME,
+                    value = extension.labelCase.get().name,
+                )
+            )
+        }
     }
 
     private fun addRuntimeDependencyIfEnabled(
@@ -63,4 +74,8 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
     // KT-63142 警告を出す KGP 本体の TestApiDependenciesChecker と同じ判定基準に揃える
     private fun KotlinCompilation<*>.isTestCompilation(): Boolean =
         name == KotlinCompilation.TEST_COMPILATION_NAME
+
+    companion object {
+        private const val LABEL_CASE_OPTION_NAME: String = "labelCase"
+    }
 }
