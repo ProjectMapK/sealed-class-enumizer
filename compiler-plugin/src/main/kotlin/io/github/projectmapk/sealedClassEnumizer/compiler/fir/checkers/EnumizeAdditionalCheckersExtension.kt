@@ -11,11 +11,12 @@ class EnumizeAdditionalCheckersExtension(session: FirSession) :
     FirAdditionalCheckersExtension(session) {
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(EnumizePredicates.ENUMIZE)
+        register(EnumizePredicates.ENUMISH_LABEL)
     }
 
     override val declarationCheckers: DeclarationCheckers =
         object : DeclarationCheckers() {
             override val regularClassCheckers: Set<FirRegularClassChecker> =
-                setOf(EnumizeRegularClassChecker)
+                setOf(EnumizeRegularClassChecker, EnumizeEnumishLabelChecker)
         }
 }

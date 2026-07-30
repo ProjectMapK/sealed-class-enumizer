@@ -2,6 +2,7 @@
 
 package io.github.projectmapk.sealedClassEnumizer.compiler.ir
 
+import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeLabelCase
 import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeNames
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
@@ -16,6 +17,10 @@ import org.jetbrains.kotlin.ir.builders.irString
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.expressions.IrConst
+import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
+import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrGetEnumValue
 import org.jetbrains.kotlin.ir.expressions.impl.IrClassReferenceImpl
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.types.IrSimpleType
@@ -24,8 +29,11 @@ import org.jetbrains.kotlin.ir.types.starProjectedType
 import org.jetbrains.kotlin.ir.types.typeOrNull
 import org.jetbrains.kotlin.ir.util.companionObject
 import org.jetbrains.kotlin.ir.util.defaultType
+import org.jetbrains.kotlin.ir.util.getAnnotation
+import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
+import org.jetbrains.kotlin.name.Name
 
 // 末端側のファイル帰属の IR 生成（docs/コンパイラプラグイン設計02.md §5.2・§5.3）: asEnumish / label / enumizedClass のボディ充填、
 // 生成 companion のコンストラクタ補完、kind の toString の IR-only 生成。
@@ -33,6 +41,12 @@ import org.jetbrains.kotlin.ir.util.parentClassOrNull
 // 同席しなくても成立する（docs/コンパイラプラグイン設計00.md §5）。kind に対応する末端は、生成 enumizedClass の宣言型
 // `KClass<末端>` から読む — FIR が確定させた対応をそのまま使い、IR 側で導出し直さない
 class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
+
+    // 階層の labelCase は基底単位で決まるため、基底 IrClass ごとに一度だけ読み取って持ち回る
+    // （kind ごとの充填で同じ基底のアノテーション読取・解析を繰り返さない。FIR 側の
+    // labelCaseCache と対になるキャッシュ）。IC ラウンド外の基底 = 逆直列化クラスも同じ経路で
+    // 解決するため、モジュール内の基底列挙による事前計算は採らない
+    private val labelCaseByBase = HashMap<IrClass, EnumizeLabelCase>()
 
     fun process(irClass: IrClass) {
         if (isBaseSideGenerated(irClass)) return
@@ -113,13 +127,63 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
 
     private fun fillLabel(kind: IrClass, leaf: IrClass) {
         val getter = ctx.ourPropertyGetter(kind, EnumizeNames.LABEL) ?: return
-        getter.body =
-            ctx.builder(getter.symbol).run {
-                irBlockBody {
-                    // label は末端宣言の単純名（companion 自身が末端の場合はその宣言名 = leaf 自身）
-                    +irReturn(irString(leaf.name.asString()))
+        val label = labelOf(leaf)
+        getter.body = ctx.builder(getter.symbol).run { irBlockBody { +irReturn(irString(label)) } }
+    }
+
+    // ---- 最終 label の決定（docs/概要.md §4。FIR チェッカー側の EnumizeHierarchyResolver.labelOf と同じ規則） ----
+
+    // 明示指定（@EnumishLabel。ケース変換は適用しない） > 階層の labelCase による変換。
+    // 変換の入力は末端宣言の単純名（companion 自身が末端の場合はその宣言名 = leaf 自身）
+    private fun labelOf(leaf: IrClass): String =
+        explicitLabelOf(leaf) ?: labelCaseOf(leaf).convert(leaf.name.asString())
+
+    private fun explicitLabelOf(leaf: IrClass): String? =
+        leaf
+            .getAnnotation(EnumizeNames.ENUMISH_LABEL_ANNOTATION_FQ_NAME)
+            ?.let { annotationArgument(it, EnumizeNames.VALUE_PARAMETER) }
+            ?.let { (it as? IrConst)?.value as? String }
+
+    // 基底は末端の supertype 閉包から探す — 末端は基底に依存するため、基底が IC ラウンドに
+    // 同席しなくても逆直列化された宣言（アノテーション込み）へ到達できる
+    private fun labelCaseOf(leaf: IrClass): EnumizeLabelCase {
+        val base = enumizeBaseOf(leaf) ?: return ctx.defaultLabelCase
+        return labelCaseByBase.getOrPut(base) { readLabelCase(base) }
+    }
+
+    // @Enumize の labelCase の読み取り（基底ごとに一度だけ呼ばれる）。引数未指定・PROJECT_DEFAULT・
+    // 未知のエントリ名（runtime-api との版ずれ）はいずれもプロジェクト既定（ctx.defaultLabelCase）へ倒す
+    private fun readLabelCase(base: IrClass): EnumizeLabelCase {
+        val annotation = base.getAnnotation(EnumizeNames.ENUMIZE_ANNOTATION_FQ_NAME)
+        val entryName =
+            annotation
+                ?.let { annotationArgument(it, EnumizeNames.LABEL_CASE_PARAMETER) }
+                ?.let { (it as? IrGetEnumValue)?.symbol?.owner?.name }
+        return entryName?.let { EnumizeLabelCase.fromNameOrNull(it.asString()) }
+            ?: ctx.defaultLabelCase
+    }
+
+    // 末端から supertype を上向きに辿り、@Enumize の付いたクラスを探す。複数基底への所属は
+    // MULTIPLE_HIERARCHIES エラーで IR まで到達しないため、最初の 1 件で確定してよい
+    private fun enumizeBaseOf(leaf: IrClass): IrClass? = findEnumizeBase(leaf, HashSet())
+
+    private fun findEnumizeBase(current: IrClass, visited: MutableSet<IrClass>): IrClass? =
+        when {
+            !visited.add(current) -> null
+            current.hasAnnotation(EnumizeNames.ENUMIZE_ANNOTATION_FQ_NAME) -> current
+            else ->
+                current.superTypes.firstNotNullOfOrNull { supertype ->
+                    supertype.classOrNull?.owner?.let { findEnumizeBase(it, visited) }
                 }
+        }
+
+    // 引数列は宣言側パラメータ列と 1:1 対応で並ぶ（省略された既定値引数は null）
+    private fun annotationArgument(call: IrConstructorCall, parameter: Name): IrExpression? {
+        val index =
+            call.symbol.owner.parameters.indexOfFirst {
+                it.kind == IrParameterKind.Regular && it.name == parameter
             }
+        return if (index >= 0) call.arguments.getOrNull(index) else null
     }
 
     // ---- kind の toString（IR-only・宣言ごと生成。docs/コンパイラプラグイン設計02.md §5.3） ----

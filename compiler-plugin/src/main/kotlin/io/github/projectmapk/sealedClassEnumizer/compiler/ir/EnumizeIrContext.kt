@@ -8,6 +8,7 @@
 package io.github.projectmapk.sealedClassEnumizer.compiler.ir
 
 import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeKey
+import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeLabelCase
 import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeNames
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.backend.common.lower.DeclarationIrBuilder
@@ -33,8 +34,9 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
 // IR 生成で共有する参照（runtime-api のシンボル・ビルトイン型）と、プラグイン生成宣言の取り回し。
-// 参照はすべて ClassId / CallableId からの静的参照であり、名前解決を経ない（docs/コンパイラプラグイン設計02.md §4.2）
-class EnumizeIrContext(val pluginContext: IrPluginContext) {
+// 参照はすべて ClassId / CallableId からの静的参照であり、名前解決を経ない（docs/コンパイラプラグイン設計02.md §4.2）。
+// defaultLabelCase はプロジェクト既定の label ケース（CLI オプション由来。docs/概要.md §4）
+class EnumizeIrContext(val pluginContext: IrPluginContext, val defaultLabelCase: EnumizeLabelCase) {
     val generatedOrigin: IrDeclarationOrigin = IrDeclarationOrigin.GeneratedByPlugin(EnumizeKey)
 
     val holderBaseClass: IrClassSymbol =

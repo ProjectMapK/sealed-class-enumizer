@@ -2,6 +2,7 @@
 
 package io.github.projectmapk.sealedClassEnumizer.compiler.ir
 
+import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeLabelCase
 import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeNames
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
@@ -21,7 +22,8 @@ import org.jetbrains.kotlin.ir.util.kotlinFqName
 // その持ち主のクラスごとに埋める。@Enumize 基底が IC ラウンドに同席しなくても末端側は成立する（docs/コンパイラプラグイン設計00.md §5）。
 // 継承者の集合に依存する生成物（$EntriesHolder）と、それへ委譲する生成 companion のボディは、
 // 基底が同席するラウンドに限り基底ファイル帰属で生成する（P1）
-class EnumizeIrGenerationExtension : IrGenerationExtension {
+class EnumizeIrGenerationExtension(private val defaultLabelCase: EnumizeLabelCase) :
+    IrGenerationExtension {
     override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
         // 生成の副作用（kind アクセサの追加・toString の差し替え）が走査と干渉しないよう、対象をここで確定させる
         val classes = collectClasses(moduleFragment)
@@ -31,7 +33,7 @@ class EnumizeIrGenerationExtension : IrGenerationExtension {
         }
         // 階層を含まないモジュールでは runtime-api の参照解決ごと省く
         if (bases.isEmpty() && generatedOwners.isEmpty()) return
-        val ctx = EnumizeIrContext(pluginContext)
+        val ctx = EnumizeIrContext(pluginContext, defaultLabelCase)
         val leafGenerator = EnumizeIrLeafGenerator(ctx)
         generatedOwners.forEach(leafGenerator::process)
         val baseGenerator = EnumizeIrBaseGenerator(ctx)

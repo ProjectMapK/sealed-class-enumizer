@@ -250,7 +250,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         reporter.reportOn(
             declaration.source,
             EnumizeErrors.ENUMIZE_LABEL_CLASH,
-            resolver.labelOf(symbol),
+            resolver.labelOf(symbol, base),
             others.joinToString(separator = ", ") { it.classId.asFqNameString() },
             context,
         )

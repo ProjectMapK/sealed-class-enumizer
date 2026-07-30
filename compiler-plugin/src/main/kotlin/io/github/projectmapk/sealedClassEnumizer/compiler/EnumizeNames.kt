@@ -11,6 +11,10 @@ object EnumizeNames {
 
     val ENUMIZE_ANNOTATION_CLASS_ID: ClassId = ClassId(RUNTIME_PACKAGE, Name.identifier("Enumize"))
     val ENUMIZE_ANNOTATION_FQ_NAME: FqName = ENUMIZE_ANNOTATION_CLASS_ID.asSingleFqName()
+    val ENUMISH_LABEL_ANNOTATION_CLASS_ID: ClassId =
+        ClassId(RUNTIME_PACKAGE, Name.identifier("EnumishLabel"))
+    val ENUMISH_LABEL_ANNOTATION_FQ_NAME: FqName =
+        ENUMISH_LABEL_ANNOTATION_CLASS_ID.asSingleFqName()
     val ENUMISH_CLASS_ID: ClassId = ClassId(RUNTIME_PACKAGE, Name.identifier("Enumish"))
     val ENUMISH_COMPANION_CLASS_ID: ClassId =
         ClassId(RUNTIME_PACKAGE, Name.identifier("EnumishCompanion"))
@@ -40,4 +44,10 @@ object EnumizeNames {
     val GET_BY_LABEL_OR_NULL: Name = Name.identifier("getByLabelOrNull")
     val VALUE_PARAMETER: Name = Name.identifier("value")
     val TO_STRING: Name = Name.identifier("toString")
+
+    // label カスタマイズの引数名（docs/概要.md §4）: @Enumize の labelCase。CLI オプション名
+    // （EnumizeCommandLineProcessor）もこの定数から導出して同名に揃える。
+    // @EnumishLabel の value は EnumishCompanion.valueOf の値引数と名前が一致しているだけの
+    // 別宣言だが、定数は VALUE_PARAMETER を共用する（ENTRIES と同じ扱い）
+    val LABEL_CASE_PARAMETER: Name = Name.identifier("labelCase")
 }

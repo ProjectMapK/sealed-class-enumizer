@@ -3,6 +3,7 @@
 package io.github.projectmapk.sealedClassEnumizer.compiler.fir
 
 import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeKey
+import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeLabelCase
 import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeNames
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.EffectiveVisibility
@@ -17,11 +18,17 @@ import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.FirNamedFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
+import org.jetbrains.kotlin.fir.declarations.getAnnotationByClassId
 import org.jetbrains.kotlin.fir.declarations.getSealedClassInheritors
+import org.jetbrains.kotlin.fir.declarations.getStringArgument
+import org.jetbrains.kotlin.fir.expressions.FirAnnotation
+import org.jetbrains.kotlin.fir.expressions.FirEnumEntryDeserializedAccessExpression
+import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
 import org.jetbrains.kotlin.fir.extensions.FirExtensionSessionComponent
 import org.jetbrains.kotlin.fir.extensions.extensionService
 import org.jetbrains.kotlin.fir.extensions.extensionSessionComponents
+import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
@@ -46,7 +53,11 @@ import org.jetbrains.kotlin.name.SpecialNames
 // そのクラス自身の supertype ref が未解決のまま答えが確定するため、tracker は raw な ref からでも
 // 解決後と同じ答えを返せる必要がある（docs/コンパイラプラグイン設計01.md §6.1）。
 // 用語（階層・末端・中間 sealed・kind）はdocs/コンパイラプラグイン設計00.md §1 に従う。
-class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionComponent(session) {
+// defaultLabelCase はプロジェクト既定の label ケース（CLI オプション由来。docs/概要.md §4）
+class EnumizeHierarchyResolver(
+    session: FirSession,
+    private val defaultLabelCase: EnumizeLabelCase,
+) : FirExtensionSessionComponent(session) {
     val tracker: EnumizeRawSupertypeTracker = EnumizeRawSupertypeTracker(session)
 
     private val basesCache: FirCache<FirRegularClassSymbol, List<FirRegularClassSymbol>, Nothing?> =
@@ -56,10 +67,17 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
     // 階層 1 つにつき一度だけ構築する
     private val labelIndexCache:
         FirCache<FirRegularClassSymbol, Map<String, List<FirRegularClassSymbol>>, Nothing?> =
-        session.firCachesFactory.createCache { base -> leavesOf(base).groupBy(::labelOf) }
+        session.firCachesFactory.createCache { base ->
+            leavesOf(base).groupBy { labelOf(it, base) }
+        }
+
+    // 階層ごとの実効 label ケース（@Enumize の labelCase を解決したもの）
+    private val labelCaseCache: FirCache<FirRegularClassSymbol, EnumizeLabelCase, Nothing?> =
+        session.firCachesFactory.createCache { base -> computeLabelCase(base) }
 
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(EnumizePredicates.ENUMIZE)
+        register(EnumizePredicates.ENUMISH_LABEL)
     }
 
     // 階層への正常な所属（取り回しの唯一の入口）。ちょうど 1 つの @Enumize 基底に属する場合のみ
@@ -119,8 +137,20 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
         if (leaf.classKind == ClassKind.OBJECT) leaf.classId
         else leaf.companionObjectSymbol?.classId
 
-    // label の既定 = 末端宣言の単純名（companion 自身が末端である場合はその宣言名がそのまま単純名になる）
-    fun labelOf(leaf: FirRegularClassSymbol): String = leaf.classId.shortClassName.asString()
+    // 最終 label の決定（docs/概要.md §4・docs/エッジケースへの対応方針.md §3）:
+    // 明示指定（@EnumishLabel。ケース変換は適用しない） > 階層の labelCase による変換。
+    // 変換の入力は末端宣言の単純名（companion 自身が末端である場合はその宣言名がそのまま単純名になる）
+    fun labelOf(leaf: FirRegularClassSymbol, base: FirRegularClassSymbol): String =
+        explicitLabelOf(leaf)
+            ?: labelCaseCache.getValue(base).convert(leaf.classId.shortClassName.asString())
+
+    // @EnumishLabel の明示 label。空白のみの値は ENUMIZE_INVALID_LABEL の対象であり、
+    // label の決定上は無指定と同じ扱いへ倒して衝突判定を安定させる
+    fun explicitLabelOf(leaf: FirRegularClassSymbol): String? =
+        leaf
+            .getAnnotationByClassId(EnumizeNames.ENUMISH_LABEL_ANNOTATION_CLASS_ID, session)
+            ?.getStringArgument(EnumizeNames.VALUE_PARAMETER)
+            ?.takeUnless { it.isBlank() }
 
     // 同じ階層で同じ label を持つ他の末端（LABEL_CLASH の衝突相手）。基底の継承者一覧に自分が
     // まだ載っていない IC ラウンドでも、自分以外との衝突は同じ判定で得られる
@@ -128,8 +158,29 @@ class EnumizeHierarchyResolver(session: FirSession) : FirExtensionSessionCompone
         leaf: FirRegularClassSymbol,
         base: FirRegularClassSymbol,
     ): List<FirRegularClassSymbol> =
-        labelIndexCache.getValue(base)[labelOf(leaf)].orEmpty().filterNot {
+        labelIndexCache.getValue(base)[labelOf(leaf, base)].orEmpty().filterNot {
             it.classId == leaf.classId
+        }
+
+    // @Enumize の labelCase の解決。引数未指定・PROJECT_DEFAULT・未知のエントリ名（runtime-api との
+    // 版ずれ）はいずれもプロジェクト既定（defaultLabelCase）へ倒す（docs/概要.md §4）
+    private fun computeLabelCase(base: FirRegularClassSymbol): EnumizeLabelCase {
+        val annotation =
+            base.getAnnotationByClassId(EnumizeNames.ENUMIZE_ANNOTATION_CLASS_ID, session)
+        val entryName = annotation?.let {
+            enumEntryArgumentName(it, EnumizeNames.LABEL_CASE_PARAMETER)
+        }
+        return entryName?.let { EnumizeLabelCase.fromNameOrNull(it.asString()) } ?: defaultLabelCase
+    }
+
+    // enum エントリ引数の読み取り。ソース由来は解決済み参照（FirQualifiedAccessExpression）、
+    // IC ラウンド外のファイル由来はメタデータからの逆直列化形で現れる
+    private fun enumEntryArgumentName(annotation: FirAnnotation, parameter: Name): Name? =
+        when (val argument = annotation.argumentMapping.mapping[parameter]) {
+            is FirEnumEntryDeserializedAccessExpression -> argument.enumEntryName
+            is FirQualifiedAccessExpression ->
+                (argument.calleeReference as? FirResolvedNamedReference)?.name
+            else -> null
         }
 
     fun starProjectedType(symbol: FirRegularClassSymbol): ConeClassLikeType =

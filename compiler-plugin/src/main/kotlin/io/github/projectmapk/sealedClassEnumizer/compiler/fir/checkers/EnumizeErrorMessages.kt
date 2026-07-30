@@ -70,8 +70,14 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
             map.put(
                 EnumizeErrors.ENUMIZE_LABEL_CLASH,
                 "Duplicated label ''{0}'' in the '@Enumize' hierarchy (also used by {1}). " +
-                    "Rename one of the leaves so that all labels are unique.",
+                    "Rename one of the leaves or assign a distinct label with '@EnumishLabel' " +
+                    "so that all labels are unique.",
                 CommonRenderers.STRING,
+                CommonRenderers.STRING,
+            )
+            map.put(
+                EnumizeErrors.ENUMIZE_INVALID_LABEL,
+                "Invalid '@EnumishLabel': {0}",
                 CommonRenderers.STRING,
             )
             map.put(
