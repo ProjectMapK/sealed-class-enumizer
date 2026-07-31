@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -12,7 +13,14 @@ version = "1.0-SNAPSHOT"
 kotlin {
     jvmToolchain(17)
 
-    jvm()
+    // 公開 jar のバイトコードは JVM 8 互換とする（下限は利用側アプリの実行時 JVM で決まるため広く取る。
+    // -Xjdk-release で 9+ の JDK API 参照もコンパイル時に遮断する）。ビルド・テストは toolchain 17 のまま
+    jvm {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_1_8)
+            freeCompilerArgs.add("-Xjdk-release=1.8")
+        }
+    }
     js { nodejs() }
     // wasm 系のターゲット宣言 DSL は KGP でまだ実験的であり、明示的なオプトインを要求する
     @OptIn(ExperimentalWasmDsl::class) wasmJs { nodejs() }
