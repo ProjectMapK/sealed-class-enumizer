@@ -2,14 +2,31 @@ package io.github.projectmapk.sealedClassEnumizer.gradle
 
 import org.gradle.api.provider.Property
 
+/**
+ * Configuration for the sealed-class-enumizer Gradle plugin:
+ * ```kotlin
+ * sealedClassEnumizer {
+ *     addRuntimeDependency = true
+ *     labelCase = LabelCase.AS_DECLARED
+ * }
+ * ```
+ */
 abstract class SealedClassEnumizerExtension {
-    // runtime-api を各コンパイレーションへ自動追加するかどうか（docs/概要.md §7 のオプトアウト）
+    /**
+     * Whether to add the runtime API dependency to each compilation automatically: `api` scope for
+     * production compilations (the generated API exposes runtime API types as supertypes, so
+     * consumers need them on their compile classpath) and `implementation` for test compilations.
+     * Defaults to `true`; disable it to declare the dependency manually.
+     */
     abstract val addRuntimeDependency: Property<Boolean>
 
-    // プロジェクト既定の label ケース。@Enumize が具体の labelCase を指定しない階層へ適用される
-    // （docs/概要.md §4）。プロパティ名はコンパイラプラグインの labelCase オプション
-    // （= @Enumize の引数名）と同名に揃える。convention はコンパイラプラグインの組み込み既定
-    // （EnumizeLabelCase.BUILT_IN_DEFAULT）と同値の AS_DECLARED に固定し、二重既定の乖離を防ぐ
+    // プロパティ名はコンパイラプラグインの labelCase オプション（= @Enumize の引数名）と同名に揃える。
+    // convention はコンパイラプラグインの組み込み既定（EnumizeLabelCase.BUILT_IN_DEFAULT）と同値の
+    // AS_DECLARED に固定し、二重既定の乖離を防ぐ
+    /**
+     * The project-wide default label case, applied to hierarchies whose `@Enumize` does not specify
+     * a concrete `labelCase`. Defaults to [LabelCase.AS_DECLARED] (no conversion).
+     */
     abstract val labelCase: Property<LabelCase>
 
     init {
