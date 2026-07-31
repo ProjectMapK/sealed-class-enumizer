@@ -33,6 +33,12 @@ enum class EnumizeLabelCase {
     }
 }
 
+// Derived (with modifications) from kotlinx.serialization's JsonNamingStrategy:
+// https://github.com/Kotlin/kotlinx.serialization
+// (formats/json/commonMain/src/kotlinx/serialization/json/JsonNamingStrategy.kt)
+// Copyright JetBrains s.r.o. and kotlinx.serialization contributors.
+// Licensed under the Apache License, Version 2.0 (the same license as this project).
+//
 // kotlinx.serialization の JsonNamingStrategy（SnakeCase / KebabCase）と同一の単語分割・小文字化。
 // 大文字の連続は 1 語として保ち、直後に小文字が続く場合のみ末尾 1 文字を次語の頭とする
 // （HTTPServer → http_server）。数字・区切り記号・非 ASCII 文字は語境界を作らずそのまま通し、
