@@ -2,6 +2,7 @@ package io.github.projectmapk.sealedClassEnumizer.gradle
 
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
+import org.jetbrains.kotlin.gradle.plugin.KotlinBasePlugin
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
 import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
@@ -13,6 +14,24 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         target.extensions.create("sealedClassEnumizer", SealedClassEnumizerExtension::class.java)
+        // 対応外の Kotlin への適用は警告のみとする（サポートは KOTLIN_VERSION と同一マイナー。
+        // 非互換の実害はコンパイル時に顕在化するため、原因を示す警告に留めてエラーにはしない）
+        target.plugins.withType(KotlinBasePlugin::class.java).configureEach { kotlinPlugin ->
+            warnIfUnsupportedKotlin(target, kotlinPlugin.pluginVersion)
+        }
+    }
+
+    private fun warnIfUnsupportedKotlin(project: Project, appliedKotlinVersion: String) {
+        val supported = SealedClassEnumizerCoordinates.KOTLIN_VERSION
+        if (isSupportedKotlinVersion(appliedKotlinVersion, supported)) {
+            return
+        }
+        project.logger.warn(
+            "sealed-class-enumizer ${SealedClassEnumizerCoordinates.VERSION} targets Kotlin " +
+                "$supported and is not verified against Kotlin $appliedKotlinVersion applied to " +
+                "${project.path}. Compilation may fail; use the plugin version matching your " +
+                "Kotlin version."
+        )
     }
 
     override fun isApplicable(kotlinCompilation: KotlinCompilation<*>): Boolean = true
@@ -79,3 +98,12 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
         private const val LABEL_CASE_OPTION_NAME: String = "labelCase"
     }
 }
+
+// サポート判定はマイナー一致とする（同一 <major>.<minor> ならパッチ・プレリリースの差は対応内。
+// 版形式 <KotlinVersion>-<自版> の下で、成果物は対応マイナーの全パッチへ同一物を配るため）
+internal fun isSupportedKotlinVersion(
+    appliedKotlinVersion: String,
+    supportedKotlinVersion: String,
+): Boolean = majorMinorOf(appliedKotlinVersion) == majorMinorOf(supportedKotlinVersion)
+
+private fun majorMinorOf(version: String): String = version.split('.').take(2).joinToString(".")

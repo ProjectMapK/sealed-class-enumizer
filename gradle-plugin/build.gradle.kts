@@ -55,6 +55,7 @@ val generateCoordinates =
     tasks.register("generateCoordinates") {
         val group = project.group.toString()
         val version = project.version.toString()
+        val kotlinVersion = libs.versions.kotlin.get()
         val compilerPluginArtifact =
             rootProject.project(":sealed-class-enumizer-compiler-plugin").name
         val runtimeApiArtifact = rootProject.project(":sealed-class-enumizer-runtime-api").name
@@ -62,6 +63,7 @@ val generateCoordinates =
         val outputDir = coordinatesDir
         inputs.property("group", group)
         inputs.property("version", version)
+        inputs.property("kotlinVersion", kotlinVersion)
         inputs.property("compilerPluginArtifact", compilerPluginArtifact)
         inputs.property("runtimeApiArtifact", runtimeApiArtifact)
         inputs.property("pluginId", id)
@@ -84,6 +86,7 @@ val generateCoordinates =
                 |object SealedClassEnumizerCoordinates {
                 |    const val GROUP: String = "$group"
                 |    const val VERSION: String = "$version"
+                |    const val KOTLIN_VERSION: String = "$kotlinVersion"
                 |    const val COMPILER_PLUGIN_ARTIFACT: String = "$compilerPluginArtifact"
                 |    const val RUNTIME_API_ARTIFACT: String = "$runtimeApiArtifact"
                 |    const val COMPILER_PLUGIN_ID: String = "$id"
