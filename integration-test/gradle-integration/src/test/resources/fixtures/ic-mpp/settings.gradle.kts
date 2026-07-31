@@ -7,8 +7,8 @@ pluginManagement {
         mavenCentral()
     }
     plugins {
-        kotlin("jvm") version "2.4.20-Beta1"
-        kotlin("multiplatform") version "2.4.20-Beta1"
+        kotlin("jvm") version "2.4.0"
+        kotlin("multiplatform") version "2.4.0"
         id("io.github.projectmapk.sealed-class-enumizer") version "1.0-SNAPSHOT"
     }
 }

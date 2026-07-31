@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.4.20-Beta1"
+kotlin = "2.4.0"
 autoservice = "0.1.5"
 ktfmt = "0.26.0"
 
