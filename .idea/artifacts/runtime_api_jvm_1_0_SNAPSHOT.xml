@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="runtime-api-jvm-1.0-SNAPSHOT">
-    <output-path>$PROJECT_DIR$/runtime-api/build/libs</output-path>
-    <root id="archive" name="runtime-api-jvm-1.0-SNAPSHOT.jar">
-      <element id="module-output" name="sealed-class-enumizer.runtime-api.jvmMain" />
-    </root>
-  </artifact>
-</component>
