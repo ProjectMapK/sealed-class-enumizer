@@ -1,9 +1,11 @@
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.KotlinMultiplatform
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    `maven-publish`
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 kotlin {
@@ -35,4 +37,12 @@ kotlin {
     iosSimulatorArm64()
     iosX64()
     mingwX64()
+}
+
+// Maven Central 公開設定（POM の共通値はルート、モジュール別値は本モジュールの gradle.properties）。
+// javadoc jar は空で Central の要件を満たす（Kotlin ライブラリの慣行。Dokka の導入は KDoc 整備とセットで別途判断）
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+    configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty()))
 }

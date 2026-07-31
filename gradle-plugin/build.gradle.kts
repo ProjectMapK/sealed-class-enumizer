@@ -1,7 +1,11 @@
+import com.vanniktech.maven.publish.GradlePublishPlugin
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    `java-gradle-plugin`
-    `maven-publish`
+    // java-gradle-plugin と maven-publish を適用し、Plugin Portal への公開（publishPlugins）と
+    // sources / javadoc jar の構成も担う
+    alias(libs.plugins.gradle.plugin.publish)
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 kotlin { jvmToolchain(17) }
@@ -19,13 +23,27 @@ tasks.test { useJUnitPlatform() }
 val pluginId = "io.github.projectmapk.sealed-class-enumizer"
 
 gradlePlugin {
+    website = providers.gradleProperty("POM_URL")
+    vcsUrl = providers.gradleProperty("POM_URL")
     plugins {
         create("sealedClassEnumizer") {
             id = pluginId
             implementationClass =
                 "io.github.projectmapk.sealedClassEnumizer.gradle.SealedClassEnumizerGradlePlugin"
+            displayName = "Sealed Class Enumizer"
+            description =
+                "Applies the sealed-class-enumizer Kotlin compiler plugin and adds its runtime API dependency."
+            tags = listOf("kotlin", "kotlin-compiler-plugin", "sealed-class", "enum")
         }
     }
+}
+
+// Maven Central 公開設定（POM の共通値はルート、モジュール別値は本モジュールの gradle.properties。
+// plugin marker の publication も含めて署名・公開の対象になる）
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+    configure(GradlePublishPlugin())
 }
 
 // SealedClassEnumizerCoordinates はビルドの値（group / version / 兄弟モジュールの公開名 / plugin id）から

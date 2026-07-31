@@ -1,8 +1,11 @@
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.KotlinJvm
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     // @AutoService から META-INF/services を生成する（手書きのサービス登録ファイルは置かない）
     alias(libs.plugins.autoservice)
-    `maven-publish`
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 kotlin { jvmToolchain(17) }
@@ -21,6 +24,11 @@ dependencies {
 
 tasks.test { useJUnitPlatform() }
 
-// TestKit フィクスチャがプラグイン一式を依存指定で解決するための publication
-// （docs/test/フィクスチャ構成.md §4 の local-repo 経路）
-publishing { publications { create<MavenPublication>("maven") { from(components["java"]) } } }
+// Maven Central 公開設定（POM の共通値はルート、モジュール別値は本モジュールの gradle.properties）。
+// TestKit フィクスチャの local-repo 経路（docs/test/フィクスチャ構成.md §4）も
+// この publication の publishToMavenLocal を使う。javadoc jar は空で Central の要件を満たす
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+    configure(KotlinJvm(javadocJar = JavadocJar.Empty()))
+}
