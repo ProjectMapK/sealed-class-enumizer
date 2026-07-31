@@ -11,7 +11,7 @@ dependencies {
     // コンパイルは常に v2（3 末端）に対して行う（テストが先に :producer-v2:jar を組み立てる）
     implementation(files(v2Jar))
     // raw jar（files）参照のため推移的メタデータが無く、runtime-api の明示宣言が必要
-    implementation("io.github.projectmapk:runtime-api:1.0-SNAPSHOT")
+    implementation("io.github.projectmapk:sealed-class-enumizer-runtime-api:1.0-SNAPSHOT")
 }
 
 // 実行時クラスパスから producer jar を除いた共通部分（main 出力 + runtime-api + stdlib）

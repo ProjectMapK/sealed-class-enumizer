@@ -16,7 +16,7 @@ dependencies {
     // プラグイン本体は runtime-api をロードせず、名前定数はリテラルで持つ（公式・著名プラグインと同じ方針）。
     // 定数と runtime-api の宣言の一致は EnumizeNamesTest が担保する
     // （docs/コンパイラプラグイン設計00.md §9）ため、依存はテストにのみ持つ
-    testImplementation(project(":runtime-api"))
+    testImplementation(project(":sealed-class-enumizer-runtime-api"))
     testImplementation(libs.kotlin.compiler.embeddable)
     testImplementation(libs.kotlin.test)
     // 値引数名の取得（KCallable.parameters）に必要
