@@ -11,6 +11,6 @@ if (project.hasProperty("hideRuntimeApi")) {
         addRuntimeDependency.set(false)
     }
     dependencies {
-        implementation("io.github.projectmapk:sealed-class-enumizer-runtime-api:1.0-SNAPSHOT")
+        implementation("io.github.projectmapk:sealed-class-enumizer-runtime-api:%%ENUMIZER_VERSION%%")
     }
 }

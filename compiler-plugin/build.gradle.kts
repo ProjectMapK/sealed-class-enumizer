@@ -5,10 +5,6 @@ plugins {
     `maven-publish`
 }
 
-group = "io.github.projectmapk"
-
-version = "1.0-SNAPSHOT"
-
 kotlin { jvmToolchain(17) }
 
 dependencies {

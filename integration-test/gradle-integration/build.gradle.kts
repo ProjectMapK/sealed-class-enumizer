@@ -1,3 +1,5 @@
+import java.util.Properties
+
 // Gradle TestKit ホスト（docs/test/テスト戦略.md §4）。
 // resources/fixtures 配下の合成ビルドを GradleRunner で駆動し、IC 回帰・決定性・
 // 跨モジュール負値診断・ABI 伝播・旧バイナリ差し替え・基底不在ラウンドを検証する
@@ -13,6 +15,15 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(gradleTestKit())
 }
+
+// フィクスチャのプレースホルダ置換（TestKitHarness）へ渡す版。自版は親ビルドの gradle.properties、
+// Kotlin 版は共有カタログを正とする（docs/test/フィクスチャ構成.md §4）
+val enumizerOwnVersion: String =
+    Properties()
+        .apply { rootDir.resolve("../gradle.properties").inputStream().use(::load) }
+        .getProperty("enumizerVersion") ?: error("../gradle.properties に enumizerVersion が無い")
+
+val enumizerKotlinVersion: String = libs.versions.kotlin.get()
 
 // フィクスチャの展開先（IcTestSupport が使う）。テスト毎に一意なディレクトリを掘るため、
 // 実行を重ねると際限なく溜まり、テスト時間が実行毎に悪化する（実測: 蓄積なし 255 秒に対し
@@ -40,6 +51,8 @@ tasks.test {
     dependsOn(gradle.includedBuild("sealed-class-enumizer").task(":publishAllToMavenLocal"))
     useJUnitPlatform()
     systemProperty("enumizer.fixtureWorkRoot", fixtureWorkRoot.get().asFile.absolutePath)
+    systemProperty("enumizer.version", "$enumizerKotlinVersion-$enumizerOwnVersion")
+    systemProperty("enumizer.kotlinVersion", enumizerKotlinVersion)
     // テストクラス単位の並行実行。クラス内は直列のままなので、DiagTestBase の
     // 「1 フィクスチャ = 1 ビルド」共有とフィクスチャ名で固定ディレクトリを掘る前提は保たれる
     maxParallelForks = testKitForks

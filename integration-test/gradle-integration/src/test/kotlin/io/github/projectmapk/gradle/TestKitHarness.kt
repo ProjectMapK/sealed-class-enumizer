@@ -17,9 +17,21 @@ import org.gradle.testkit.runner.GradleRunner
 // Gradle TestKit 方針）。フィクスチャは src/test/resources/fixtures/<name> に置き、
 // settings.gradle.kts 等のプレースホルダをコピー時に置換する:
 // - %%BUILD_CACHE_DIR%% … テスト毎に隔離したローカルビルドキャッシュのディレクトリ
+// - %%ENUMIZER_VERSION%% … 本プラグインのフル版（<KotlinVersion>-<自版>）
+// - %%KOTLIN_VERSION%% … フィクスチャが適用する KGP の版
+// 版の値は親ビルドを正とし、gradle-integration の test タスクが systemProperty で渡す。
 // 併せて全フィクスチャ共通のデーモン設定を gradle.properties へ追記する。
 // プラグイン一式はローカル Maven から依存指定で解決するため、親ビルドの composite 参照は持たない
 object TestKitHarness {
+    private val enumizerVersion: String = requiredSystemProperty("enumizer.version")
+
+    private val kotlinVersion: String = requiredSystemProperty("enumizer.kotlinVersion")
+
+    private fun requiredSystemProperty(key: String): String =
+        requireNotNull(System.getProperty(key)) {
+            "システムプロパティ $key が未設定（gradle-integration の test タスクが設定する）"
+        }
+
     // Gradle の既定（-Xmx512m / MaxMetaspaceSize=384m）はフィクスチャビルドの KGP を載せるには不足する。
     // 全フィクスチャへ同一値を与えることで TestKit のデーモンが 1 種類に揃い、
     // 並行実行するフォークの間でも使い回される（docs/test/フィクスチャ構成.md §4）。
@@ -72,6 +84,8 @@ object TestKitHarness {
         text
             .replace("\r\n", "\n")
             .replace("%%BUILD_CACHE_DIR%%", cacheDir.toString().replace('\\', '/'))
+            .replace("%%ENUMIZER_VERSION%%", enumizerVersion)
+            .replace("%%KOTLIN_VERSION%%", kotlinVersion)
 
     // フィクスチャ側の宣言（org.gradle.caching 等）を残したまま共通設定を後置きで追記する
     // （properties は後勝ちのため、同じキーを持つフィクスチャがあれば共通設定が優先される）

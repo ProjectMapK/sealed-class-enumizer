@@ -16,6 +16,18 @@ plugins {
     alias(libs.plugins.ktfmt)
 }
 
+// 公開 group と版の単一情報源。版は <KotlinVersion>-<自版> 形式（docs/概要.md §7 のマイナー毎分割の実現）で、
+// Kotlin 版は version catalog・自版は gradle.properties の enumizerVersion が正。
+// 開発中の自版は -SNAPSHOT を維持する（ローカル Maven の上書き公開・非キャッシュという
+// integration-test の local-repo 経路の前提のため）
+val enumizerFullVersion =
+    "${libs.versions.kotlin.get()}-${providers.gradleProperty("enumizerVersion").get()}"
+
+allprojects {
+    group = "io.github.projectmapk"
+    version = enumizerFullVersion
+}
+
 // gradle.properties の kotlin.code.style=official に合わせ、ktfmt も Kotlin 公式スタイル
 // （ブロック・継続ともインデント 4、末尾カンマ付与）で揃える
 allprojects {

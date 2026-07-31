@@ -11,7 +11,7 @@ dependencies {
     implementation(files(v1Jar))
     // producer を raw jar（files）で参照するため推移的メタデータが無く、runtime-api の明示宣言が必要。
     // これは gradle-plugin の api 自動公開とは独立の恒久要件（生成 API の supertype 解決に要る）
-    implementation("io.github.projectmapk:sealed-class-enumizer-runtime-api:1.0-SNAPSHOT")
+    implementation("io.github.projectmapk:sealed-class-enumizer-runtime-api:%%ENUMIZER_VERSION%%")
 }
 
 // 実行時クラスパスから producer jar を除いた共通部分（main 出力 + runtime-api + stdlib）
