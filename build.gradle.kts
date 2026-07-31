@@ -15,6 +15,8 @@ plugins {
     alias(libs.plugins.autoservice) apply false
     alias(libs.plugins.vanniktech.maven.publish) apply false
     alias(libs.plugins.gradle.plugin.publish) apply false
+    // ルートは API ドキュメントの集約点として適用する（下の dokka 依存）
+    alias(libs.plugins.dokka)
     alias(libs.plugins.ktfmt)
 }
 
@@ -36,6 +38,13 @@ allprojects {
     apply<KtfmtPlugin>()
 
     ktfmt { kotlinLangStyle() }
+}
+
+// API ドキュメント（GitHub Pages 掲載用）の集約。対象は公開 API を持つ 2 モジュールで、
+// compiler-plugin は内部実装のため含めない。集約出力は build/dokka/html
+dependencies {
+    dokka(project(":sealed-class-enumizer-runtime-api"))
+    dokka(project(":sealed-class-enumizer-gradle-plugin"))
 }
 
 // integration-test の TestKit フィクスチャ向けに、3 モジュールのローカル Maven 公開を集約する

@@ -6,6 +6,7 @@ plugins {
     // sources / javadoc jar の構成も担う
     alias(libs.plugins.gradle.plugin.publish)
     alias(libs.plugins.vanniktech.maven.publish)
+    alias(libs.plugins.dokka)
 }
 
 kotlin { jvmToolchain(17) }
