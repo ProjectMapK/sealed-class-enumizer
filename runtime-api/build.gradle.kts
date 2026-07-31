@@ -25,5 +25,10 @@ kotlin {
     @Suppress("DEPRECATION") macosX64()
 
     macosArm64()
+    // iOS 系。純 Kotlin の klib のため宣言は mac 以外のホストでも成立し、
+    // ホストで実行不能な分の扱いは gradle.properties の kotlin.native.ignoreDisabledTargets が受ける
+    iosArm64()
+    iosSimulatorArm64()
+    iosX64()
     mingwX64()
 }
