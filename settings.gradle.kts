@@ -2,7 +2,20 @@ plugins { id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 
 rootProject.name = "sealed-class-enumizer"
 
-@Suppress("UnstableApiUsage") dependencyResolutionManagement { repositories { mavenCentral() } }
+@Suppress("UnstableApiUsage")
+dependencyResolutionManagement {
+    repositories { mavenCentral() }
+    // マイナー横断ビルド用の差し替え口: -PkotlinVersionOverride=<版> で catalog の Kotlin 版を上書きする
+    // （宣言の正は gradle/libs.versions.toml。ここでの version() は自動取込みの値より優先される）
+    versionCatalogs {
+        create("libs") {
+            val kotlinOverride = providers.gradleProperty("kotlinVersionOverride")
+            if (kotlinOverride.isPresent) {
+                version("kotlin", kotlinOverride.get())
+            }
+        }
+    }
+}
 
 include(":runtime-api", ":compiler-plugin", ":gradle-plugin")
 

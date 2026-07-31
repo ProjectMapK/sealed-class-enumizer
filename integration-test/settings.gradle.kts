@@ -21,7 +21,17 @@ dependencyResolutionManagement {
     // 自動共有されないため、親の TOML を明示的に読み込む。参照は build.gradle.kts の alias(...) が行う
     // （catalog は pluginManagement からは参照できないため、バージョン宣言は settings ではなく
     // ルートの plugins ブロックに置く）
-    versionCatalogs { create("libs") { from(files("../gradle/libs.versions.toml")) } }
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+            // マイナー横断ビルド用の差し替え口（親ビルドと同じ -PkotlinVersionOverride を受ける。
+            // フィクスチャへは TestKitHarness の %%KOTLIN_VERSION%% 置換経由で伝播する）
+            val kotlinOverride = providers.gradleProperty("kotlinVersionOverride")
+            if (kotlinOverride.isPresent) {
+                version("kotlin", kotlinOverride.get())
+            }
+        }
+    }
 }
 
 rootProject.name = "enumize-integration-test"
