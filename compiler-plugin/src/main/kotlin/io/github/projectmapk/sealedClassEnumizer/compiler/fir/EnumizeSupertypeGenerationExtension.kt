@@ -21,11 +21,8 @@ import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.constructClassLikeType
 import org.jetbrains.kotlin.name.ClassId
 
-// supertype 注入（docs/コンパイラプラグイン設計01.md §4）:
-//   @Enumize 対象（基底）        += Enumized<SI.Enumish>
-//   末端 object / data object    += SI.Enumish
-//   末端の既存 companion         += SI.Enumish
-// プラグイン生成の companion は本拡張が訪問しないため対象外であり、supertype は生成時に直接指定する（docs/コンパイラプラグイン設計01.md §5.1）
+// supertype 注入（対象と注入内容は docs/コンパイラプラグイン設計01.md §4）。
+// プラグイン生成の companion は本拡張が訪問しないため対象外であり、supertype は生成時に直接指定する（同 §5.1）
 class EnumizeSupertypeGenerationExtension(session: FirSession) :
     FirSupertypeGenerationExtension(session) {
     // コンポーネント群の生成順に依存しないよう、初回コールバック時に解決する

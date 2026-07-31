@@ -163,10 +163,6 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         }
     }
 
-    // 継承者の別ソースセット逸脱に対する補足診断は持たない。別ソースセットの継承者は基底の
-    // sealed 継承者一覧に載らず（載らないからこそ言語エラーになる）検査対象になりえないため、
-    // コンパイラ本体の診断（sealed の同一モジュール制約）に委ねる（docs/コンパイラプラグイン設計00.md §7・docs/コンパイラプラグイン設計01.md §7.2）
-
     // ---- 生成 Enumish の直接実装（階層内・kind に限る）----
 
     // 階層外の実装は sealed の継承者一覧へ反映する経路が無く、JVM では PermittedSubclasses により

@@ -13,8 +13,7 @@ kotlin { jvmToolchain(17) }
 dependencies {
     compileOnly(libs.kotlin.compiler.embeddable)
     // プラグイン本体は runtime-api をロードせず、名前定数はリテラルで持つ（公式・著名プラグインと同じ方針）。
-    // 定数と runtime-api の宣言の一致は EnumizeNamesTest が担保する
-    // （docs/コンパイラプラグイン設計00.md §9）ため、依存はテストにのみ持つ
+    // 定数と runtime-api の宣言の一致は EnumizeNamesTest が担保するため、依存はテストにのみ持つ
     testImplementation(project(":sealed-class-enumizer-runtime-api"))
     testImplementation(libs.kotlin.compiler.embeddable)
     testImplementation(libs.kotlin.test)

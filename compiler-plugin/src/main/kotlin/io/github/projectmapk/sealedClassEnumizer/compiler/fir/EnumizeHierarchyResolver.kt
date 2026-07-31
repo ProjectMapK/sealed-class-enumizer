@@ -52,7 +52,6 @@ import org.jetbrains.kotlin.name.SpecialNames
 // membershipOf は SUPER_TYPES 中（getCallableNamesForClass 経由。docs/コンパイラプラグイン設計01.md §3）にも呼ばれ、
 // そのクラス自身の supertype ref が未解決のまま答えが確定するため、tracker は raw な ref からでも
 // 解決後と同じ答えを返せる必要がある（docs/コンパイラプラグイン設計01.md §6.1）。
-// 用語（階層・末端・中間 sealed・kind）はdocs/コンパイラプラグイン設計00.md §1 に従う。
 // defaultLabelCase はプロジェクト既定の label ケース（CLI オプション由来。docs/概要.md §4）
 class EnumizeHierarchyResolver(
     session: FirSession,
@@ -137,9 +136,7 @@ class EnumizeHierarchyResolver(
         if (leaf.classKind == ClassKind.OBJECT) leaf.classId
         else leaf.companionObjectSymbol?.classId
 
-    // 最終 label の決定（docs/概要.md §4・docs/エッジケースへの対応方針.md §3）:
-    // 明示指定（@EnumishLabel。ケース変換は適用しない） > 階層の labelCase による変換。
-    // 変換の入力は末端宣言の単純名（companion 自身が末端である場合はその宣言名がそのまま単純名になる）
+    // 最終 label（docs/概要.md §4）。companion 自身が末端である場合はその宣言名がそのまま単純名になる
     fun labelOf(leaf: FirRegularClassSymbol, base: FirRegularClassSymbol): String =
         explicitLabelOf(leaf)
             ?: labelCaseCache.getValue(base).convert(leaf.classId.shortClassName.asString())

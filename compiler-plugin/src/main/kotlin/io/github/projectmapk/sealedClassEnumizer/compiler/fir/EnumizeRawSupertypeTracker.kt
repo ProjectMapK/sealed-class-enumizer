@@ -29,17 +29,11 @@ import org.jetbrains.kotlin.name.ClassIdBasedLocality
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
-// docs/コンパイラプラグイン設計01.md §6.1: COMPANION_GENERATION フェーズで解決済み supertype に依存せずに「階層に属する候補か」を
-// 判定するための raw supertype ref の追跡。フェーズ非依存の純関数として実装する
-// （COMPILER_REQUIRED_ANNOTATIONS までに確定する情報だけを入力とし、同一入力に常に同一の答えを返す）。
-// 解決済み ref（FirResolvedTypeRef）も受け付けるため、SUPER_TYPES 以降のフェーズからも同じ機構で辿れる。
-//
-// raw 段階の名前解決は、supertype のすべての表記（外側クラスのネスト・ファイルの明示 import・
-// 同一パッケージのトップレベル・star import・FQN 表記と、typealias / import エイリアスの展開）を
-// 扱い切る必要がある。階層判定は SUPER_TYPES 中の getCallableNamesForClass からも呼ばれ、その時点の
-// 答えがコンパイラ側に固定されるため（docs/コンパイラプラグイン設計01.md §3）、raw で追えない表記は「後から解決済み型で正す」
-// ことができず階層判定ごと欠落する。候補判定（companion 自動生成）も同じ追跡を使い、
-// supertype の書き方で末端の扱いを変えない（docs/コンパイラプラグイン設計01.md §6.2）
+// raw supertype ref の追跡（docs/コンパイラプラグイン設計01.md §6.1）。フェーズ非依存の純関数として実装する
+// （COMPILER_REQUIRED_ANNOTATIONS までに確定する情報だけを入力とし、同一入力に常に同一の答えを返す。
+// 解決済み ref も受け付けるため SUPER_TYPES 以降からも同じ機構で辿れる）。
+// 階層判定の答えは SUPER_TYPES 中にコンパイラ側へ固定されるため、raw で追えない表記は後から
+// 解決済み型で正すことができず階層判定ごと欠落する（docs/コンパイラプラグイン設計01.md §3・§6.2）
 class EnumizeRawSupertypeTracker(private val session: FirSession) {
 
     fun isHierarchyCandidate(classSymbol: FirRegularClassSymbol): Boolean =

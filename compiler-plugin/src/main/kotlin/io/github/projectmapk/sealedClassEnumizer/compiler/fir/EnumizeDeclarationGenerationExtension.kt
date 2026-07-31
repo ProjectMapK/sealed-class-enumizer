@@ -429,7 +429,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
             status { isOverride = true }
         }
 
-    // 返り値型はdocs/コンパイラプラグイン設計01.md §5.4 の規則で決める。interface の場合は default 実装（ボディは IR が充填）
+    // 返り値型は docs/コンパイラプラグイン設計01.md §5.4 の規則で決める。interface の場合は default 実装（ボディは IR が充填）
     private fun leafClassAsEnumishFunction(
         leaf: FirRegularClassSymbol,
         base: FirRegularClassSymbol,

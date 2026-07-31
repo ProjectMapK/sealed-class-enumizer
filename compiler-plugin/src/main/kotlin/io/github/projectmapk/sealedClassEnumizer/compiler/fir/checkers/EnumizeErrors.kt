@@ -11,8 +11,8 @@ import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.warning1
 
-// 診断カタログ（docs/コンパイラプラグイン設計00.md §8・docs/コンパイラプラグイン設計01.md §7.2）。
-// 診断 ID は英語の識別子であり、本文の日本語用語とは独立に安定させる
+// 診断カタログの ID 定義（検査条件・報告位置の正は docs/コンパイラプラグイン設計01.md §7.2・
+// ID の命名方針は docs/コンパイラプラグイン設計00.md §8）
 object EnumizeErrors : KtDiagnosticsContainer() {
     val ENUMIZE_NOT_SEALED: KtDiagnosticFactory0 by error0<PsiElement>()
     val ENUMIZE_ALIASED_ANNOTATION: KtDiagnosticFactory0 by error0<PsiElement>()

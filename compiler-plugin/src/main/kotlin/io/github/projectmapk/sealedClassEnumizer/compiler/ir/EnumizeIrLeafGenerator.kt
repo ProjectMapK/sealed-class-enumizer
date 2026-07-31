@@ -70,8 +70,6 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
         function.body =
             ctx.builder(function.symbol).run {
                 irBlockBody {
-                    // 末端 object は自身が kind であり、レシーバをそのまま返す。
-                    // それ以外の末端（class / enum class / interface）は自身の companion を返す
                     if (leaf.kind == ClassKind.OBJECT) {
                         val receiver =
                             function.dispatchReceiverParameter
@@ -131,10 +129,10 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
         getter.body = ctx.builder(getter.symbol).run { irBlockBody { +irReturn(irString(label)) } }
     }
 
-    // ---- 最終 label の決定（docs/概要.md §4。FIR チェッカー側の EnumizeHierarchyResolver.labelOf と同じ規則） ----
+    // ---- 最終 label の決定 ----
 
-    // 明示指定（@EnumishLabel。ケース変換は適用しない） > 階層の labelCase による変換。
-    // 変換の入力は末端宣言の単純名（companion 自身が末端の場合はその宣言名 = leaf 自身）
+    // FIR チェッカー側（EnumizeHierarchyResolver.labelOf）と同じ規則（docs/概要.md §4）を IR 上で
+    // 再計算する。両者の結果は一致していなければならない
     private fun labelOf(leaf: IrClass): String =
         explicitLabelOf(leaf) ?: labelCaseOf(leaf).convert(leaf.name.asString())
 
