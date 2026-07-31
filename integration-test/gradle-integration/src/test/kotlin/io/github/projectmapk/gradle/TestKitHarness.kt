@@ -18,7 +18,7 @@ import org.gradle.testkit.runner.GradleRunner
 // settings.gradle.kts 等のプレースホルダをコピー時に置換する:
 // - %%BUILD_CACHE_DIR%% … テスト毎に隔離したローカルビルドキャッシュのディレクトリ
 // 併せて全フィクスチャ共通のデーモン設定を gradle.properties へ追記する。
-// プラグイン一式はローカル Maven から座標で解決するため、親ビルドの composite 参照は持たない
+// プラグイン一式はローカル Maven から依存指定で解決するため、親ビルドの composite 参照は持たない
 object TestKitHarness {
     // Gradle の既定（-Xmx512m / MaxMetaspaceSize=384m）はフィクスチャビルドの KGP を載せるには不足する。
     // 全フィクスチャへ同一値を与えることで TestKit のデーモンが 1 種類に揃い、

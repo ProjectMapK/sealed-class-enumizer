@@ -25,6 +25,6 @@ dependencies {
 
 tasks.test { useJUnitPlatform() }
 
-// TestKit フィクスチャがプラグイン一式を座標で解決するための publication
+// TestKit フィクスチャがプラグイン一式を依存指定で解決するための publication
 // （docs/test/フィクスチャ構成.md §4 の local-repo 経路）
 publishing { publications { create<MavenPublication>("maven") { from(components["java"]) } } }
