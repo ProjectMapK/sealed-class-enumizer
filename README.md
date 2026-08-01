@@ -94,6 +94,44 @@ Notes:
 - Members always win over extensions in Kotlin: if the hierarchy declares its own `label` member,
   the extension is shadowed (the plugin warns about it) — `asEnumish().label` is always reliable.
 
+### Kinds as parameters
+
+A leaf that carries data has no instance until the data exists, so on a plain sealed hierarchy
+"which status" cannot appear in a signature.  
+The usual escape hatches — fabricating a throwaway `Status` from dummy data, or defining a
+parallel enum that must be kept in sync — are exactly what kinds eliminate: they are
+always-available singletons, accepted wherever an enum would have been:
+
+```kotlin
+@Enumize
+sealed interface Status {
+    val remarks: String
+
+    data class Active(override val remarks: String) : Status
+    data class Suspended(override val remarks: String) : Status
+    data object Deleted : Status
+}
+
+class Foo(val status: Status)
+
+interface FooRepository {
+    fun searchFoo(vararg statuses: Status.Enumish): List<Foo>
+}
+
+class InMemoryFooRepository(private val foos: List<Foo>) : FooRepository {
+    override fun searchFoo(vararg statuses: Status.Enumish): List<Foo> =
+        foos.filter { it.status.asEnumish() in statuses }
+}
+
+// call sites read like enums — no Status instance is fabricated or fetched;
+// a data class's kind (Active) and a data object (Deleted) pass uniformly
+repository.searchFoo(Status.Active, Status.Deleted)
+```
+
+This automates the hand-written workaround of giving every leaf a companion that implements a
+shared marker interface
+([background article, Japanese](https://qiita.com/wrongwrong/items/e32179fb851a721007a6)).
+
 ## Generated API
 
 Conceptually the plugin generates the following (in compiler internals — no source files are
