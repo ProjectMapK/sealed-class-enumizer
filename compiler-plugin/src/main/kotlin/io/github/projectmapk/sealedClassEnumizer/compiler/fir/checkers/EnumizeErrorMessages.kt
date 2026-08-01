@@ -64,8 +64,9 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
             )
             map.put(
                 EnumizeErrors.ENUMIZE_COMPANION_LEAF_CONFLICT,
-                "The companion object of a leaf class cannot itself be a leaf of the same '@Enumize' hierarchy " +
-                    "(the kind would correspond to two leaves). Remove the hierarchy supertype from the companion.",
+                "The companion object of a leaf class cannot itself be a leaf of any '@Enumize' hierarchy, " +
+                    "including a hierarchy other than the one of the leaf class (the same object would be " +
+                    "the kind of two leaves). Remove the hierarchy supertype from the companion.",
             )
             map.put(
                 EnumizeErrors.ENUMIZE_LABEL_CLASH,
