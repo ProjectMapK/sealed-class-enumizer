@@ -1,6 +1,6 @@
 # 依存の version updates（マニフェスト = version catalog / ビルドスクリプト / ワークフロー由来）。
 # Kotlin の更新 PR は catalog 経由で配布版 <KotlinVersion>-<自版> の導出まで自動で追随し、CI が検証する。
-# 解決済み依存グラフ（推移依存含む）に対する alerts は dependency submission ワークフロー側が補完する
+# 解決済み依存グラフ（推移依存含む）に対する alerts は build.yml の dependency-submission ジョブが補完する
 version: 2
 updates:
   - package-ecosystem: "gradle"
