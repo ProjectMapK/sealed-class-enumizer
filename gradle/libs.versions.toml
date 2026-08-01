@@ -1,5 +1,7 @@
 [versions]
 kotlin = "2.4.10"
+# maven-plugin がコンパイル時に参照する Maven API の版（kotlin-maven-plugin 自身が依存する版に揃える）
+maven = "3.9.12"
 autoservice = "0.1.5"
 ktfmt = "0.26.0"
 mavenPublish = "0.37.0"
@@ -9,6 +11,8 @@ dokka = "2.2.0"
 [libraries]
 kotlin-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
 kotlin-gradle-plugin-api = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin-api", version.ref = "kotlin" }
+kotlin-maven-plugin = { module = "org.jetbrains.kotlin:kotlin-maven-plugin", version.ref = "kotlin" }
+maven-core = { module = "org.apache.maven:maven-core", version.ref = "maven" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  kotlin-maven-plugin は <compilerPlugins> の名前を role-hint として本コンポーネントを引く
+  （container.lookup(KotlinMavenPluginExtension, name)）。role / role-hint / implementation と
+  実装の対応は PlexusComponentsTest がガードする。
+  Kotlin 公式の Maven 向けコンパイラプラグイン（kotlin-maven-allopen 等）と同じ登録方式である。
+-->
+<component-set>
+  <components>
+    <component>
+      <role>org.jetbrains.kotlin.maven.KotlinMavenPluginExtension</role>
+      <role-hint>sealed-class-enumizer</role-hint>
+      <implementation>io.github.projectmapk.sealedClassEnumizer.maven.SealedClassEnumizerMavenPluginExtension</implementation>
+      <isolated-realm>false</isolated-realm>
+      <requirements>
+        <requirement>
+          <role>org.codehaus.plexus.logging.Logger</role>
+          <field-name>logger</field-name>
+        </requirement>
+      </requirements>
+    </component>
+  </components>
+</component-set>

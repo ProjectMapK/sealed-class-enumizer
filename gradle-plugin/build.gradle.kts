@@ -20,8 +20,8 @@ dependencies {
 
 tasks.test { useJUnitPlatform() }
 
-// plugin id の正定義。compiler-plugin の EnumizeCommandLineProcessor.PLUGIN_ID と一致していなければならない
-val pluginId = "io.github.projectmapk.sealed-class-enumizer"
+// plugin id はコンパイラプラグイン ID と同一とする（値の正はルートの gradle.properties）
+val pluginId = providers.gradleProperty("compilerPluginId").get()
 
 gradlePlugin {
     website = providers.gradleProperty("POM_URL")

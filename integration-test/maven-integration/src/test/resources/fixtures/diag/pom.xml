@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  diag フィクスチャ（docs/test/ケース06-ビルド動態.md BLD-52 / BLD-53）:
+  プラグインの診断が Maven ビルドの失敗として表面化することを見る。compile までで完結するため
+  テスト側の依存は持たない
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.github.projectmapk.fixtures</groupId>
+  <artifactId>maven-diag</artifactId>
+  <version>1.0.0</version>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <kotlin.version>%%KOTLIN_VERSION%%</kotlin.version>
+    <enumizer.version>%%ENUMIZER_VERSION%%</enumizer.version>
+    <maven.compiler.release>17</maven.compiler.release>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib</artifactId>
+      <version>${kotlin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.projectmapk</groupId>
+      <artifactId>sealed-class-enumizer-runtime-api-jvm</artifactId>
+      <version>${enumizer.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <sourceDirectory>src/main/kotlin</sourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+        <version>${kotlin.version}</version>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>compile</phase>
+            <goals><goal>compile</goal></goals>
+          </execution>
+        </executions>
+        <configuration>
+          <jvmTarget>${maven.compiler.release}</jvmTarget>
+          <compilerPlugins>
+            <plugin>sealed-class-enumizer</plugin>
+          </compilerPlugins>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>io.github.projectmapk</groupId>
+            <artifactId>sealed-class-enumizer-maven-plugin</artifactId>
+            <version>${enumizer.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- 設定面の不正値。コンパイラへ渡る前に設定の名前を示して弾く -->
+    <profile>
+      <id>bad-label-case</id>
+      <properties>
+        <sealed-class-enumizer.labelCase>Upper_Snake</sealed-class-enumizer.labelCase>
+      </properties>
+    </profile>
+  </profiles>
+</project>
