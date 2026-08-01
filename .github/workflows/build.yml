@@ -1,6 +1,7 @@
-# CI（docs/チェックリスト.md §7）。基本は ubuntu の 2 ジョブ（ルート / integration-test）で、
-# OS 分岐は必要な範囲のみ: macos = Apple ターゲットのネイティブツールチェーン確認（ルート build のみ）・
-# windows = mingwX64 の実行テストのみ（native の box 実行はホスト依存ゲートで Windows でしか走らない）。
+# CI（docs/チェックリスト.md §7）。基本は ubuntu（ルート build / integration-test のモジュールビルド /
+# TestKit の分割実行）で、OS 分岐は必要な範囲のみ: macos = Apple ターゲットのネイティブツールチェーン確認
+# （ルート build のみ）・windows = mingwX64 の実行テストのみ（native の box 実行はホスト依存ゲートで
+# Windows でしか走らない）。main への push では加えて依存グラフを登録する。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
 name: build
 
@@ -142,3 +143,26 @@ jobs:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
       - run: ./gradlew.bat -p integration-test :mpp-producer:mingwX64Test
+
+  # 依存グラフの登録。解決済みの推移依存まで Dependabot alerts の対象にするために行う
+  # （マニフェスト由来の version updates は dependabot.yml が担う）。
+  # リポジトリ設定の Automatic dependency submission は起動条件を持たず、ビルド入力と無関係な push でも
+  # 常に走るため使わない。本ワークフローへ相乗りさせ、paths の allowlist と main への push に絞る。
+  # 対象はルートビルドのみ（integration-test の依存は配布物に含まれない）
+  dependency-submission:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # ジョブ単位の permissions はワークフロー既定を置き換える。snapshot の登録に contents: write が要る
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      # setup-gradle 相当と Gradle User Home のキャッシュを内包するアクションのため、両者を別途は置かない
+      # （依存解決のみでコンパイルしないため ~/.konan のキャッシュも不要。他ジョブと同じキーで
+      # 部分的な内容を保存してしまう事故も避ける）
+      - uses: gradle/actions/dependency-submission@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
