@@ -21,6 +21,7 @@ class MidTrackingTest {
     // docs/test/ケース01-生成と実行時API.md API-30: 中間には何も生成されず entries 非掲載
     // （末端まで平坦化）。中間の明示 companion へも Enumish 非注入（kind 非成立）で、
     // 中間型変数の asEnumish は末端 kind へ実体解決される。
+    // 探索の上端も同じで、非注釈 sealed 祖先の側（ViaOutside）は階層に数えない。
     // 期待順は直接継承者の FQN 順 [MidClass, MidClass.Companion, MidIface] を DFS で
     // in-place 展開した [LeafViaMid, Companion, LeafViaIface]（docs/test/ケース03-順序.md §1）
     @Test
@@ -32,6 +33,9 @@ class MidTrackingTest {
         // MidIface の明示 companion は階層を実装せず kind ではない
         val midCompanion: Any = MidIface.Companion
         assertFalse(midCompanion is RootVia.Enumish)
+        // 祖先直下の非所属メンバーにも kind は成立しない（探索は基底から下だけを見る）
+        val outside: Any = ViaOutside
+        assertFalse(outside is RootVia.Enumish)
         // 中間型変数からの asEnumish は末端 kind を返す
         val viaIface: MidIface = LeafViaIface(1)
         assertSame(LeafViaIface.Companion, viaIface.asEnumish())

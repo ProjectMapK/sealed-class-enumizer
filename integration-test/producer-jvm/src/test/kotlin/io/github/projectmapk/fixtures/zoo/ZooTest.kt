@@ -41,7 +41,8 @@ class ZooTest {
     }
 
     // docs/test/ケース01-生成と実行時API.md API-13: 吸収サブタイプ（open 直下・多段・object・
-    // interface 実装・無名 object・local class・委譲実装）は kind を新設せず entries 不変・asEnumish 継承
+    // interface 実装・無名 object・local class・委譲実装・非 sealed 末端配下の sealed 部分階層）は
+    // kind を新設せず entries 不変・asEnumish 継承
     @Test
     fun subtypesAreAbsorbedIntoLeafKinds() {
         val openKind = Zoo.Enumish.valueOf("OpenLeaf")
@@ -61,6 +62,8 @@ class ZooTest {
         assertSame(ifaceKind, LocalImpl().asEnumish())
         // 末端 interface への委譲実装
         assertSame(ifaceKind, Veil(Crafted()).asEnumish())
+        // 非 sealed 末端配下の sealed 部分階層（中間 Brood・末端 Chick とも自 kind を作らない）
+        assertSame(ifaceKind, Chick.asEnumish())
 
         // 吸収されても entries は末端 12 のまま不変
         assertEquals(12, Zoo.Enumish.entries.size)
@@ -107,9 +110,9 @@ class ZooTest {
             }
 
         val values =
-            listOf<Zoo>(Oval(), Square(), Spot, Crafted(), Veil(Crafted()), Zoo.DataLeaf(1))
+            listOf<Zoo>(Oval(), Square(), Spot, Crafted(), Veil(Crafted()), Chick, Zoo.DataLeaf(1))
         assertEquals(
-            listOf("open", "open", "open", "iface", "iface", "data"),
+            listOf("open", "open", "open", "iface", "iface", "iface", "data"),
             values.map(::describe),
         )
     }

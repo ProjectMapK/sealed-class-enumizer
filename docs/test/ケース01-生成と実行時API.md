@@ -26,7 +26,7 @@ K9 の表記変種（import 別名・FQN・star import・typealias）と診断�
 | ID | 次元/値 | 観測と期待 | 実装 | 備考(関連V/診断) |
 |---|---|---|---|---|
 | API-12 | K3=全種別 × K6=自動生成 | 10 種別末端（data class/data object/object/final class/open/abstract/interface/fun interface/enum/value class）で 1 末端=1 kind・label=単純名・object 系=自身/他=companion（自動生成 companion 含む） | ZooTest#oneKindPerLeafAcrossAllShapes | V3・V10 |
-| API-13 | K15=多段サブタイプ | 吸収: open 直下・多段・object サブタイプ・interface 第三者実装（default asEnumish の JVM lowering 込み）・テスト内無名 object 実装・テスト内 local class 実装・末端 interface への委譲実装（`: IfaceLeaf by impl`）は kind 新設せず entries 不変・asEnumish 継承 | ZooTest#subtypesAreAbsorbedIntoLeafKinds | V10・AK 非発火→ケース04・基底直接委譲は DIA-69 |
+| API-13 | K15=多段サブタイプ × K5=探索境界（下方向） | 吸収: open 直下・多段・object サブタイプ・interface 第三者実装（default asEnumish の JVM lowering 込み）・テスト内無名 object 実装・テスト内 local class 実装・末端 interface への委譲実装（`: IfaceLeaf by impl`）・非 sealed 末端配下の sealed 部分階層（探索が末端で止まり中間・末端とも自 kind を持たない）は kind 新設せず entries 不変・asEnumish 継承 | ZooTest#subtypesAreAbsorbedIntoLeafKinds | V10・AK 非発火→ケース04・基底直接委譲は DIA-69 |
 | API-14 | K3=非 final 末端 | 非 final 末端の enumizedClass=分類代表（実行時クラスと不一致可） | ZooTest#enumizedClassIsRepresentativeForOpenLeaves | V10 |
 | API-15 | K3=interface 末端下限 | 実装者ゼロの interface 末端（Ghost・自動 companion）も entries 掲載 | ZooTest#implementorlessInterfaceLeafHasKind | V10 |
 | API-16 | O4=値 when | 値 when の is 末端枝がサブタイプを被覆（sealed 地力） | ZooTest#valueWhenCoversSubtypesByLeafBranch | V10 |
@@ -64,14 +64,14 @@ K9 の表記変種（import 別名・FQN・star import・typealias）と診断�
 | API-27 | K1=sealed class × K9=コンストラクタ呼び出し形 | `:Task()` 形 supertype でも所属判定・companion 自動生成が成立 | SealedClassBaseTest#constructorCallSupertypeWorks | V3 |
 | API-28 | K1=sealed class × K3=object | sealed class 基底の object / data object 末端=自身が kind・toString 生成差分（非 data=生成 / data=言語合成） | SealedClassBaseTest#objectLeavesOfClassBase | V11 |
 
-## 7. 中間 sealed（mid・K5 × K9）
+## 7. 中間 sealed と合流（mid・K5 × K9）
 
 | ID | 次元/値 | 観測と期待 | 実装 | 備考(関連V/診断) |
 |---|---|---|---|---|
 | API-29 | K5=1 段 × K9=中間経由再帰追跡 | 中間 sealed class / sealed interface 経由の raw 追跡再帰で末端 companion 自動生成 | MidTrackingTest#leavesViaIntermediatesGetAutoCompanions | V3 |
-| API-30 | K5=中間非生成 | 中間には何も生成されず entries 非掲載（末端まで平坦化）・中間の明示 companion へも Enumish 非注入（kind 非成立）・中間型変数の asEnumish は末端 kind へ実体解決 | MidTrackingTest#intermediatesHaveNoKind | 多段の展開順→ケース03 |
+| API-30 | K5=中間非生成 × K2=非注釈 sealed 祖先 | 中間には何も生成されず entries 非掲載（末端まで平坦化）・中間の明示 companion へも Enumish 非注入（kind 非成立）・中間型変数の asEnumish は末端 kind へ実体解決・非注釈 sealed 祖先の側（祖先直下の非所属メンバー）にも生成なし＝探索の範囲は基底から下だけ | MidTrackingTest#intermediatesHaveNoKind | 多段の展開順→ケース03 |
 | API-51 | K9=スコープ順の競合解決 | raw 追跡の優先関係を競合 3 形で固定: star import 基底 vs 同一 pkg 同名非基底=同一 pkg 勝ち（entries 非所属）・同一 pkg 同名 vs 明示 import 基底=import 勝ち（所属）・明示 import vs 外側ネスト同名=ネスト勝ち（非所属） | RawTrackingTest#scopePriorityDecidesMembership | V3。表記単独形の成立→ケース04 DIA-31/32 |
-| API-57 | K5=多重経路（兄弟中間の同時実装） | 複数経路で到達する末端は初出位置に 1 回だけ entries 掲載・kind は 1 つ（どちらの中間型からも同じ kind へ解決）・生成 Enumish の継承者一覧も重複せず kind-when は else 不要 | MultiPathTest#multiPathLeafIsListedOnceAtFirstOccurrence / MultiPathTest#multiPathLeafHasSingleKind | 基底は一意のため診断は非発火。展開順の規則→ケース03 §1 |
+| API-57 | K5=合流（合流点の種別 × 経路の非対称性 × 入れ子） | 複数経路で到達するメンバーは初出位置に 1 回だけ entries 掲載（合流点が中間 sealed なら配下のサブツリーごと 1 回）・kind は 1 つでどの経路の静的型からも同じ kind へ解決・生成 Enumish の継承者一覧も重複せず kind-when は else 不要。合流点（非 sealed 末端 / 中間 sealed / companion 末端）× 経路（対称 / 基底直下併存 / sealed class 中間との混成）× 入れ子を 1 スナップショットで固定 | MultiPathTest#multiPathLeafIsListedOnceAtFirstOccurrence / MultiPathTest#multiPathLeafHasSingleKind | 基底は一意のため診断は非発火。展開順の規則→ケース03 §1 |
 
 ## 8. 型パラメータ（generic・K11）
 
