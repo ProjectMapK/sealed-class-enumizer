@@ -17,7 +17,7 @@ object DiagFragments {
     const val AMBIGUOUS_KIND = "The kind of this type is ambiguous"
     const val INNER_LEAF = "cannot be an inner class because an inner class"
     const val KIND_TYPE_NOT_DENOTABLE = "cannot be denoted for leaf"
-    const val COMPANION_LEAF_CONFLICT = "cannot itself be a leaf of the same"
+    const val COMPANION_LEAF_CONFLICT = "cannot itself be a leaf of any"
     const val LABEL_CLASH = "Duplicated label"
     // INVALID_LABEL は factory1 のパラメータへ理由文を渡す形式のため、理由文の断片で照合する
     const val INVALID_LABEL_TARGET = "applicable only to a leaf declaration of an"

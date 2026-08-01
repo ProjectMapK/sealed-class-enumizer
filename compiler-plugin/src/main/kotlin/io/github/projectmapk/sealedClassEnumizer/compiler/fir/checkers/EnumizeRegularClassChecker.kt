@@ -253,7 +253,9 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     }
 
     // companion は末端 class に必ず存在する（手動宣言か、無ければ候補判定による自動生成。docs/コンパイラプラグイン設計01.md §6.2）。
-    // 生成が届かない構成は所属判定ごと成立せず、この検査には到達しない
+    // 生成が届かない構成は所属判定ごと成立せず、この検査には到達しない。
+    // companion 自身の末端判定は階層不問で行う（別階層の末端でも同一オブジェクトが 2 つの末端の kind になる。
+    // docs/コンパイラプラグイン設計01.md §7.2）
     private fun checkCompanionOfLeafClass(
         declaration: FirRegularClass,
         base: FirRegularClassSymbol,
