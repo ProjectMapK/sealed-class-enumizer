@@ -20,6 +20,8 @@ operational API of enums on top.
 
 ## Setup
 
+### Gradle
+
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.10" // or kotlin("jvm") — any Kotlin target plugin
@@ -37,6 +39,54 @@ sealedClassEnumizer {
     labelCase = LabelCase.AS_DECLARED // project-wide default label case (see Label customization)
 }
 ```
+
+### Maven
+
+Declare the plugin as a dependency of kotlin-maven-plugin and name it in `compilerPlugins`; the
+compiler plugin follows as a transitive dependency. It applies to every kotlin-maven-plugin
+execution, production and test compilations alike.
+
+```xml
+<plugin>
+  <groupId>org.jetbrains.kotlin</groupId>
+  <artifactId>kotlin-maven-plugin</artifactId>
+  <version>${kotlin.version}</version>
+  <configuration>
+    <compilerPlugins>
+      <plugin>sealed-class-enumizer</plugin>
+    </compilerPlugins>
+  </configuration>
+  <dependencies>
+    <dependency>
+      <groupId>io.github.projectmapk</groupId>
+      <artifactId>sealed-class-enumizer-maven-plugin</artifactId>
+      <version>2.4.10-0.1.0</version>
+    </dependency>
+  </dependencies>
+</plugin>
+```
+
+Unlike the Gradle plugin, the runtime API is not added for you — declare it as a project
+dependency (Maven resolves the platform artifact, hence the `-jvm` suffix):
+
+```xml
+<dependency>
+  <groupId>io.github.projectmapk</groupId>
+  <artifactId>sealed-class-enumizer-runtime-api-jvm</artifactId>
+  <version>2.4.10-0.1.0</version>
+</dependency>
+```
+
+The project-wide default label case is a property:
+
+```xml
+<properties>
+  <sealed-class-enumizer.labelCase>AS_DECLARED</sealed-class-enumizer.labelCase>
+</properties>
+```
+
+The same option can be given through kotlin-maven-plugin's `pluginOptions`
+(`sealed-class-enumizer:labelCase=...`), which takes precedence over the property.
 
 ### IntelliJ IDEA
 
@@ -161,7 +211,8 @@ Labels default to the leaf's simple name and resolve with this priority:
 1. `@EnumishLabel("...")` on the leaf — used as-is (no case conversion); for resolving label
    clashes and keeping persisted labels stable across renames
 2. `@Enumize(labelCase = ...)` on the hierarchy
-3. The project-wide default from the Gradle DSL (`sealedClassEnumizer { labelCase = ... }`)
+3. The project-wide default from the build — the Gradle DSL `sealedClassEnumizer { labelCase }`
+   or the Maven `sealed-class-enumizer.labelCase` property
 4. `AS_DECLARED` (no conversion)
 
 Available cases: `AS_DECLARED`, `UPPER_SNAKE_CASE`, `SNAKE_CASE`, `KEBAB_CASE`.  
@@ -176,7 +227,7 @@ Label uniqueness within a hierarchy is enforced at compile time.
 |---|---|
 | Kotlin | 2.4.x, K2 only. The plugin version encodes the Kotlin minor it targets; applying it to another Kotlin minor produces a build warning |
 | Version format | `<KotlinVersion>-<pluginVersion>`, e.g. `2.4.10-0.1.0` |
-| Build environment | Gradle 9+ / JDK 17+ (verified with Gradle 9.6) |
+| Build environment | Gradle 9+ or Maven 3.9+ / JDK 17+ (verified with Gradle 9.6 and Maven 3.9) |
 | runtime-api (JVM) | Java 8+ bytecode |
 | runtime-api targets | `jvm`, `js`, `wasmJs`, `wasmWasi`, `linuxX64`, `mingwX64`, `macosX64`, `macosArm64`, `iosArm64`, `iosSimulatorArm64`, `iosX64` |
 
@@ -192,8 +243,8 @@ Label uniqueness within a hierarchy is enforced at compile time.
 ## Versioning and support policy
 
 - Versions follow `<KotlinVersion>-<pluginVersion>`.  
-  All published artifacts (runtime API, compiler plugin, Gradle plugin and its marker) share the
-  same version.
+  All published artifacts (runtime API, compiler plugin, Gradle plugin and its marker, Maven
+  plugin) share the same version.
 - The Kotlin compiler plugin API has no stability guarantee, so each release targets exactly one
   Kotlin minor; support covers the latest stable Kotlin minor including its patch releases.
 - New Kotlin releases are followed by new plugin releases; older minors receive no backports.
