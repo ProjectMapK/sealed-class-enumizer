@@ -45,3 +45,20 @@ sealed interface Displayed {
     // ENUMIZE_EXTENSION_SHADOWED 警告の発火照合はケース04 が正典）
     data class Tagged(val label: String) : Displayed
 }
+
+// --- 末端 / kind が継承する toString 供給元 ---
+
+// Any 以外の具象 toString を提供する親クラス（API-35 の継承元）
+open class BaseDisplay {
+    override fun toString(): String = "base-display"
+}
+
+// final override の toString を持つ親クラス（API-35。生成をスキップするため final 衝突は起きない）
+open class FixedDisplay {
+    final override fun toString(): String = "fixed-display"
+}
+
+// toString を抽象として再宣言する親クラス（API-37。生成は充足を肩代わりせず、kind 側の手動実装が必要）
+abstract class Demanding {
+    abstract override fun toString(): String
+}

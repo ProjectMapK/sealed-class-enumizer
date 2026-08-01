@@ -4,8 +4,7 @@ import io.github.projectmapk.sealedClassEnumizer.Enumize
 import io.github.projectmapk.sealedClassEnumizer.label
 
 // private 基底の同一ファイル完結フィクスチャ（docs/test/ケース02-可視性.md VIS-01/VIS-10/VIS-20/VIS-22）。
-// private トップレベル基底はファイル内でのみ可視のため、末端・観測関数とも同一ファイル配置が言語上の
-// 要請であり、1 ファイル 1 クラス規約の適用外とする。
+// private トップレベル基底はファイル内でのみ可視のため、末端・観測関数とも同一ファイル配置が言語上の要請となる。
 @Enumize
 private sealed interface PrivBase {
     data object Hidden : PrivBase

@@ -3,8 +3,8 @@ package io.github.projectmapk.fixtures.order.flat
 import io.github.projectmapk.sealedClassEnumizer.Enumize
 
 // 中間無し 17 末端の順序フィクスチャ基底（docs/test/ケース03-順序.md §2.1・ORD-01/ORD-02/ORD-05/ORD-06）。
-// 本ファイルは「同一ファイルトップレベル」配置軸（K7）と宣言順≠FQN 順の要請（ORD-02）で複数トップレベル
-// 宣言を同居させるため、1 ファイル 1 クラス規約の適用外とする。
+// 本ファイルは K7 の配置値のうち「基底ネスト」と「同一ファイルトップレベル」を担い、
+// 残る「別ファイルトップレベル」「無関係クラスネスト」は FlatRootLeaves.kt が担う。
 //
 // 期待 entries（label 列。FQN UTF-16 序数・ケース03 §2.1 の導出どおり）:
 // [A1, AA, AB1, A_, Ab2, Az, Bbb, Aaa, Foo, FooBar, Mmm, Q, Sep0, Zzz, aB3, aLower, ab4]
