@@ -69,3 +69,10 @@ class Crafted : Zoo.IfaceLeaf
 // 末端 interface への委譲実装（委譲された asEnumish が IfaceLeaf の kind を返す）。
 // 基底 Zoo への直接委譲は診断対象（docs/test/ケース04-診断.md DIA-69）であり、ここでは末端への委譲のみ扱う
 class Veil(impl: Zoo.IfaceLeaf) : Zoo.IfaceLeaf by impl
+
+// 非 sealed 末端の配下に置いた sealed 部分階層。階層の探索は非 sealed 末端で止まるため、
+// 中間 Brood も末端 Chick も自 kind を作らず IfaceLeaf の kind へ吸収される
+sealed interface Brood : Zoo.IfaceLeaf
+
+// sealed 部分階層の末端（上向きの候補判定は Brood を辿るが IfaceLeaf で止まる）
+data object Chick : Brood
