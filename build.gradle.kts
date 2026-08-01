@@ -40,8 +40,9 @@ allprojects {
     ktfmt { kotlinLangStyle() }
 }
 
-// API ドキュメント（GitHub Pages 掲載用）の集約。対象は公開 API を持つ 2 モジュールで、
-// compiler-plugin は内部実装のため含めない。集約出力は build/dokka/html
+// API ドキュメント（GitHub Pages 掲載用）の集約。対象は利用者がコードから触る公開 API を持つ 2 モジュールで、
+// compiler-plugin（内部実装）と maven-plugin（利用面は POM の設定であり Kotlin API ではない）は含めない。
+// 集約出力は build/dokka/html
 dependencies {
     dokka(project(":sealed-class-enumizer-runtime-api"))
     dokka(project(":sealed-class-enumizer-gradle-plugin"))
