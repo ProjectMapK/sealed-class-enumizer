@@ -2,17 +2,22 @@
 # TestKit の分割実行 / Maven ビルド）で、OS 分岐は必要な範囲のみ: macos = Apple ターゲットのネイティブツールチェーン確認
 # （ルート build のみ）・windows = mingwX64 の実行テストのみ（native の box 実行はホスト依存ゲートで
 # Windows でしか走らない）。main への push では加えて依存グラフを登録する。
-# アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
+# アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する。
+# dorny/paths-filter のみ未リリース機能のため master のコミットを指す。理由は changes ジョブのコメント）
 name: build
 
-# 起動条件は allowlist（paths）でビルドの入力だけに絞る（除外方式は、他のワークフローの追加・編集など
+# ビルド入力の allowlist で無駄な実行を避ける（除外方式は、他のワークフローの追加・編集など
 # 無関係ファイルの変更で起動してしまうため採らない）。ビルド入力となるファイル種別・パスを増やした場合は
-# ここへ追加すること。本ファイル自身は列挙し、この CI 定義の変更では起動させる。
+# push の paths と changes ジョブのフィルタの両方へ追加すること（両者は同義に保つ）。
+# 本ファイル自身は列挙し、この CI 定義の変更では起動させる。
 # .gitattributes は LF 正規化経由でフィクスチャの挙動に影響しうるため入力に含める
 # （.editorconfig はビルドが読まないため列挙しない）。
-# パターンは後勝ちのため、列挙パス内でもビルドに影響しない種別（.md）の個別除外は末尾の ! で行う。
-# .txt は TestKit フィクスチャの入力種別のため、除外（!）の対象にしてはならない。
-# CI を必須チェック化する場合はスキップとの整合を再設計すること
+# 列挙パス内でもビルドに影響しない種別（.md）は個別に除外する。
+# .txt は TestKit フィクスチャの入力種別のため、除外の対象にしてはならない。
+#
+# PR では起動条件に paths を置かない。paths でスキップされたワークフローのチェックは pending のまま残り、
+# 必須チェック（ci-gate）が報告されずマージがブロックされるため（docs/チェックリスト.md §8 R-6）。
+# 判定は changes ジョブへ降ろし、各ジョブの実行条件として扱う
 on:
   push:
     branches: [main]
@@ -29,18 +34,6 @@ on:
       - ".github/workflows/build.yml"
       - "!**.md"
   pull_request:
-    paths:
-      - "**/src/**"
-      - "**.gradle.kts"
-      - "**.properties"
-      - "gradlew"
-      - "gradlew.bat"
-      - "gradle/**"
-      - "kotlin-js-store/**"
-      - "integration-test/kotlin-js-store/**"
-      - ".gitattributes"
-      - ".github/workflows/build.yml"
-      - "!**.md"
 
 permissions:
   contents: read
@@ -50,7 +43,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # PR でのビルド入力の変更有無を判定する（push は起動条件の paths で判定済みのため常に true とする）。
+  # フィルタは push の paths と同義に保つ。評価器（picomatch）の記法差のみ吸収し、
+  # `**.kts` 形式は階層をまたがないため `**/*.kts` 形式とした上でルート直下向けの `*.kts` も併記する。
+  # 除外（`!`）は predicate-quantifier: some-with-excludes を指定した時のみ意図どおり働く
+  # （既定の some では除外パターンが OR 評価となり「.md 以外の全ファイル」へ一致してしまう）。
+  # この値は未リリースのため、アクションは最新リリース v4.0.2 より先の master コミットを指す。
+  # リリースへ入り次第タグの SHA へ戻すこと。Dependabot が出す v4.0.2 への「更新」は実質のロールバックで、
+  # 取り込むと未対応値としてジョブが失敗する（除外がサイレントに外れることはない）
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # PR の変更ファイル一覧は REST API から取得するため pull-requests: read が要る
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      build: ${{ github.event_name != 'pull_request' || steps.filter.outputs.build }}
+    steps:
+      - uses: dorny/paths-filter@4711b7a31b4aa89103d8c6ffab2e3b8e7b6381c7 # master（v4.0.2 + some-with-excludes）
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          predicate-quantifier: some-with-excludes
+          filters: |
+            build:
+              - "**/src/**"
+              - "*.gradle.kts"
+              - "**/*.gradle.kts"
+              - "*.properties"
+              - "**/*.properties"
+              - "gradlew"
+              - "gradlew.bat"
+              - "gradle/**"
+              - "kotlin-js-store/**"
+              - "integration-test/kotlin-js-store/**"
+              - ".gitattributes"
+              - ".github/workflows/build.yml"
+              - "!**/*.md"
+
   build:
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -70,6 +104,8 @@ jobs:
   # integration-test は 9 モジュールのビルドと、重いテスト（TestKit / Maven）を別ジョブへ分ける。
   # 同一ジョブだと互いにランナーのコアを奪い合い、開始が待たされる
   integration-modules:
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -91,6 +127,8 @@ jobs:
   # 実行時間が縮まらないため（同時実行 2 で 1 割・4 で頭打ち）、ジョブ内は直列にして分割数で稼ぐ。
   # 分割の振り分けはテストクラス名から決まるため、クラスを追加しても取りこぼさない
   integration-testkit:
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -118,6 +156,8 @@ jobs:
   # 取得するためインストール手順は要らない。フィクスチャは Kotlin 一式をテスト専用のローカルリポジトリ
   # （~/.m2/repository とは別。docs/test/フィクスチャ構成.md §6）へ取得するため、そこをキャッシュする
   integration-maven:
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -136,6 +176,8 @@ jobs:
       - run: ./gradlew -p integration-test :maven-integration:test --rerun
 
   build-macos:
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -152,6 +194,8 @@ jobs:
       - run: ./gradlew build
 
   native-windows:
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -166,6 +210,31 @@ jobs:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
       - run: ./gradlew.bat -p integration-test :mpp-producer:mingwX64Test
+
+  # 必須チェックはこの 1 本へ集約する（docs/チェックリスト.md §8 R-6）。
+  # matrix を含む個別のジョブ名を必須チェックとして列挙すると、shard 数の変更で保護設定側が
+  # 存在しない名前を要求し、マージ不能または無防備のどちらかへ静かに倒れるため。
+  # ビルド入力に変更が無い PR では needs のジョブがスキップされるが、それは成功として扱う
+  ci-gate:
+    if: always()
+    needs:
+      - changes
+      - build
+      - integration-modules
+      - integration-testkit
+      - integration-maven
+      - build-macos
+      - native-windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          FAILED: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          if [ "$FAILED" = "true" ]; then
+            echo "::error::one or more jobs failed or were cancelled"
+            exit 1
+          fi
 
   # 依存グラフの登録。解決済みの推移依存まで Dependabot alerts の対象にするために行う
   # （マニフェスト由来の version updates は dependabot.yml が担う）。
