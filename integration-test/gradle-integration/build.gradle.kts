@@ -1,4 +1,5 @@
 import com.sun.management.OperatingSystemMXBean
+import java.io.File
 import java.lang.management.ManagementFactory
 import java.util.Properties
 
@@ -64,6 +65,27 @@ val testKitParallelism =
         .map(String::toInt)
         .getOrElse(minOf(cpuBoundParallelism, memoryBoundParallelism).coerceAtLeast(1))
 
+// コア数の少ないホストでは 1 実行内の並行度を上げても縮まらないため、実行そのものを分ける口を持つ。
+// 担当はテストクラスの完全名から決まるので、クラスを追加しても必ずどれかの分割へ入る
+// （分割を列挙で持つと、追加したクラスがどこにも入らず黙って実行されなくなる）
+val testShardCount = providers.gradleProperty("testShardCount").map(String::toInt).orNull
+
+val testShardIndex = providers.gradleProperty("testShardIndex").map(String::toInt).orNull
+
+// 担当外のクラスを除外する形で絞るため、コンパイル済みクラスの完全名を集める。
+// 内部クラスは持ち主と同じ扱いになるので除く。除外方式にするのは、ここで拾えないものが
+// あっても取りこぼさない（どの分割でも走る）ようにするため
+fun compiledClassNames(classesDirs: FileCollection): List<String> =
+    classesDirs.filter(File::isDirectory).flatMap { root ->
+        root
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "class" && !it.name.contains('$') }
+            .map {
+                it.relativeTo(root).path.removeSuffix(".class").replace(File.separatorChar, '.')
+            }
+            .toList()
+    }
+
 // 展開先の作り直しはテスト本体と分けて前段のタスクで行う（test の出力準備と混ざらないようにする）。
 // 直前の実行が残した TestKit のデーモンが Windows でファイルを掴んだままのことがあるため、
 // 削除は best-effort とする（掴まれた分は次回以降の実行で回収される）
@@ -91,6 +113,16 @@ tasks.test {
     // ノブが二重になるため 1 本に固定する
     maxParallelForks = 1
     systemProperty("enumizer.fixtureDaemonHeapGb", fixtureDaemonHeapGb)
+    if (testShardCount != null && testShardIndex != null) {
+        val classesDirs = sourceSets.test.get().output.classesDirs
+        val testTask = this
+        // クラスの一覧が要るため、コンパイル後（実行直前）に絞り込む
+        doFirst {
+            compiledClassNames(classesDirs)
+                .filter { Math.floorMod(it.hashCode(), testShardCount) != testShardIndex }
+                .forEach(testTask.filter::excludeTestsMatching)
+        }
+    }
     systemProperty("junit.jupiter.execution.parallel.config.fixed.parallelism", testKitParallelism)
     // parallelism だけでは上限にならない。JUnit の実行基盤は ForkJoinPool であり、クラスが子テストの
     // 完了を待つ間に補償スレッドを起こすため、既定の最大プールサイズ（parallelism + 256）まで
