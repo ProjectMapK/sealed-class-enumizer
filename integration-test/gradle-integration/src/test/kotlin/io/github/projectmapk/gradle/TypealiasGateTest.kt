@@ -14,13 +14,13 @@ class TypealiasGateTest : DiagTestBase() {
         val output = failOutput("sweep-typealias-impl", "compileKotlin")
         assertDiagnosticAnywhere(
             output,
-            "UseSwTiAl.kt",
+            "SwTiAl.kt",
             DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE,
             "is SwTiAlLeaf",
         )
         assertDiagnosticAnywhere(
             output,
-            "UseSwTiEx.kt",
+            "SwTiEx.kt",
             DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE,
             "is SwTiExLeaf",
         )
