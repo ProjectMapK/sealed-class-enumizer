@@ -1,5 +1,5 @@
 # CI（docs/チェックリスト.md §7）。基本は ubuntu（ルート build / integration-test のモジュールビルド /
-# TestKit の分割実行）で、OS 分岐は必要な範囲のみ: macos = Apple ターゲットのネイティブツールチェーン確認
+# TestKit の分割実行 / Maven ビルド）で、OS 分岐は必要な範囲のみ: macos = Apple ターゲットのネイティブツールチェーン確認
 # （ルート build のみ）・windows = mingwX64 の実行テストのみ（native の box 実行はホスト依存ゲートで
 # Windows でしか走らない）。main への push では加えて依存グラフを登録する。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
@@ -67,8 +67,8 @@ jobs:
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
       - run: ./gradlew build
 
-  # integration-test は 8 モジュールのビルドと TestKit テストを別ジョブへ分ける。
-  # 同一ジョブだと両者がランナーのコアを奪い合い、TestKit の開始が待たされる
+  # integration-test は 9 モジュールのビルドと、重いテスト（TestKit / Maven）を別ジョブへ分ける。
+  # 同一ジョブだと互いにランナーのコアを奪い合い、開始が待たされる
   integration-modules:
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -83,7 +83,9 @@ jobs:
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
-      - run: ./gradlew -p integration-test build -x :gradle-integration:test
+      - run: >-
+          ./gradlew -p integration-test build
+          -x :gradle-integration:test -x :maven-integration:test
 
   # TestKit テストはランナーを増やして分割する。ランナーのコア数ではジョブ内の並行度を上げても
   # 実行時間が縮まらないため（同時実行 2 で 1 割・4 で頭打ち）、ジョブ内は直列にして分割数で稼ぐ。
@@ -111,6 +113,27 @@ jobs:
       - run: >-
           ./gradlew -p integration-test :gradle-integration:test --rerun
           -PtestShardIndex=${{ matrix.shard }} -PtestShardCount=3 -PtestKitParallelism=1
+
+  # Maven ビルドの検証（docs/test/ケース06-ビルド動態.md §7）。Maven 本体は Gradle 側の依存として
+  # 取得するためインストール手順は要らない。フィクスチャは Kotlin 一式をテスト専用のローカルリポジトリ
+  # （~/.m2/repository とは別。docs/test/フィクスチャ構成.md §6）へ取得するため、そこをキャッシュする
+  integration-maven:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: integration-test/maven-integration/build/maven-local-repo
+          key: maven-repo-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+      # フィクスチャの入力にはローカル Maven の非タイムスタンプ SNAPSHOT が含まれ UP-TO-DATE 判定が
+      # 信用できないため --rerun で必ず再実行する（TestKit と同じ理由）
+      - run: ./gradlew -p integration-test :maven-integration:test --rerun
 
   build-macos:
     runs-on: macos-latest
