@@ -22,8 +22,8 @@ operational API of enums on top.
 
 ```kotlin
 plugins {
-    kotlin("multiplatform") version "2.4.0" // or kotlin("jvm") — any Kotlin target plugin
-    id("io.github.projectmapk.sealed-class-enumizer") version "2.4.0-0.1.0"
+    kotlin("multiplatform") version "2.4.10" // or kotlin("jvm") — any Kotlin target plugin
+    id("io.github.projectmapk.sealed-class-enumizer") version "2.4.10-0.1.0"
 }
 ```
 
@@ -133,7 +133,7 @@ Label uniqueness within a hierarchy is enforced at compile time.
 | | |
 |---|---|
 | Kotlin | 2.4.x, K2 only. The plugin version encodes the Kotlin minor it targets; applying it to another Kotlin minor produces a build warning |
-| Version format | `<KotlinVersion>-<pluginVersion>`, e.g. `2.4.0-0.1.0` |
+| Version format | `<KotlinVersion>-<pluginVersion>`, e.g. `2.4.10-0.1.0` |
 | Build environment | Gradle 9+ / JDK 17+ (verified with Gradle 9.6) |
 | runtime-api (JVM) | Java 8+ bytecode |
 | runtime-api targets | `jvm`, `js`, `wasmJs`, `wasmWasi`, `linuxX64`, `mingwX64`, `macosX64`, `macosArm64`, `iosArm64`, `iosSimulatorArm64`, `iosX64` |
