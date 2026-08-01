@@ -1,4 +1,4 @@
-package io.github.projectmapk.diag.ok
+package io.github.projectmapk.diag.ok.visibility
 
 // docs/test/ケース04-診断.md DIA-26: 別ファイルの private トップレベル中間 sealed → 非発火。
 // private トップレベルはファイルスコープであり、基底（VisibilityNearMiss.kt の NmVis3）と

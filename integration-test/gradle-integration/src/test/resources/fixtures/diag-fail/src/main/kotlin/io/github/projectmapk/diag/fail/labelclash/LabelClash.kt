@@ -1,4 +1,4 @@
-package io.github.projectmapk.diag.fail
+package io.github.projectmapk.diag.fail.labelclash
 
 import io.github.projectmapk.sealedClassEnumizer.Enumize
 

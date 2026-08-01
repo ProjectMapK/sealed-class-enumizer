@@ -1,4 +1,4 @@
-package io.github.projectmapk.diag.fail
+package io.github.projectmapk.diag.fail.labelclash
 
 // docs/test/ケース04-診断.md DIA-34: Lc4Si 階層の参照不能末端（別ファイルの private トップレベル）。
 // IR-only アクセサで load し、LABEL_CLASH を抑止も誘発もしない。

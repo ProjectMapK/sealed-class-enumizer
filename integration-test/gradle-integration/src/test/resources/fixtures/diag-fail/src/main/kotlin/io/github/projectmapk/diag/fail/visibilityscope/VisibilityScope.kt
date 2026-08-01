@@ -1,4 +1,4 @@
-package io.github.projectmapk.diag.fail
+package io.github.projectmapk.diag.fail.visibilityscope
 
 import io.github.projectmapk.sealedClassEnumizer.Enumize
 

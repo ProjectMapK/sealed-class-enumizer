@@ -1,4 +1,4 @@
-package io.github.projectmapk.diag.ok
+package io.github.projectmapk.diag.ok.rawtracking
 
 import io.github.projectmapk.sealedClassEnumizer.Enumize
 
@@ -19,7 +19,7 @@ enum class NmEnumLeaf : NmAl {
 }
 
 // FQN 表記の supertype でも候補判定が働き自動生成される
-class NmFqFoo(val v: Int) : io.github.projectmapk.diag.ok.NmAl
+class NmFqFoo(val v: Int) : io.github.projectmapk.diag.ok.rawtracking.NmAl
 
 // typealias 経由 supertype の末端 class（companion 無し）→ 成立
 class NmAlNoc(val v: Int) : NmAlT

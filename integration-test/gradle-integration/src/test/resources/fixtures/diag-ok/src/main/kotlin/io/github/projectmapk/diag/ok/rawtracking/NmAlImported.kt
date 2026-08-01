@@ -1,6 +1,6 @@
-package io.github.projectmapk.diag.ok
+package io.github.projectmapk.diag.ok.rawtracking
 
-import io.github.projectmapk.diag.ok.NmAl as NmAlI
+import io.github.projectmapk.diag.ok.rawtracking.NmAl as NmAlI
 
 // docs/test/ケース04-診断.md DIA-31/32: import 別名表記の各末端形。
 // import 別名は file 単位の解決文脈であり、本ファイルにまとめること自体がその表記の適用範囲となる

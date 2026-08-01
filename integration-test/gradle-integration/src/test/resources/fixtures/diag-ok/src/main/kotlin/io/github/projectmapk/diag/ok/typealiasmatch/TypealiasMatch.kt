@@ -1,4 +1,4 @@
-package io.github.projectmapk.diag.ok
+package io.github.projectmapk.diag.ok.typealiasmatch
 
 import io.github.projectmapk.sealedClassEnumizer.Enumize
 import io.github.projectmapk.sealedClassEnumizer.Enumized
