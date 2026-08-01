@@ -2,7 +2,11 @@
 // （runtime-api / compiler-plugin / gradle-plugin）を composite 参照する（docs/test/テスト戦略.md）。
 // 親ビルドには include しない（プラグインの自己適用・依存循環の回避・重いテストの分離のため）。
 pluginManagement {
-    includeBuild("..")
+    // included build の名前は既定でチェックアウト先のディレクトリ名になる。git worktree ではその名前が
+    // 変わり、名前で親ビルドを引く参照（:gradle-integration:test の publishAllToMavenLocal 依存）が
+    // 解決できなくなるため明示する。名前を持てるのは最初の登録であるこちらのみで、後段の
+    // includeBuild("..") では既に登録済みのため指定しても効かない
+    includeBuild("..") { name = "sealed-class-enumizer" }
     repositories {
         gradlePluginPortal()
         mavenCentral()
