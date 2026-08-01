@@ -10,43 +10,11 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/compiler-plugin" />
             <option value="$PROJECT_DIR$/gradle-plugin" />
+            <option value="$PROJECT_DIR$/maven-plugin" />
             <option value="$PROJECT_DIR$/runtime-api" />
           </set>
         </option>
         <option name="myGradleHome" value="" />
-      </GradleProjectSettings>
-      <GradleProjectSettings>
-        <compositeConfiguration>
-          <compositeBuild compositeDefinitionSource="SCRIPT">
-            <builds>
-              <build path="$PROJECT_DIR$" name="sealed-class-enumizer">
-                <projects>
-                  <project path="$PROJECT_DIR$" />
-                  <project path="$PROJECT_DIR$/compiler-plugin" />
-                  <project path="$PROJECT_DIR$/gradle-plugin" />
-                  <project path="$PROJECT_DIR$/runtime-api" />
-                </projects>
-              </build>
-            </builds>
-          </compositeBuild>
-        </compositeConfiguration>
-        <option name="modules">
-          <set>
-            <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/compiler-plugin" />
-            <option value="$PROJECT_DIR$/gradle-plugin" />
-            <option value="$PROJECT_DIR$/integration-test" />
-            <option value="$PROJECT_DIR$/integration-test/consumer-plugin-jvm" />
-            <option value="$PROJECT_DIR$/integration-test/consumer-pure-jvm" />
-            <option value="$PROJECT_DIR$/integration-test/downstream-subtype-jvm" />
-            <option value="$PROJECT_DIR$/integration-test/gradle-integration" />
-            <option value="$PROJECT_DIR$/integration-test/java-consumer" />
-            <option value="$PROJECT_DIR$/integration-test/mpp-consumer" />
-            <option value="$PROJECT_DIR$/integration-test/mpp-producer" />
-            <option value="$PROJECT_DIR$/integration-test/producer-jvm" />
-            <option value="$PROJECT_DIR$/runtime-api" />
-          </set>
-        </option>
       </GradleProjectSettings>
     </option>
   </component>
