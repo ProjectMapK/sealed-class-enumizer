@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-// Java 消費側: @JvmStatic 非付与（v1）のため、interface 上に公開される static フィールド Companion を
+// Java 消費側: @JvmStatic 非付与のため、interface 上に公開される static フィールド Companion を
 // 経由して生成 API を呼ぶ（docs/test/ケース05-境界横断.md XMP-27 / XMP-28）
 class JavaCompanionAccessTest {
     // docs/test/ケース05-境界横断.md XMP-27: Companion フィールド経由の getEntries / valueOf / valueOfOrNull
