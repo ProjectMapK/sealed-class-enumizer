@@ -48,6 +48,10 @@ To make resolution and completion work, disable the registry flag
 re-sync the project.  
 This IDE capability is experimental; command-line and Gradle builds are unaffected either way.
 
+Once the flag is disabled, IntelliJ resolves the generated declarations and renders them inline:
+
+![Generated declarations of an `@Enumize` sealed interface rendered inline in IntelliJ IDEA](assets/intellij-generated-declarations.png)
+
 ## Usage
 
 ```kotlin
