@@ -1,6 +1,16 @@
 # 依存の version updates（マニフェスト = version catalog / ビルドスクリプト / ワークフロー由来）。
 # Kotlin の更新 PR は catalog 経由で配布版 <KotlinVersion>-<自版> の導出まで自動で追随し、CI が検証する。
 # 解決済み依存グラフ（推移依存含む）に対する alerts は build.yml の dependency-submission ジョブが補完する
+#
+# npm（kotlin-js-store/yarn.lock）は version updates の対象に含めない。lockfile は KGP が
+# JS/wasm テストランナー用に生成する成果物であり、宣言元の package.json はリポジトリに存在しないため、
+# Dependabot の更新 PR は次の kotlinUpgradeYarnLock で失われる。alerts は次の基準で捌く。
+#   1. 上流の宣言レンジ内に修正版がある場合: kotlinUpgradeYarnLock で lockfile を再生成して追随する
+#      （両ビルドで実行し、生成物は LF へ正規化する）
+#   2. レンジ内に修正版が無い場合: tolerable_risk として dismiss する。npm 依存は runtime-api の
+#      配布物に入らず（生成 package.json は依存ゼロ、公開先は Maven Central のみ）、
+#      処理する入力も CI 内の自リポジトリのテスト成果物に限られる。resolutions による
+#      major 跨ぎの強制上書きは、上流が検証していない組み合わせをテストランナーへ注入することになるため採らない
 version: 2
 updates:
   - package-ecosystem: "gradle"
