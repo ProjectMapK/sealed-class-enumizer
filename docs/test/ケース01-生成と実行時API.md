@@ -71,6 +71,7 @@ K9 の表記変種（import 別名・FQN・star import・typealias）と診断�
 | API-29 | K5=1 段 × K9=中間経由再帰追跡 | 中間 sealed class / sealed interface 経由の raw 追跡再帰で末端 companion 自動生成 | MidTrackingTest#leavesViaIntermediatesGetAutoCompanions | V3 |
 | API-30 | K5=中間非生成 | 中間には何も生成されず entries 非掲載（末端まで平坦化）・中間の明示 companion へも Enumish 非注入（kind 非成立）・中間型変数の asEnumish は末端 kind へ実体解決 | MidTrackingTest#intermediatesHaveNoKind | 多段の展開順→ケース03 |
 | API-51 | K9=スコープ順の競合解決 | raw 追跡の優先関係を競合 3 形で固定: star import 基底 vs 同一 pkg 同名非基底=同一 pkg 勝ち（entries 非所属）・同一 pkg 同名 vs 明示 import 基底=import 勝ち（所属）・明示 import vs 外側ネスト同名=ネスト勝ち（非所属） | RawTrackingTest#scopePriorityDecidesMembership | V3。表記単独形の成立→ケース04 DIA-31/32 |
+| API-57 | K5=多重経路（兄弟中間の同時実装） | 複数経路で到達する末端は初出位置に 1 回だけ entries 掲載・kind は 1 つ（どちらの中間型からも同じ kind へ解決）・生成 Enumish の継承者一覧も重複せず kind-when は else 不要 | MultiPathTest#multiPathLeafIsListedOnceAtFirstOccurrence / MultiPathTest#multiPathLeafHasSingleKind | 基底は一意のため診断は非発火。展開順の規則→ケース03 §1 |
 
 ## 8. 型パラメータ（generic・K11）
 

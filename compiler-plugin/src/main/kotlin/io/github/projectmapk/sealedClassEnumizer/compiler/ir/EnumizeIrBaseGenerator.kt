@@ -44,25 +44,22 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
     }
 
     // 末端の列挙（docs/コンパイラプラグイン設計02.md §2）: コンパイラの継承者リスト（FQN 順に正規化済み）を走査し、
-    // 中間 sealed に到達したらその継承者リストへ再帰的に降りる。並べ替えは一切行わない（docs/コンパイラプラグイン設計02.md §3）
+    // 中間 sealed に到達したらその継承者リストへ再帰的に降りる。並べ替えは一切行わない（docs/コンパイラプラグイン設計02.md §3）。
+    // 中間 sealed を含む全メンバーを走査順を保つ集合へ初出のみ入れ、そこから末端だけを取り出す。
+    // 複数の中間 sealed を同時に実装するメンバーは経路の数だけ到達するため、この集合が
+    // 末端の重複掲載（kind の集合が壊れる）と中間の再展開（同じ部分木の再走査）を同時に抑える
     private fun collectLeaves(base: IrClass): List<IrClass> {
-        val result = mutableListOf<IrClass>()
-        collectLeavesInto(base, result, LinkedHashSet())
-        return result
+        val members = LinkedHashSet<IrClass>()
+        collectMembersInto(base, members)
+        return members.filterNot { it.modality == Modality.SEALED }
     }
 
-    private fun collectLeavesInto(
-        current: IrClass,
-        result: MutableList<IrClass>,
-        visited: MutableSet<IrClass>,
-    ) {
-        if (!visited.add(current)) return
+    private fun collectMembersInto(current: IrClass, members: MutableSet<IrClass>) {
         for (subclassSymbol in current.sealedSubclasses) {
             val subclass = subclassSymbol.owner
+            if (!members.add(subclass)) continue
             if (subclass.modality == Modality.SEALED) {
-                collectLeavesInto(subclass, result, visited)
-            } else {
-                result.add(subclass)
+                collectMembersInto(subclass, members)
             }
         }
     }
