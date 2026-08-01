@@ -3,6 +3,7 @@ package io.github.projectmapk.gradle
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.copyTo
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
@@ -32,17 +33,33 @@ object TestKitHarness {
             "システムプロパティ $key が未設定（gradle-integration の test タスクが設定する）"
         }
 
-    // Gradle の既定（-Xmx512m / MaxMetaspaceSize=384m）はフィクスチャビルドの KGP を載せるには不足する。
-    // 全フィクスチャへ同一値を与えることで TestKit のデーモンが 1 種類に揃い、
-    // 並行実行するフォークの間でも使い回される（docs/test/フィクスチャ構成.md §4）。
-    // ワーカー数の既定はホストのコア数であり、フィクスチャ（1〜3 プロジェクト）には過大で、
-    // 並行実行すると デーモン数 × コア数 だけ多重化されて CPU を奪い合う
+    // フィクスチャビルドのデーモン設定。全フィクスチャへ同一値を与えることで TestKit のデーモンが
+    // 1 種類に揃い、同じホームを使うビルドの間で使い回される（docs/test/フィクスチャ構成.md §4）。
+    // メタスペースは Gradle の既定（384m）では KGP を載せるのに不足するため引き上げる。
+    // ヒープは同時実行数の算出と同じ値を使う必要があるため、gradle-integration の test タスクから受け取る。
+    // ワーカー数の既定はホストのコア数であり、フィクスチャ（1〜4 プロジェクト）には過大で、
+    // 並行実行すると 同時ビルド数 × コア数 だけ多重化されて CPU を奪い合う
     private val daemonSettings =
-        listOf(
-            "org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=1g",
-            "kotlin.daemon.jvmargs=-Xmx2g",
-            "org.gradle.workers.max=2",
-        )
+        requiredSystemProperty("enumizer.fixtureDaemonHeapGb").let { heapGb ->
+            listOf(
+                "org.gradle.jvmargs=-Xmx${heapGb}g -XX:MaxMetaspaceSize=1g",
+                "kotlin.daemon.jvmargs=-Xmx${heapGb}g",
+                "org.gradle.workers.max=2",
+            )
+        }
+
+    // TestKit は既定で全フィクスチャビルドが 1 つの Gradle ユーザーホームを共有する。ホームのキャッシュは
+    // ビルドを跨いで排他されるため、共有したまま並行実行すると直列化し、直列実行より遅くなる。
+    // 従ってビルドを駆動するスレッドへ 1 つずつ専用ホームを割り当てる。依存キャッシュだけは
+    // 親ビルドのものを読み取り専用で共有するため（GRADLE_RO_DEP_CACHE をテストタスクが渡す）、
+    // ホームが増えても依存の再取得は起きない
+    private val testKitHomeRoot: Path = Path.of(requiredSystemProperty("enumizer.testKitHomeRoot"))
+
+    private val slotCounter = AtomicInteger()
+
+    private val slotHome: ThreadLocal<Path> = ThreadLocal.withInitial {
+        testKitHomeRoot.resolve("slot-${slotCounter.getAndIncrement()}").createDirectories()
+    }
 
     private val fixturesRoot: Path =
         Path.of(
@@ -115,6 +132,7 @@ object TestKitHarness {
     // テストタスク自体が落ちる（docs/test/フィクスチャ構成.md §4 の並行実行方針）
     private fun runner(projectDir: Path, arguments: Array<out String>): GradleRunner =
         GradleRunner.create()
+            .withTestKitDir(slotHome.get().toFile())
             .withProjectDir(projectDir.toFile())
             .withArguments(listOf(*arguments) + "--stacktrace")
 

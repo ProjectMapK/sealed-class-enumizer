@@ -1,3 +1,5 @@
+import com.sun.management.OperatingSystemMXBean
+import java.lang.management.ManagementFactory
 import java.util.Properties
 
 // Gradle TestKit ホスト（docs/test/テスト戦略.md §4）。
@@ -25,15 +27,42 @@ val enumizerOwnVersion: String =
 
 val enumizerKotlinVersion: String = libs.versions.kotlin.get()
 
+// 実行ホストの物理メモリ（GiB）。標準の OperatingSystemMXBean は物理メモリを持たず HotSpot 拡張が要るため、
+// それを備えない JVM では null を返し、同時実行数をコア数だけで決めさせる
+fun hostPhysicalMemoryGb(): Int? =
+    (ManagementFactory.getOperatingSystemMXBean() as? OperatingSystemMXBean)?.let {
+        (it.totalMemorySize / (1024L * 1024L * 1024L)).toInt()
+    }
+
 // フィクスチャの展開先（IcTestSupport が使う）。テスト毎に一意なディレクトリを掘るため、
-// 実行を重ねると際限なく溜まり、テスト時間が実行毎に悪化する（実測: 蓄積なし 255 秒に対し
-// 10 回分の蓄積で 763 秒）。失敗解析のため実行後は残し、次回の実行開始時に作り直す
-// （docs/test/フィクスチャ構成.md §4（フィクスチャ展開先の回収））
+// 実行を重ねると際限なく溜まってテスト時間が実行毎に悪化する。失敗解析のため実行後は残し、
+// 次回の実行開始時に作り直す（docs/test/フィクスチャ構成.md §4（フィクスチャ展開先の回収））
 val fixtureWorkRoot = layout.buildDirectory.dir("testkit-fixtures")
 
-// TestKit の 1 テストは別プロセスの Gradle デーモンと Kotlin デーモンを 1 本ずつ占有する。
-// 並行数の上限は CPU ではなくデーモンの常駐メモリで決まるため、コア数の 1/3 を採る
-val testKitForks = (Runtime.getRuntime().availableProcessors() / 3).coerceIn(1, 8)
+// 並行実行するフィクスチャビルドへ配る Gradle ユーザーホームの置き場（TestKitHarness が
+// スレッド毎に 1 つ掘る）。中身は Gradle が生成するキャッシュであり、作り直すと生成し直しになるため、
+// フィクスチャ展開先と違って実行毎の回収はしない
+val testKitHomeRoot = layout.buildDirectory.dir("testkit-homes")
+
+// フィクスチャビルドのデーモンへ与えるヒープ。Gradle の既定（-Xmx512m）は KGP を載せるには不足する。
+// TestKitHarness がフィクスチャの gradle.properties へ書き、下の同時実行数の算出にも使うため、
+// 宣言はここだけに置く
+val fixtureDaemonHeapGb = 2
+
+// TestKit の 1 テストは別プロセスの Gradle デーモンと Kotlin デーモンを 1 本ずつ占有するため、
+// 1 つの同時実行がデーモンヒープ 2 本分のメモリを確保する。同時実行数はこれとホストの資源から決める
+// （`-PtestKitParallelism` で上書き可）
+val memoryPerBuildGb = fixtureDaemonHeapGb * 2
+
+val cpuBoundParallelism = Runtime.getRuntime().availableProcessors()
+
+val memoryBoundParallelism = hostPhysicalMemoryGb()?.div(memoryPerBuildGb) ?: cpuBoundParallelism
+
+val testKitParallelism =
+    providers
+        .gradleProperty("testKitParallelism")
+        .map(String::toInt)
+        .getOrElse(minOf(cpuBoundParallelism, memoryBoundParallelism).coerceAtLeast(1))
 
 // 展開先の作り直しはテスト本体と分けて前段のタスクで行う（test の出力準備と混ざらないようにする）。
 // 直前の実行が残した TestKit のデーモンが Windows でファイルを掴んだままのことがあるため、
@@ -51,13 +80,28 @@ tasks.test {
     dependsOn(gradle.includedBuild("sealed-class-enumizer").task(":publishAllToMavenLocal"))
     useJUnitPlatform()
     systemProperty("enumizer.fixtureWorkRoot", fixtureWorkRoot.get().asFile.absolutePath)
+    systemProperty("enumizer.testKitHomeRoot", testKitHomeRoot.get().asFile.absolutePath)
+    // フィクスチャビルドのホームを分けると依存キャッシュもホーム毎になるため、親ビルドの依存キャッシュを
+    // 読み取り専用で共有させる（GradleRunner は本テスト JVM の環境変数を引き継ぐ）
+    environment("GRADLE_RO_DEP_CACHE", gradle.gradleUserHomeDir.resolve("caches").absolutePath)
     systemProperty("enumizer.version", "$enumizerKotlinVersion-$enumizerOwnVersion")
     systemProperty("enumizer.kotlinVersion", enumizerKotlinVersion)
-    // テストクラス単位の並行実行。クラス内は直列のままなので、DiagTestBase の
-    // 「1 フィクスチャ = 1 ビルド」共有とフィクスチャ名で固定ディレクトリを掘る前提は保たれる
-    maxParallelForks = testKitForks
-    // 各フォークは駆動した全ビルドの出力（BuildResult.output）を保持する
-    maxHeapSize = "2g"
+    // 並行実行は JUnit Platform がテストメソッド単位で行う（方針と静的な設定は
+    // src/test/resources/junit-platform.properties）。Gradle 側のフォークはクラス単位でしか分配できず
+    // ノブが二重になるため 1 本に固定する
+    maxParallelForks = 1
+    systemProperty("enumizer.fixtureDaemonHeapGb", fixtureDaemonHeapGb)
+    systemProperty("junit.jupiter.execution.parallel.config.fixed.parallelism", testKitParallelism)
+    // parallelism だけでは上限にならない。JUnit の実行基盤は ForkJoinPool であり、クラスが子テストの
+    // 完了を待つ間に補償スレッドを起こすため、既定の最大プールサイズ（parallelism + 256）まで
+    // 同時実行が膨らむ。最大プールサイズを parallelism へ揃えて頭打ちにする
+    systemProperty(
+        "junit.jupiter.execution.parallel.config.fixed.max-pool-size",
+        testKitParallelism,
+    )
+    // テスト JVM が抱えるのは実行中のビルド出力（BuildResult.output）と、診断系がクラス内で共有する
+    // 分だけで、テストワーカーの既定で足りる。既定値の変更に左右されないよう同値を明示する
+    maxHeapSize = "512m"
     // TestKit ビルドは長時間になるためテスト毎の結果を逐次流す
     testLogging {
         events("passed", "skipped", "failed")
