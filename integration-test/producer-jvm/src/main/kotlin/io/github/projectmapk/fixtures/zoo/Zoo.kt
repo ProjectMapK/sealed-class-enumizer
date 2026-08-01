@@ -6,8 +6,7 @@ import io.github.projectmapk.sealedClassEnumizer.Enumize
 // docs/test/ケース03-順序.md ORD-04）。
 // object 系は自身が kind、class / interface / enum / value class 系は companion が kind。
 // IfaceLeaf / FunLeaf は明示 public companion、それ以外は自動生成 companion。
-// 吸収サブタイプは Oval.kt / Quad.kt / Square.kt / Spot.kt / Crafted.kt / Veil.kt と
-// テスト内（無名 object・local class）に分散する
+// 吸収サブタイプは本ファイル末尾のトップレベル群とテスト内（無名 object・local class）に分散する
 @Enumize
 sealed interface Zoo {
     data class DataLeaf(val v: Int) : Zoo
@@ -48,3 +47,25 @@ sealed interface Zoo {
 
     @JvmInline value class ValueLeaf(val x: Int) : Zoo
 }
+
+// --- 吸収サブタイプ（docs/test/ケース01-生成と実行時API.md API-13/API-14）。
+//     いずれも自 kind を作らず、最上位末端の kind へ吸収される ---
+
+// open 末端の直下サブタイプ
+class Oval : Zoo.OpenLeaf()
+
+// 多段吸収の中継サブタイプ（末端は Square）
+open class Quad : Zoo.OpenLeaf()
+
+// 多段サブタイプ（OpenLeaf ← Quad ← Square の 2 段でも最上位末端 OpenLeaf の kind へ吸収される。API-14）
+class Square : Quad()
+
+// object であっても自 kind を作らない
+object Spot : Zoo.OpenLeaf()
+
+// interface 末端の第三者実装（default 実装の asEnumish を JVM lowering 込みで継承する）
+class Crafted : Zoo.IfaceLeaf
+
+// 末端 interface への委譲実装（委譲された asEnumish が IfaceLeaf の kind を返す）。
+// 基底 Zoo への直接委譲は診断対象（docs/test/ケース04-診断.md DIA-69）であり、ここでは末端への委譲のみ扱う
+class Veil(impl: Zoo.IfaceLeaf) : Zoo.IfaceLeaf by impl

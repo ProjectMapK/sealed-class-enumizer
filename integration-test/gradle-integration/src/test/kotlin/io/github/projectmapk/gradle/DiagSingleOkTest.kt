@@ -9,7 +9,8 @@ import kotlin.test.Test
 // 単一モジュールの near-miss 非発火・EXTENSION_SHADOWED 警告・raw 追跡表記を diag-ok フィクスチャの
 // 1 回の成功ビルドで全件検証する（docs/test/ケース04-診断.md の DIA near-miss 群・
 // docs/test/フィクスチャ構成.md §3）。成功ビルド自体がエラー系診断の総体的な非発火を含意し、
-// 各メソッドは当該断片の不在（またはファイル毎の無診断）で境界を固定する
+// 各メソッドは当該断片の不在（またはファイル毎の無診断）で境界を固定する。
+// フィクスチャは 1 ファイル = 1 診断ケースであり、ES 警告の行照合はその配置に対する実測値である
 class DiagSingleOkTest : DiagTestBase() {
     private fun ok(): String = successOutput("diag-ok", "compileKotlin")
 
@@ -18,10 +19,8 @@ class DiagSingleOkTest : DiagTestBase() {
     @Test
     fun wellFormedAndBoundaryHierarchiesReportNothing() {
         val output = ok()
-        listOf("OkSi.kt", "OkSc.kt", "OkEmpty.kt", "OkGen.kt").forEach { file ->
-            assertFragmentAbsentAt(output, file, "e: ")
-            assertFragmentAbsentAt(output, file, "w: ")
-        }
+        assertFragmentAbsentAt(output, "WellFormed.kt", "e: ")
+        assertFragmentAbsentAt(output, "WellFormed.kt", "w: ")
     }
 
     // docs/test/ケース04-診断.md DIA-05: @Enumize 付き local class は全入口で除外され無診断素通り
@@ -53,8 +52,8 @@ class DiagSingleOkTest : DiagTestBase() {
     @Test
     fun nonInnerNestedLeafDoesNotReport() {
         val output = ok()
-        assertFragmentAbsentAt(output, "NmNestHost.kt", "e: ")
-        assertFragmentAbsentAt(output, "NmNestHost.kt", "w: ")
+        assertFragmentAbsentAt(output, "AbsorptionNearMiss.kt", "e: ")
+        assertFragmentAbsentAt(output, "AbsorptionNearMiss.kt", "w: ")
     }
 
     // docs/test/ケース04-診断.md DIA-26: 3 段規則の成立形（規則 1 / 2・広い末端 object・private 基底・
@@ -77,15 +76,9 @@ class DiagSingleOkTest : DiagTestBase() {
     fun everyRawSupertypeNotationYieldsAKind() {
         val output = ok()
         assertFragmentAbsent(output, DiagFragments.LANG_ABSTRACT_MEMBER_NOT_IMPLEMENTED)
-        listOf(
-                "NmDirNoc.kt",
-                "NmImNoc.kt",
-                "NmImBar.kt",
-                "NmFqFoo.kt",
-                "NmEnumLeaf.kt",
-                "NmOutHost.kt",
-            )
-            .forEach { file -> assertFragmentAbsentAt(output, file, "e: ") }
+        listOf("NmAl.kt", "NmAlImported.kt").forEach { file ->
+            assertFragmentAbsentAt(output, file, "e: ")
+        }
     }
 
     // docs/test/ケース04-診断.md DIA-32: typealias 表記（同一 pkg・別 pkg 明示 / star import）と
@@ -93,8 +86,7 @@ class DiagSingleOkTest : DiagTestBase() {
     @Test
     fun typealiasNotationsYieldAKind() {
         val output = ok()
-        listOf("NmAlNoc.kt", "NmAlFoo.kt", "NmImFoo.kt", "NmFarNoc.kt", "NmStarNoc.kt").forEach {
-            file ->
+        listOf("NmAl.kt", "NmAlImported.kt", "NmFarNoc.kt", "NmStarNoc.kt").forEach { file ->
             assertFragmentAbsentAt(output, file, "e: ")
         }
     }
@@ -111,18 +103,30 @@ class DiagSingleOkTest : DiagTestBase() {
     @Test
     fun declaredLabelMemberWarns() {
         val output = ok()
-        assertDiagnosticAt(output, "WlSi.kt", 8, DiagFragments.EXTENSION_SHADOWED)
-        assertDiagnosticAt(output, "Wl2Si.kt", 8, DiagFragments.EXTENSION_SHADOWED)
-        assertDiagnosticAt(output, "WlSi.kt", 13, DiagFragments.EXTENSION_SHADOWED)
-        assertDiagnosticAt(output, "OkManLeaf.kt", 8, DiagFragments.EXTENSION_SHADOWED)
+        assertDiagnosticAt(output, "ExtensionShadowed.kt", 13, DiagFragments.EXTENSION_SHADOWED)
+        assertDiagnosticAt(output, "ExtensionShadowed.kt", 18, DiagFragments.EXTENSION_SHADOWED)
+        assertDiagnosticAt(output, "ExtensionShadowed.kt", 29, DiagFragments.EXTENSION_SHADOWED)
+        assertDiagnosticAt(output, "ManualImplAllowed.kt", 20, DiagFragments.EXTENSION_SHADOWED)
     }
 
     // docs/test/ケース04-診断.md DIA-38: 継承のみの label はクラス位置 + 宣言元 FQN で ES 警告
     @Test
     fun inheritedLabelWarnsWithDeclarationSite() {
         val output = ok()
-        assertDiagnosticAt(output, "Wl3Leaf.kt", 4, DiagFragments.EXTENSION_SHADOWED, "Wl3Named")
-        assertDiagnosticAt(output, "Wl2Si.kt", 12, DiagFragments.EXTENSION_SHADOWED, "Wl2Si")
+        assertDiagnosticAt(
+            output,
+            "ExtensionShadowed.kt",
+            44,
+            DiagFragments.EXTENSION_SHADOWED,
+            "Wl3Named",
+        )
+        assertDiagnosticAt(
+            output,
+            "ExtensionShadowed.kt",
+            33,
+            DiagFragments.EXTENSION_SHADOWED,
+            "Wl2Si",
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-39: 非発火 3 形（label 以外・末端 object の継承・private label。
@@ -130,17 +134,15 @@ class DiagSingleOkTest : DiagTestBase() {
     @Test
     fun shadowingExclusionsDoNotWarn() {
         val output = ok()
-        assertNoDiagnosticAt(output, "WlSi.kt", 10)
-        assertNoDiagnosticAt(output, "Wl2Si.kt", 10)
-        assertNoDiagnosticAt(output, "WlPriv.kt", 9)
+        listOf(15, 31, 50).forEach { line ->
+            assertNoDiagnosticAt(output, "ExtensionShadowed.kt", line)
+        }
     }
 
     // docs/test/ケース04-診断.md DIA-44: toString は手動宣言・継承具象とも MC 対象外
     @Test
     fun toStringIsExemptFromMemberConflict() {
-        val output = ok()
-        assertFragmentAbsentAt(output, "NmTsLeaf.kt", DiagFragments.MEMBER_CONFLICT)
-        assertFragmentAbsentAt(output, "NmTsMan.kt", DiagFragments.MEMBER_CONFLICT)
+        assertFragmentAbsentAt(ok(), "ToStringExempt.kt", DiagFragments.MEMBER_CONFLICT)
     }
 
     // docs/test/ケース04-診断.md DIA-70: クラス継承の非発火側 — open 具象（companion 経由・末端 object
@@ -148,20 +150,15 @@ class DiagSingleOkTest : DiagTestBase() {
     @Test
     fun classInheritanceNearMissesDoNotConflict() {
         val output = ok()
-        listOf("OkCi.kt", "OkCiOpen.kt", "OkCiFn.kt", "OkCiPv.kt").forEach { file ->
-            assertFragmentAbsentAt(output, file, "e: ")
-            assertFragmentAbsentAt(output, file, "w: ")
-        }
+        assertFragmentAbsentAt(output, "ClassInheritance.kt", "e: ")
+        assertFragmentAbsentAt(output, "ClassInheritance.kt", "w: ")
     }
 
     // docs/test/ケース04-診断.md DIA-45: 生成先違い（末端本体 enumizedClass・kind companion の
     // 手動 asEnumish・enumishCompanion override）は非発火
     @Test
     fun nonGeneratedTargetsDoNotConflict() {
-        val output = ok()
-        listOf("OkM.kt", "OkC.kt", "OkKca.kt").forEach { file ->
-            assertFragmentAbsentAt(output, file, DiagFragments.MEMBER_CONFLICT)
-        }
+        assertFragmentAbsentAt(ok(), "NonGeneratedTargets.kt", DiagFragments.MEMBER_CONFLICT)
     }
 
     // docs/test/ケース04-診断.md DIA-51: 型引数一致の手動宣言（直接・間接・末端冗長宣言）は注入スキップ
@@ -177,7 +174,7 @@ class DiagSingleOkTest : DiagTestBase() {
     @Test
     fun typealiasedSupertypesMatchAfterExpansion() {
         val output = ok()
-        listOf("NmTaSi.kt", "NmThSi.kt", "NmTlSi.kt", "NmTlSame.kt").forEach { file ->
+        listOf("TypealiasMatch.kt", "NmTlSame.kt").forEach { file ->
             assertFragmentAbsentAt(output, file, "e: ")
         }
         assertFragmentAbsent(output, DiagFragments.LANG_PLATFORM_DECLARATION_CLASH)
@@ -196,9 +193,7 @@ class DiagSingleOkTest : DiagTestBase() {
     fun hierarchyInternalAndBaseEnumishImplsAreAllowed() {
         val output = ok()
         assertFragmentAbsent(output, DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY)
-        listOf("OkManLeaf.kt", "OkKex.kt", "NmRt.kt").forEach { file ->
-            assertFragmentAbsentAt(output, file, "e: ")
-        }
+        assertFragmentAbsentAt(output, "ManualImplAllowed.kt", "e: ")
     }
 
     // docs/test/ケース04-診断.md DIA-76: 中間 sealed への任意のユーザーアノテーションは基底判定を

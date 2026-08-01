@@ -14,8 +14,8 @@ class ProbeGateTest : DiagTestBase() {
     @Test
     fun companionNameClashBehaviorIsPinned() {
         val output = failOutput("probe-companion-clash", "compileKotlin")
-        assertDiagnosticAt(output, "CcLeaf.kt", 6, DiagFragments.LANG_CONFLICTING_DECLARATIONS)
-        assertDiagnosticAt(output, "CcLeaf.kt", 7, DiagFragments.LANG_CONFLICTING_DECLARATIONS)
+        assertDiagnosticAt(output, "CcSi.kt", 12, DiagFragments.LANG_CONFLICTING_DECLARATIONS)
+        assertDiagnosticAt(output, "CcSi.kt", 13, DiagFragments.LANG_CONFLICTING_DECLARATIONS)
     }
 
     // docs/test/ケース04-診断.md DIA-67: @Enumize の import 別名・typealias 表記は述語

@@ -7,7 +7,8 @@ import kotlin.test.Test
 
 // 単一モジュールの発火系・言語委譲を diag-fail フィクスチャの 1 buildAndFail で全件検証する
 // （docs/test/ケース04-診断.md の DIA 発火ケース群・docs/test/フィクスチャ構成.md §3）。
-// プラグイン診断は file:line 照合、言語診断は報告行が言語管轄のためファイル内断片照合で観測する。
+// フィクスチャは 1 ファイル = 1 診断ケースであり、file:line 照合の行はその配置に対する実測値である。
+// 同一ファイルへ複数宣言が同居するケースでは、言語診断も宣言単位の分解能を保つため行照合を用いる。
 // DIA-71 のみ diag-test-source フィクスチャの追加ビルド（compileTestKotlin）を使う
 class DiagSingleFailTest : DiagTestBase() {
     private fun fail(): String = failOutput("diag-fail", "compileKotlin")
@@ -17,23 +18,9 @@ class DiagSingleFailTest : DiagTestBase() {
     fun notSealedFiresForEveryClassifierKind() {
         val output = fail()
         // 非 object 宣言はアノテーション行・object 宣言は object キーワード行に報告される
-        listOf(
-                "NsEnum.kt" to 6,
-                "NsAnnotation.kt" to 6,
-                "NsObject.kt" to 7,
-                "NsDataObject.kt" to 7,
-                "NsOpenClass.kt" to 6,
-                "NsAbstractClass.kt" to 6,
-                "NsFinalClass.kt" to 6,
-                "NsDataClass.kt" to 6,
-                "NsValueClass.kt" to 6,
-                "NsInterface.kt" to 6,
-                "NsFunInterface.kt" to 6,
-                "NsInner.kt" to 7,
-            )
-            .forEach { (file, line) ->
-                assertDiagnosticAt(output, file, line, DiagFragments.NOT_SEALED)
-            }
+        listOf(8, 11, 15, 18, 20, 23, 27, 30, 34, 38, 41, 48).forEach { line ->
+            assertDiagnosticAt(output, "NotSealed.kt", line, DiagFragments.NOT_SEALED)
+        }
     }
 
     // docs/test/ケース04-診断.md DIA-02: 非 sealed 末端への付与は NS と NESTED が併発する
@@ -72,8 +59,8 @@ class DiagSingleFailTest : DiagTestBase() {
     fun siblingHierarchyCrossingIsReported() {
         assertDiagnosticAt(
             fail(),
-            "MultCross.kt",
-            4,
+            "MultipleHierarchies.kt",
+            19,
             DiagFragments.MULTIPLE_HIERARCHIES,
             "MultA",
             "MultB",
@@ -84,8 +71,8 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun intermediateHierarchyCrossingReportsBothParticipants() {
         val output = fail()
-        assertDiagnosticAt(output, "MultMid.kt", 4, DiagFragments.MULTIPLE_HIERARCHIES)
-        assertDiagnosticAt(output, "MultMidLeaf.kt", 4, DiagFragments.MULTIPLE_HIERARCHIES)
+        assertDiagnosticAt(output, "MultipleHierarchies.kt", 22, DiagFragments.MULTIPLE_HIERARCHIES)
+        assertDiagnosticAt(output, "MultipleHierarchies.kt", 25, DiagFragments.MULTIPLE_HIERARCHIES)
     }
 
     // docs/test/ケース04-診断.md DIA-15: 階層メンバー（末端・中間）自身への @Enumize は NESTED。
@@ -95,36 +82,48 @@ class DiagSingleFailTest : DiagTestBase() {
         val output = fail()
         assertDiagnosticAt(
             output,
-            "MultNested.kt",
-            9,
+            "NestedInHierarchy.kt",
+            11,
             DiagFragments.NESTED_IN_HIERARCHY,
             "MultNested",
         )
-        assertDiagnosticAt(output, "MultNestedMid.kt", 9, DiagFragments.NESTED_IN_HIERARCHY)
-        assertDiagnosticAt(output, "MultNested.kt", 9, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
+        assertDiagnosticAt(output, "NestedInHierarchy.kt", 18, DiagFragments.NESTED_IN_HIERARCHY)
+        assertDiagnosticAt(
+            output,
+            "NestedInHierarchy.kt",
+            11,
+            DiagFragments.MANUAL_SUPERTYPE_MISMATCH,
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-15: @Enumize 付き中間の配下末端には MH（上向き探索は 2 基底へ到達）
     @Test
     fun leafBelowAnnotatedIntermediateReportsMultipleHierarchies() {
-        assertDiagnosticAt(fail(), "MultNestedMid.kt", 11, DiagFragments.MULTIPLE_HIERARCHIES)
+        assertDiagnosticAt(fail(), "NestedInHierarchy.kt", 20, DiagFragments.MULTIPLE_HIERARCHIES)
     }
 
     // docs/test/ケース04-診断.md DIA-17: 末端サブタイプ + 基底直接実装形・2 末端 interface 実装形の AK
     @Test
     fun doubleLeafMembershipIsAmbiguous() {
         val output = fail()
-        assertDiagnosticAt(output, "AmbB.kt", 4, DiagFragments.AMBIGUOUS_KIND, "AmbA")
-        assertDiagnosticAt(output, "Amb2C.kt", 4, DiagFragments.AMBIGUOUS_KIND, "LeafA", "LeafB")
+        assertDiagnosticAt(output, "AmbiguousKind.kt", 14, DiagFragments.AMBIGUOUS_KIND, "AmbA")
+        assertDiagnosticAt(
+            output,
+            "AmbiguousKind.kt",
+            24,
+            DiagFragments.AMBIGUOUS_KIND,
+            "LeafA",
+            "LeafB",
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-23: inner 末端は IL 単独（手動メンバー併置でも後続検査スキップ）
     @Test
     fun innerLeafIsReportedAlone() {
         val output = fail()
-        assertDiagnosticAt(output, "InnerHost.kt", 6, DiagFragments.INNER_LEAF)
-        assertFragmentAbsentAt(output, "InnerHost.kt", DiagFragments.MEMBER_CONFLICT)
-        assertFragmentAbsentAt(output, "InnerHost.kt", DiagFragments.KIND_TYPE_NOT_DENOTABLE)
+        assertDiagnosticAt(output, "InnerLeaf.kt", 12, DiagFragments.INNER_LEAF)
+        assertFragmentAbsentAt(output, "InnerLeaf.kt", DiagFragments.MEMBER_CONFLICT)
+        assertFragmentAbsentAt(output, "InnerLeaf.kt", DiagFragments.KIND_TYPE_NOT_DENOTABLE)
     }
 
     // docs/test/ケース04-診断.md DIA-25: 規則 3（広い末端 + internal / private companion）で KTD
@@ -133,54 +132,82 @@ class DiagSingleFailTest : DiagTestBase() {
         val output = fail()
         assertDiagnosticAt(
             output,
-            "KtdLeaf.kt",
-            4,
+            "KindTypeNotDenotable.kt",
+            11,
             DiagFragments.KIND_TYPE_NOT_DENOTABLE,
             "KtdLeaf",
         )
-        assertDiagnosticAt(output, "KnaxLeaf.kt", 4, DiagFragments.KIND_TYPE_NOT_DENOTABLE)
+        assertDiagnosticAt(
+            output,
+            "KindTypeNotDenotable.kt",
+            19,
+            DiagFragments.KIND_TYPE_NOT_DENOTABLE,
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-27: sealed class 階層の広い末端は言語 EXPOSED_SUPER_CLASS・KTD 不在
     @Test
     fun sealedClassWiderLeafFailsWithExposureErrorOnly() {
         val output = fail()
-        assertDiagnosticAt(output, "ExpLeaf.kt", 4, DiagFragments.LANG_EXPOSED_SUPER_CLASS)
-        assertFragmentAbsentAt(output, "ExpLeaf.kt", DiagFragments.KIND_TYPE_NOT_DENOTABLE)
+        assertDiagnosticAt(
+            output,
+            "ExposedSuperClass.kt",
+            10,
+            DiagFragments.LANG_EXPOSED_SUPER_CLASS,
+        )
+        assertFragmentAbsentAt(
+            output,
+            "ExposedSuperClass.kt",
+            DiagFragments.KIND_TYPE_NOT_DENOTABLE,
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-28: 可視性スコープ違反と else 必須の位置依存 2 変種は言語エラーのみ
     @Test
     fun visibilityScopeViolationsFailWithoutPluginDiagnostics() {
         val output = fail()
-        listOf("ScopePrivUse.kt", "PrivHostUse.kt", "ProtHostUse.kt").forEach { file ->
-            assertDiagnosticInFile(output, file, "e: ")
-        }
-        assertDiagnosticInFile(output, "ElseIntUse.kt", DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE)
-        assertDiagnosticInFile(output, "ElsePubUse.kt", DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE)
+        assertDiagnosticInFile(output, "ScopePrivUse.kt", "e: ")
+        // private / protected ネスト基底への外側スコープからの参照（同居 2 宣言を行で分解する）
+        assertDiagnosticAt(output, "VisibilityScope.kt", 20, "e: ")
+        assertDiagnosticAt(output, "VisibilityScope.kt", 31, "e: ")
+        assertDiagnosticAt(output, "ElseRequired.kt", 17, DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE)
+        assertDiagnosticAt(output, "ElseRequired.kt", 29, DiagFragments.LANG_WHEN_NOT_EXHAUSTIVE)
     }
 
     // docs/test/ケース04-診断.md DIA-63: 生成物 internal 化不成立と規則 2 フォールバックの言語根拠
     @Test
     fun languageFactsBehindVisibilityRules() {
         val output = fail()
-        assertDiagnosticInFile(output, "WeakImpl.kt", DiagFragments.LANG_CANNOT_WEAKEN_ACCESS)
-        assertDiagnosticInFile(output, "ExposeReturn.kt", DiagFragments.LANG_EXPOSED_RETURN_TYPE)
+        assertDiagnosticInFile(
+            output,
+            "LanguageRuleBasis.kt",
+            DiagFragments.LANG_CANNOT_WEAKEN_ACCESS,
+        )
+        assertDiagnosticInFile(
+            output,
+            "LanguageRuleBasis.kt",
+            DiagFragments.LANG_EXPOSED_RETURN_TYPE,
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-29: companion 末端兼務は階層不問で CLC（報告位置 = companion）
     @Test
     fun companionAsLeafConflictsRegardlessOfHierarchy() {
         val output = fail()
-        assertDiagnosticAt(output, "ClcHost.kt", 5, DiagFragments.COMPANION_LEAF_CONFLICT)
-        assertDiagnosticAt(output, "Clc2Host.kt", 5, DiagFragments.COMPANION_LEAF_CONFLICT)
-        assertDiagnosticAt(output, "Clc3Host.kt", 5, DiagFragments.COMPANION_LEAF_CONFLICT)
+        listOf(13, 21, 34).forEach { line ->
+            assertDiagnosticAt(
+                output,
+                "CompanionLeafConflict.kt",
+                line,
+                DiagFragments.COMPANION_LEAF_CONFLICT,
+            )
+        }
     }
 
     // docs/test/ケース04-診断.md DIA-33: 手動 companion の生成対象メンバー省略は生成が充足しエラー無し
     @Test
     fun omittedManualMembersAreFilledByGeneration() {
-        assertFragmentAbsentAt(fail(), "OmitHost.kt", "e: ")
+        assertFragmentAbsentAt(fail(), "OmitSi.kt", "e: ")
     }
 
     // docs/test/ケース04-診断.md DIA-34: 同一単純名の末端（enum 含む）は両当事者へ LC + 相手 FQN・
@@ -188,12 +215,12 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun sameLabelLeavesClashOnBothParticipants() {
         val output = fail()
-        assertDiagnosticAt(output, "LcOuter1.kt", 5, DiagFragments.LABEL_CLASH, "LcOuter2")
-        assertDiagnosticAt(output, "LcOuter2.kt", 5, DiagFragments.LABEL_CLASH, "LcOuter1")
-        assertDiagnosticAt(output, "Lc3Si.kt", 8, DiagFragments.LABEL_CLASH, "Lc3Outer")
-        assertDiagnosticAt(output, "Lc3Outer.kt", 5, DiagFragments.LABEL_CLASH)
-        assertDiagnosticAt(output, "Lc4A.kt", 5, DiagFragments.LABEL_CLASH, "Lc4B")
-        assertDiagnosticAt(output, "Lc4B.kt", 5, DiagFragments.LABEL_CLASH, "Lc4A")
+        assertDiagnosticAt(output, "LabelClash.kt", 15, DiagFragments.LABEL_CLASH, "LcOuter2")
+        assertDiagnosticAt(output, "LabelClash.kt", 19, DiagFragments.LABEL_CLASH, "LcOuter1")
+        assertDiagnosticAt(output, "LabelClash.kt", 40, DiagFragments.LABEL_CLASH, "Lc3Outer")
+        assertDiagnosticAt(output, "LabelClash.kt", 44, DiagFragments.LABEL_CLASH)
+        assertDiagnosticAt(output, "LabelClash.kt", 53, DiagFragments.LABEL_CLASH, "Lc4B")
+        assertDiagnosticAt(output, "LabelClash.kt", 57, DiagFragments.LABEL_CLASH, "Lc4A")
         assertFragmentAbsentAt(output, "Lc4Priv.kt", "e: ")
     }
 
@@ -201,17 +228,17 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun tripleLabelClashListsAllPeers() {
         val output = fail()
-        assertDiagnosticAt(output, "Lc5A.kt", 5, DiagFragments.LABEL_CLASH, "Lc5B", "Lc5C")
-        assertDiagnosticAt(output, "Lc5B.kt", 5, DiagFragments.LABEL_CLASH, "Lc5A", "Lc5C")
-        assertDiagnosticAt(output, "Lc5C.kt", 5, DiagFragments.LABEL_CLASH, "Lc5A", "Lc5B")
+        assertDiagnosticAt(output, "LabelClash.kt", 66, DiagFragments.LABEL_CLASH, "Lc5B", "Lc5C")
+        assertDiagnosticAt(output, "LabelClash.kt", 70, DiagFragments.LABEL_CLASH, "Lc5A", "Lc5C")
+        assertDiagnosticAt(output, "LabelClash.kt", 74, DiagFragments.LABEL_CLASH, "Lc5A", "Lc5B")
     }
 
     // docs/test/ケース04-診断.md DIA-35: companion 末端の宣言名 = label が他末端の単純名と衝突する
     @Test
     fun companionLeafDeclarationNameClashes() {
         val output = fail()
-        assertDiagnosticAt(output, "Lc2Host.kt", 5, DiagFragments.LABEL_CLASH, "Foo2")
-        assertDiagnosticAt(output, "Lc2Outer.kt", 5, DiagFragments.LABEL_CLASH)
+        assertDiagnosticAt(output, "LabelClash.kt", 29, DiagFragments.LABEL_CLASH, "Foo2")
+        assertDiagnosticAt(output, "LabelClash.kt", 33, DiagFragments.LABEL_CLASH)
     }
 
     // docs/test/ケース04-診断.md DIA-40: 末端 object の label / enumizedClass / asEnumish 手動宣言で
@@ -219,9 +246,9 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun manualMembersOnLeafObjectConflict() {
         val output = fail()
-        assertDiagnosticAt(output, "Mc1Si.kt", 11, DiagFragments.MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(output, "Mc1Si.kt", 13, DiagFragments.MEMBER_CONFLICT, "enumizedClass")
-        assertDiagnosticAt(output, "Mc1Si.kt", 15, DiagFragments.MEMBER_CONFLICT, "asEnumish")
+        assertDiagnosticAt(output, "Mc1Si.kt", 13, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "Mc1Si.kt", 15, DiagFragments.MEMBER_CONFLICT, "enumizedClass")
+        assertDiagnosticAt(output, "Mc1Si.kt", 17, DiagFragments.MEMBER_CONFLICT, "asEnumish")
         assertFragmentAbsentAt(output, "Mc1Si.kt", DiagFragments.EXTENSION_SHADOWED)
     }
 
@@ -230,26 +257,51 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun memberKindCrossDeclarationsAlsoConflict() {
         val output = fail()
-        assertDiagnosticAt(output, "Mc2Si.kt", 9, DiagFragments.MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(output, "Mc2Si.kt", 12, DiagFragments.MEMBER_CONFLICT, "asEnumish")
-        assertDiagnosticAt(output, "Mc2Si.kt", 17, DiagFragments.MEMBER_CONFLICT, "asEnumish")
+        assertDiagnosticAt(output, "MemberConflict.kt", 16, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(
+            output,
+            "MemberConflict.kt",
+            19,
+            DiagFragments.MEMBER_CONFLICT,
+            "asEnumish",
+        )
+        assertDiagnosticAt(
+            output,
+            "MemberConflict.kt",
+            24,
+            DiagFragments.MEMBER_CONFLICT,
+            "asEnumish",
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-41: 手動 kind companion（既定名・enum companion）の手動宣言で MC
     @Test
     fun manualMembersOnKindCompanionConflict() {
         val output = fail()
-        assertDiagnosticAt(output, "Mc3Si.kt", 11, DiagFragments.MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(output, "Mc3Si.kt", 13, DiagFragments.MEMBER_CONFLICT, "enumizedClass")
-        assertDiagnosticAt(output, "Mc4Enum.kt", 13, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(output, "MemberConflict.kt", 34, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(
+            output,
+            "MemberConflict.kt",
+            36,
+            DiagFragments.MEMBER_CONFLICT,
+            "enumizedClass",
+        )
+        assertDiagnosticAt(output, "MemberConflict.kt", 50, DiagFragments.MEMBER_CONFLICT, "label")
     }
 
     // docs/test/ケース04-診断.md DIA-42: 末端 class / interface の asEnumish 手動宣言で MC
     @Test
     fun manualAsEnumishOnLeafClassConflicts() {
         val output = fail()
-        assertDiagnosticAt(output, "Mc5Leaf.kt", 7, DiagFragments.MEMBER_CONFLICT, "asEnumish")
-        assertDiagnosticAt(output, "Mc6Si.kt", 9, DiagFragments.MEMBER_CONFLICT, "asEnumish")
+        listOf(63, 69).forEach { line ->
+            assertDiagnosticAt(
+                output,
+                "MemberConflict.kt",
+                line,
+                DiagFragments.MEMBER_CONFLICT,
+                "asEnumish",
+            )
+        }
     }
 
     // docs/test/ケース04-診断.md DIA-43: 階層外 interface からの同名具象 default 継承で MC
@@ -257,9 +309,21 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun inheritedDefaultMemberConflicts() {
         val output = fail()
-        assertDiagnosticAt(output, "Mc7Leaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(output, "Mc8Leaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "asEnumish")
-        assertDiagnosticAt(output, "Mc9Leaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "enumizedClass")
+        assertDiagnosticAt(output, "MemberConflict.kt", 84, DiagFragments.MEMBER_CONFLICT, "label")
+        assertDiagnosticAt(
+            output,
+            "MemberConflict.kt",
+            96,
+            DiagFragments.MEMBER_CONFLICT,
+            "asEnumish",
+        )
+        assertDiagnosticAt(
+            output,
+            "MemberConflict.kt",
+            107,
+            DiagFragments.MEMBER_CONFLICT,
+            "enumizedClass",
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-70: クラス supertype の final 具象継承で MC — 階層外の直接継承・
@@ -268,11 +332,22 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun inheritedFinalClassMembersConflict() {
         val output = fail()
-        assertDiagnosticAt(output, "FiLeaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(output, "FiViaMid.kt", 4, DiagFragments.MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(output, "FiAsLeaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "asEnumish")
-        assertDiagnosticAt(output, "FiScLeaf.kt", 4, DiagFragments.MEMBER_CONFLICT, "label")
-        assertDiagnosticAt(output, "FiCls.kt", 5, DiagFragments.MEMBER_CONFLICT, "label")
+        listOf(21, 24, 44, 28).forEach { line ->
+            assertDiagnosticAt(
+                output,
+                "FinalMemberInherited.kt",
+                line,
+                DiagFragments.MEMBER_CONFLICT,
+                "label",
+            )
+        }
+        assertDiagnosticAt(
+            output,
+            "FinalMemberInherited.kt",
+            36,
+            DiagFragments.MEMBER_CONFLICT,
+            "asEnumish",
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-62: toString 抽象再宣言は言語 abstract 未実装のみ・MC 不在
@@ -281,10 +356,10 @@ class DiagSingleFailTest : DiagTestBase() {
         val output = fail()
         assertDiagnosticInFile(
             output,
-            "AtLeaf.kt",
+            "AbstractToString.kt",
             DiagFragments.LANG_ABSTRACT_MEMBER_NOT_IMPLEMENTED,
         )
-        assertFragmentAbsentAt(output, "AtLeaf.kt", DiagFragments.MEMBER_CONFLICT)
+        assertFragmentAbsentAt(output, "AbstractToString.kt", DiagFragments.MEMBER_CONFLICT)
     }
 
     // docs/test/ケース04-診断.md DIA-46: 基底の Enumized<別型> 直接継承で MSM（報告位置 = supertype ref）
@@ -292,8 +367,8 @@ class DiagSingleFailTest : DiagTestBase() {
     fun directEnumizedMismatchIsReported() {
         assertDiagnosticAt(
             fail(),
-            "Ms1Si.kt",
-            8,
+            "ManualSupertypeMismatch.kt",
+            17,
             DiagFragments.MANUAL_SUPERTYPE_MISMATCH,
             "MsWrong",
         )
@@ -302,13 +377,23 @@ class DiagSingleFailTest : DiagTestBase() {
     // docs/test/ケース04-診断.md DIA-47: 自作基底 interface 経由（supertypeClosure）の不一致でも MSM
     @Test
     fun indirectEnumizedMismatchIsReported() {
-        assertDiagnosticAt(fail(), "Ms2Si.kt", 6, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
+        assertDiagnosticAt(
+            fail(),
+            "ManualSupertypeMismatch.kt",
+            25,
+            DiagFragments.MANUAL_SUPERTYPE_MISMATCH,
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-48: 階層メンバー（末端）の Enumized<別型> でも MSM
     @Test
     fun leafSideEnumizedMismatchIsReported() {
-        assertDiagnosticAt(fail(), "MsLeaf.kt", 6, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
+        assertDiagnosticAt(
+            fail(),
+            "ManualSupertypeMismatch.kt",
+            35,
+            DiagFragments.MANUAL_SUPERTYPE_MISMATCH,
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-49: E-1 適格 K も非適格 K 6 亜種も v1 は一律 MSM
@@ -316,25 +401,22 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun customKindMismatchesInV1() {
         val output = fail()
-        listOf(
-                "Ms3Si.kt" to 8,
-                "Ms4Si.kt" to 8,
-                "Ms5Si.kt" to 8,
-                "Ms6Si.kt" to 9,
-                "Ms7Si.kt" to 9,
-                "Ms8Si.kt" to 8,
+        listOf(45, 53, 61, 70, 78, 88).forEach { line ->
+            assertDiagnosticAt(
+                output,
+                "ManualSupertypeMismatch.kt",
+                line,
+                DiagFragments.MANUAL_SUPERTYPE_MISMATCH,
             )
-            .forEach { (file, line) ->
-                assertDiagnosticAt(output, file, line, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
-            }
-        assertDiagnosticInFile(output, "Ms9Si.kt", "e: ")
+        }
+        assertDiagnosticAt(output, "ManualSupertypeMismatch.kt", 97, "e: ")
     }
 
     // docs/test/ケース04-診断.md DIA-50: 他階層 Enumish の Enumized 直接実装は MSM であって MH でない
     @Test
     fun crossHierarchyEnumizedIsMismatchNotMultipleHierarchies() {
         val output = fail()
-        assertDiagnosticAt(output, "TfCross.kt", 6, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
+        assertDiagnosticAt(output, "TfCross.kt", 20, DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
         assertFragmentAbsentAt(output, "TfCross.kt", DiagFragments.MULTIPLE_HIERARCHIES)
     }
 
@@ -342,18 +424,34 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun projectionAndNullableArgumentsFailInLanguage() {
         val output = fail()
-        assertDiagnosticInFile(output, "Proj.kt", DiagFragments.LANG_PROJECTION_IN_ARGUMENT)
-        assertDiagnosticInFile(output, "NulArg.kt", DiagFragments.LANG_UPPER_BOUND_VIOLATED)
-        assertFragmentAbsentAt(output, "Proj.kt", DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
-        assertFragmentAbsentAt(output, "NulArg.kt", DiagFragments.MANUAL_SUPERTYPE_MISMATCH)
+        assertDiagnosticInFile(
+            output,
+            "TypeArgumentBounds.kt",
+            DiagFragments.LANG_PROJECTION_IN_ARGUMENT,
+        )
+        assertDiagnosticInFile(
+            output,
+            "TypeArgumentBounds.kt",
+            DiagFragments.LANG_UPPER_BOUND_VIOLATED,
+        )
+        assertFragmentAbsentAt(
+            output,
+            "TypeArgumentBounds.kt",
+            DiagFragments.MANUAL_SUPERTYPE_MISMATCH,
+        )
     }
 
     // docs/test/ケース04-診断.md DIA-54: 既存ネスト Enumish（class / object / interface / 末端兼用）で RNC
     @Test
     fun existingNestedEnumishClashes() {
         val output = fail()
-        listOf("Rn1.kt", "Rn2.kt", "Rn3.kt", "Rn4.kt").forEach { file ->
-            assertDiagnosticAt(output, file, 8, DiagFragments.RESERVED_NAME_CLASH)
+        listOf(10, 15, 20, 25).forEach { line ->
+            assertDiagnosticAt(
+                output,
+                "ReservedNameClash.kt",
+                line,
+                DiagFragments.RESERVED_NAME_CLASH,
+            )
         }
     }
 
@@ -364,13 +462,23 @@ class DiagSingleFailTest : DiagTestBase() {
         val output = fail()
         assertDiagnosticAt(
             output,
-            "MiRogue.kt",
-            7,
+            "ManualImplOutsideHierarchy.kt",
+            17,
             DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY,
             "MiSi",
         )
-        assertDiagnosticAt(output, "MiRogueCls.kt", 7, DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY)
-        assertDiagnosticAt(output, "MiMid.kt", 8, DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY)
+        assertDiagnosticAt(
+            output,
+            "ManualImplOutsideHierarchy.kt",
+            24,
+            DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY,
+        )
+        assertDiagnosticAt(
+            output,
+            "ManualImplOutsideHierarchy.kt",
+            34,
+            DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY,
+        )
         assertDiagnosticAt(output, "AlienPkg.kt", 7, DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY)
         assertDiagnosticInFile(output, "AlienPkg.kt", "e: ", "package")
     }
@@ -394,8 +502,9 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun sealedClassBaseRejectsNonClassLeafShapes() {
         val output = fail()
-        listOf("ScValue.kt", "ScEnum.kt", "ScIface.kt", "ScAnn.kt").forEach { file ->
-            assertDiagnosticInFile(output, file, "e: ")
+        // value / enum / interface / annotation の 4 宣言が同居するため行で分解する
+        listOf(26, 17, 22, 14).forEach { line ->
+            assertDiagnosticAt(output, "SealedClassLeafKinds.kt", line, "e: ")
         }
     }
 
@@ -422,15 +531,20 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun enumishLabelOnNonLeafIsInvalid() {
         val output = fail()
-        listOf(8, 11, 16, 20).forEach { line ->
-            assertDiagnosticAt(output, "LblTargets.kt", line, DiagFragments.INVALID_LABEL_TARGET)
+        listOf(12, 15, 20, 24).forEach { line ->
+            assertDiagnosticAt(
+                output,
+                "LabelAnnotation.kt",
+                line,
+                DiagFragments.INVALID_LABEL_TARGET,
+            )
         }
     }
 
     // docs/test/ケース04-診断.md DIA-73: 空白のみの明示 label は付与先が正当な末端でも INVALID_LABEL
     @Test
     fun blankEnumishLabelIsInvalid() {
-        assertDiagnosticAt(fail(), "LblBlank.kt", 9, DiagFragments.INVALID_LABEL_BLANK)
+        assertDiagnosticAt(fail(), "LabelAnnotation.kt", 30, DiagFragments.INVALID_LABEL_BLANK)
     }
 
     // docs/test/ケース04-診断.md DIA-74: ケース変換で初めて衝突する単純名は最終 label で判定され、
@@ -438,15 +552,29 @@ class DiagSingleFailTest : DiagTestBase() {
     @Test
     fun conversionInducedLabelClashIsReported() {
         val output = fail()
-        assertDiagnosticAt(output, "LblCaseClash.kt", 10, DiagFragments.LABEL_CLASH, "FOO_BAR")
-        assertDiagnosticAt(output, "LblCaseClash.kt", 12, DiagFragments.LABEL_CLASH, "FOO_BAR")
+        listOf(38, 40).forEach { line ->
+            assertDiagnosticAt(
+                output,
+                "LabelAnnotation.kt",
+                line,
+                DiagFragments.LABEL_CLASH,
+                "FOO_BAR",
+            )
+        }
     }
 
     // docs/test/ケース04-診断.md DIA-75: 明示 label と他末端の既定 label の衝突も両末端に LABEL_CLASH
     @Test
     fun aliasVersusDefaultLabelClashIsReported() {
         val output = fail()
-        assertDiagnosticAt(output, "LblAliasClash.kt", 9, DiagFragments.LABEL_CLASH, "First")
-        assertDiagnosticAt(output, "LblAliasClash.kt", 11, DiagFragments.LABEL_CLASH, "First")
+        listOf(47, 49).forEach { line ->
+            assertDiagnosticAt(
+                output,
+                "LabelAnnotation.kt",
+                line,
+                DiagFragments.LABEL_CLASH,
+                "First",
+            )
+        }
     }
 }
