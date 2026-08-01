@@ -42,7 +42,7 @@ rootProject.name = "enumize-integration-test"
 
 includeBuild("..")
 
-// docs/test/テスト戦略.md のモジュール一覧（8 モジュール）
+// docs/test/テスト戦略.md のモジュール一覧（9 モジュール）
 include(
     ":producer-jvm",
     ":consumer-pure-jvm",
@@ -52,4 +52,5 @@ include(
     ":mpp-producer",
     ":mpp-consumer",
     ":gradle-integration",
+    ":maven-integration",
 )

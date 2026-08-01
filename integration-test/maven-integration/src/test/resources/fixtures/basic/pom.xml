@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  basic フィクスチャ（docs/test/ケース06-ビルド動態.md BLD-49〜BLD-51）:
+  kotlin-maven-plugin へ本プラグインを載せた最小構成。既定では label ケースを設定せず、
+  プロファイルで「プロジェクト既定（property）」と「実行単位の指定（pluginOptions）」を足す。
+  runtime-api は自動追加されないため、利用側が明示宣言する構成を敷いている
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.github.projectmapk.fixtures</groupId>
+  <artifactId>maven-basic</artifactId>
+  <version>1.0.0</version>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <kotlin.version>%%KOTLIN_VERSION%%</kotlin.version>
+    <enumizer.version>%%ENUMIZER_VERSION%%</enumizer.version>
+    <maven.compiler.release>17</maven.compiler.release>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- JUnit の api / engine / platform を 1 つの版へ揃える（推移で入る版との食い違いを避ける） -->
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.10.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib</artifactId>
+      <version>${kotlin.version}</version>
+    </dependency>
+    <!-- 生成 API は runtime-api の型を supertype として公開するため、利用側が依存を持つ -->
+    <dependency>
+      <groupId>io.github.projectmapk</groupId>
+      <artifactId>sealed-class-enumizer-runtime-api-jvm</artifactId>
+      <version>${enumizer.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <sourceDirectory>src/main/kotlin</sourceDirectory>
+    <testSourceDirectory>src/test/kotlin</testSourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+        <version>${kotlin.version}</version>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>compile</phase>
+            <goals><goal>compile</goal></goals>
+          </execution>
+          <execution>
+            <id>test-compile</id>
+            <phase>test-compile</phase>
+            <goals><goal>test-compile</goal></goals>
+          </execution>
+        </executions>
+        <configuration>
+          <jvmTarget>${maven.compiler.release}</jvmTarget>
+          <compilerPlugins>
+            <plugin>sealed-class-enumizer</plugin>
+          </compilerPlugins>
+        </configuration>
+        <dependencies>
+          <!-- コンパイラプラグイン本体はこの宣言から推移解決される -->
+          <dependency>
+            <groupId>io.github.projectmapk</groupId>
+            <artifactId>sealed-class-enumizer-maven-plugin</artifactId>
+            <version>${enumizer.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- プロジェクト既定の label ケース -->
+    <profile>
+      <id>project-default</id>
+      <properties>
+        <sealed-class-enumizer.labelCase>UPPER_SNAKE_CASE</sealed-class-enumizer.labelCase>
+      </properties>
+    </profile>
+    <!-- 実行単位の指定（kotlin-maven-plugin の標準機構）。プロジェクト既定より後に渡り優先される -->
+    <profile>
+      <id>plugin-option</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-plugin</artifactId>
+            <configuration>
+              <pluginOptions>
+                <option>sealed-class-enumizer:labelCase=SNAKE_CASE</option>
+              </pluginOptions>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
