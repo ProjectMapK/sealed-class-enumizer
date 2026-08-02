@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.4.10"
 # maven-plugin がコンパイル時に参照する Maven API の版（kotlin-maven-plugin 自身が依存する版に揃える）
-maven = "3.9.12"
+maven = "3.9.16"
 autoservice = "0.1.5"
 ktfmt = "0.26.0"
 mavenPublish = "0.37.0"
