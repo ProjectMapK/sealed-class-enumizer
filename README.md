@@ -25,7 +25,7 @@ operational API of enums on top.
 ```kotlin
 plugins {
     kotlin("multiplatform") version "2.4.10" // or kotlin("jvm") — any Kotlin target plugin
-    id("io.github.projectmapk.sealed-class-enumizer") version "2.4.0-0.1.0"
+    id("io.github.projectmapk.sealed-class-enumizer") version "2.4.10-0.1.0"
 }
 ```
 
