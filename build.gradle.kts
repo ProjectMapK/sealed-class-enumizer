@@ -32,6 +32,96 @@ allprojects {
     version = enumizerFullVersion
 }
 
+// README / docs / .idea 中の「現行バージョン」表記を単一情報源（Kotlin / Maven = version catalog・
+// 自版 = enumizerVersion・Gradle = wrapper properties）から導出した値へ揃える。
+// Dependabot 等の版更新はマニフェストしか書き換えず表記が置き去りになるため、
+// checkVersionMentions（check へ紐付け。CI では version-mentions ジョブ）が乖離を検出し、
+// syncVersionMentions が書き換える。
+// 置換は「現行版を指す表記」に限る。サポート下限（"Kotlin 2.4" / "Gradle 9+" / "Maven 3.9+"）・
+// 特定版に固定した実測エビデンス（設計00 の "Kotlin 2.4.0 実測"）・別版での版形式の例示は
+// 書き換えてはならないため、対象ファイルの許可リストと文脈付きパターンの両方で絞る
+fun minorOf(version: String) = version.split(".").take(2).joinToString(".")
+
+val kotlinCurrent = libs.versions.kotlin.get()
+val mavenCurrent = libs.versions.maven.get()
+val enumizerReleaseVersion =
+    providers.gradleProperty("enumizerVersion").get().removeSuffix("-SNAPSHOT")
+val gradleWrapperVersion =
+    providers
+        .fileContents(layout.projectDirectory.file("gradle/wrapper/gradle-wrapper.properties"))
+        .asText
+        .map { checkNotNull(Regex("""/gradle-(\d+(?:\.\d+)+)-""").find(it)).groupValues[1] }
+        .get()
+
+// 3 成分（パッチ付き）と 2 成分（マイナーまで）の表記は、それぞれの粒度を保ったまま現行値へ置換する
+val versionMentionRules: List<Pair<Regex, String>> =
+    listOf(
+        // 配布版のフル形式 <KotlinVersion>-<自版>（README のセットアップ例・版形式の現行例）
+        Regex("""(?<![\d.])\d+\.\d+\.\d+-\d+\.\d+\.\d+(?![\d.-])""") to
+            "$kotlinCurrent-$enumizerReleaseVersion",
+        // README のセットアップ例が指定する KGP 版
+        Regex("""(?<=kotlin\("(?:multiplatform|jvm)"\) version ")\d+\.\d+\.\d+(?=")""") to
+            kotlinCurrent,
+        // .idea/kotlinc.xml（IDE が同期時に書き戻す Kotlin 版。PR 側で揃え、同期後の作業ツリー差分を防ぐ）
+        Regex("""(?<=name="version" value=")\d+\.\d+\.\d+(?=")""") to kotlinCurrent,
+        // 文中の現行 Kotlin 版（3 成分のみ。2 成分のサポート下限 "Kotlin 2.4" には一致しない）
+        Regex("""(?<=Kotlin )\d+\.\d+\.\d+(?![\d.-])""") to kotlinCurrent,
+        // 対応マイナーの表記（README の互換表の "2.4.x"）
+        Regex("""\d+\.\d+\.x""") to "${minorOf(kotlinCurrent)}.x",
+        // Gradle / Maven。下限表記（"9+" / "3.9+"）は後置の + により対象外となる
+        Regex("""(?<=Gradle )\d+\.\d+\.\d+(?![\d.+])""") to gradleWrapperVersion,
+        Regex("""(?<=Gradle )\d+\.\d+(?![\d.+])""") to minorOf(gradleWrapperVersion),
+        Regex("""(?<=Maven )\d+\.\d+\.\d+(?![\d.+])""") to mavenCurrent,
+        Regex("""(?<=Maven )\d+\.\d+(?![\d.+])""") to minorOf(mavenCurrent),
+    )
+
+// 対象箇所: README（セットアップ例・互換表・検証済みビルド環境）・概要 §7（版形式の現行例）・
+// 実装ノート / テスト戦略 / エッジケースへの対応方針（実測・テスト環境の宣言）・kotlinc.xml。
+// 現行版への言及を持つ資料を増やした場合はここへ追加する
+val versionMentionTargets =
+    listOf(
+            "README.md",
+            "docs/概要.md",
+            "docs/実装ノート.md",
+            "docs/test/テスト戦略.md",
+            "docs/エッジケースへの対応方針.md",
+            ".idea/kotlinc.xml",
+        )
+        .map { it to layout.projectDirectory.file(it).asFile }
+
+tasks.register("syncVersionMentions") {
+    val targets = versionMentionTargets
+    val rules = versionMentionRules
+    doLast {
+        targets.forEach { (_, file) ->
+            val current = file.readText()
+            val synced = rules.fold(current) { text, (regex, value) -> regex.replace(text, value) }
+            if (synced != current) file.writeText(synced)
+        }
+    }
+}
+
+val checkVersionMentions =
+    tasks.register("checkVersionMentions") {
+        val targets = versionMentionTargets
+        val rules = versionMentionRules
+        doLast {
+            val stale = targets.filter { (_, file) ->
+                val current = file.readText()
+                rules.fold(current) { text, (regex, value) -> regex.replace(text, value) } !=
+                    current
+            }
+            if (stale.isNotEmpty()) {
+                throw GradleException(
+                    "現行バージョンとズレた表記があります: ${stale.joinToString { it.first }}。" +
+                        "./gradlew syncVersionMentions で追随してください"
+                )
+            }
+        }
+    }
+
+tasks.named("check") { dependsOn(checkVersionMentions) }
+
 // gradle.properties の kotlin.code.style=official に合わせ、ktfmt も Kotlin 公式スタイル
 // （ブロック・継続ともインデント 4、末尾カンマ付与）で揃える
 allprojects {

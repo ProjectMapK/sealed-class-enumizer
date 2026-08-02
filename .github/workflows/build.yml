@@ -12,7 +12,8 @@ name: build
 # 本ファイル自身は列挙し、この CI 定義の変更では起動させる。
 # .gitattributes は LF 正規化経由でフィクスチャの挙動に影響しうるため入力に含める
 # （.editorconfig はビルドが読まないため列挙しない）。
-# 列挙パス内でもビルドに影響しない種別（.md）は個別に除外する。
+# 列挙パス内でもビルドに影響しない種別（.md）は個別に除外する。ただし現行バージョン表記の検証は
+# README / docs を入力に持つため、PR では changes ジョブの専用フィルタで version-mentions ジョブを起動する。
 # .txt は TestKit フィクスチャの入力種別のため、除外の対象にしてはならない。
 #
 # PR では起動条件に paths を置かない。paths でスキップされたワークフローのチェックは pending のまま残り、
@@ -60,6 +61,9 @@ jobs:
       pull-requests: read
     outputs:
       build: ${{ github.event_name != 'pull_request' || steps.filter.outputs.build }}
+      # push はビルド入力の変更でしか起動せず、そちらは build ジョブの check が版表記検証を含むため、
+      # このフィルタは PR のみ評価する（push では常に false = ジョブをスキップ）
+      versionMentions: ${{ github.event_name == 'pull_request' && steps.filter.outputs.versionMentions }}
     steps:
       - uses: dorny/paths-filter@4711b7a31b4aa89103d8c6ffab2e3b8e7b6381c7 # master（v4.0.2 + some-with-excludes）
         id: filter
@@ -81,6 +85,10 @@ jobs:
               - ".gitattributes"
               - ".github/workflows/build.yml"
               - "!**/*.md"
+            versionMentions:
+              - "README.md"
+              - "docs/**"
+              - ".idea/kotlinc.xml"
 
   build:
     needs: changes
@@ -211,6 +219,24 @@ jobs:
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
       - run: ./gradlew.bat -p integration-test :mpp-producer:mingwX64Test
 
+  # 現行バージョン表記と単一情報源の一致検証（ルートの checkVersionMentions。乖離時は
+  # ./gradlew syncVersionMentions の結果をコミットして追随する）。ビルド入力を変更する PR
+  # （Dependabot の版更新を含む）は build ジョブの check が同じ検証を含むため、このジョブは
+  # ビルド入力の allowlist から除外されている .md など、表記側だけを変更する PR を拾う
+  version-mentions:
+    needs: changes
+    if: needs.changes.outputs.versionMentions == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+      - run: ./gradlew :checkVersionMentions
+
   # 必須チェックはこの 1 本へ集約する（docs/チェックリスト.md §8 R-6）。
   # matrix を含む個別のジョブ名を必須チェックとして列挙すると、shard 数の変更で保護設定側が
   # 存在しない名前を要求し、マージ不能または無防備のどちらかへ静かに倒れるため。
@@ -225,6 +251,7 @@ jobs:
       - integration-maven
       - build-macos
       - native-windows
+      - version-mentions
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

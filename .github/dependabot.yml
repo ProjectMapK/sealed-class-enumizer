@@ -1,5 +1,8 @@
 # 依存の version updates（マニフェスト = version catalog / ビルドスクリプト / ワークフロー由来）。
 # Kotlin の更新 PR は catalog 経由で配布版 <KotlinVersion>-<自版> の導出まで自動で追随し、CI が検証する。
+# README / docs / .idea 中の現行バージョン表記はマニフェスト更新では変わらないため、
+# CI（ルートの checkVersionMentions）が乖離を検出したら、./gradlew syncVersionMentions の
+# 実行結果を更新 PR へコミットして追随させる。
 # 解決済み依存グラフ（推移依存含む）に対する alerts は build.yml の dependency-submission ジョブが補完する
 #
 # npm（kotlin-js-store/yarn.lock）は version updates の対象に含めない。lockfile は KGP が
