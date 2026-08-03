@@ -155,10 +155,8 @@ always-available singletons, accepted wherever an enum would have been:
 ```kotlin
 @Enumize
 sealed interface Status {
-    val remarks: String
-
-    data class Active(override val remarks: String) : Status
-    data class Suspended(override val remarks: String) : Status
+    data class Active(val remarks: String) : Status
+    data class Suspended(val remarks: String) : Status
     data object Deleted : Status
 }
 
