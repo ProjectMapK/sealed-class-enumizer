@@ -89,7 +89,10 @@ declarations show as unresolved in the editor even though Gradle builds succeed
 ([KTIJ-29248](https://youtrack.jetbrains.com/issue/KTIJ-29248)).  
 To make resolution and completion work, disable the registry flag
 `kotlin.k2.only.bundled.compiler.plugins.enabled` (Help | Find Action… | "Registry…"), then
-re-sync the project.  
+re-sync the project:
+
+![The Registry dialog with `kotlin.k2.only.bundled.compiler.plugins.enabled` unchecked](assets/intellij-registry-flag.png)
+
 This IDE capability is experimental; command-line and Gradle builds are unaffected either way.
 
 Once the flag is disabled, IntelliJ resolves the generated declarations and renders them inline:
