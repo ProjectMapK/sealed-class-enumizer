@@ -31,7 +31,8 @@ sealedClassEnumizer {
 }
 ```
 
-### Maven
+<details>
+<summary><strong>Maven</strong></summary>
 
 Declare the plugin as a dependency of kotlin-maven-plugin and name it in `compilerPlugins`; the
 compiler plugin follows as a transitive dependency. It applies to every kotlin-maven-plugin
@@ -78,6 +79,8 @@ The project-wide default label case is a property:
 
 The same option can be given through kotlin-maven-plugin's `pluginOptions`
 (`sealed-class-enumizer:labelCase=...`), which takes precedence over the property.
+
+</details>
 
 ### IntelliJ IDEA
 
