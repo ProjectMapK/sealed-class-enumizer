@@ -5,18 +5,9 @@
 
 A Kotlin (K2) compiler plugin that generates enum-like operations — `entries`, `valueOf`, `label`
 and friends — for `sealed class` / `sealed interface` hierarchies at compile time.  
+Hierarchies keep their expressive power — data-carrying entries, exhaustive `when` with smart
+casts, open leaves — and gain the operational API of enums on top.  
 No runtime reflection involved, working on all Kotlin Multiplatform targets.
-
-## Motivation
-
-Enumerating the subclasses of a sealed hierarchy without reflection is a long-standing Kotlin
-request ([KT-25871](https://youtrack.jetbrains.com/issue/KT-25871)).  
-The existing answer, `KClass.sealedSubclasses`, is JVM-only, requires `kotlin-reflect`, and breaks
-under R8 — impractical for multiplatform and Android projects.
-
-This plugin fills the gap with compile-time generation: sealed hierarchies keep their expressive
-power (data-carrying entries, exhaustive `when` with smart casts, open leaves) and gain the
-operational API of enums on top.
 
 ## Setup
 
@@ -24,7 +15,7 @@ operational API of enums on top.
 
 ```kotlin
 plugins {
-    kotlin("multiplatform") version "2.4.10" // or kotlin("jvm") — any Kotlin target plugin
+    kotlin("jvm") version "2.4.10" // or kotlin("multiplatform") — any Kotlin target plugin
     id("io.github.projectmapk.sealed-class-enumizer") version "2.4.10-0.1.0"
 }
 ```
@@ -40,7 +31,8 @@ sealedClassEnumizer {
 }
 ```
 
-### Maven
+<details>
+<summary><strong>Maven</strong></summary>
 
 Declare the plugin as a dependency of kotlin-maven-plugin and name it in `compilerPlugins`; the
 compiler plugin follows as a transitive dependency. It applies to every kotlin-maven-plugin
@@ -88,6 +80,8 @@ The project-wide default label case is a property:
 The same option can be given through kotlin-maven-plugin's `pluginOptions`
 (`sealed-class-enumizer:labelCase=...`), which takes precedence over the property.
 
+</details>
+
 ### IntelliJ IDEA
 
 IntelliJ's K2 mode does not load third-party compiler plugins by default, so generated
@@ -95,7 +89,10 @@ declarations show as unresolved in the editor even though Gradle builds succeed
 ([KTIJ-29248](https://youtrack.jetbrains.com/issue/KTIJ-29248)).  
 To make resolution and completion work, disable the registry flag
 `kotlin.k2.only.bundled.compiler.plugins.enabled` (Help | Find Action… | "Registry…"), then
-re-sync the project.  
+re-sync the project:
+
+![The Registry dialog with `kotlin.k2.only.bundled.compiler.plugins.enabled` unchecked](assets/intellij-registry-flag.png)
+
 This IDE capability is experimental; command-line and Gradle builds are unaffected either way.
 
 Once the flag is disabled, IntelliJ resolves the generated declarations and renders them inline:
@@ -118,6 +115,7 @@ sealed interface SI {
 SI.Enumish.entries            // [Bar, Foo] — compiler-provided order
 SI.Enumish.valueOf("Foo")     // label-based lookup; IllegalArgumentException when absent
 SI.Enumish.valueOfOrNull("X") // null-returning variant (an addition over enums)
+SI.Enumish.entries.map { it.enumizedClass } // [Bar::class, Foo::class] — all leaf classes
 
 // from a value to its kind
 val si: SI = SI.Foo(42)
@@ -136,6 +134,10 @@ Notes:
 
 - `entries` order is the compiler-provided inheritor order (FQN-based), not declaration order.  
   Do not persist positions in the list; persist `label` or a custom property instead.
+- `entries.map { it.enumizedClass }` lists every leaf class without reflection —
+  `KClass.sealedSubclasses` needs the JVM and `kotlin-reflect`, and silently breaks under R8
+  ([KT-25871](https://youtrack.jetbrains.com/issue/KT-25871),
+  [KT-37292](https://youtrack.jetbrains.com/issue/KT-37292)).
 - `ordinal` and `Comparable` are deliberately not provided: such numbers change on renames and
   must not be persisted.
 - Leaves may stay open (`open` / `abstract` class, `interface`, `fun interface`): subtypes defined
@@ -155,10 +157,8 @@ always-available singletons, accepted wherever an enum would have been:
 ```kotlin
 @Enumize
 sealed interface Status {
-    val remarks: String
-
-    data class Active(override val remarks: String) : Status
-    data class Suspended(override val remarks: String) : Status
+    data class Active(val remarks: String) : Status
+    data class Suspended(val remarks: String) : Status
     data object Deleted : Status
 }
 
@@ -181,6 +181,94 @@ repository.searchFoo(Status.Active, Status.Deleted)
 This automates the hand-written workaround of giving every leaf a companion that implements a
 shared marker interface
 ([background article, Japanese](https://qiita.com/wrongwrong/items/e32179fb851a721007a6)).
+
+### Listing every case
+
+Data-carrying leaves have no instances to enumerate, so "all statuses" for a picker or a report
+axis traditionally means a hand-maintained list — one that silently goes stale when a leaf is
+added.  
+`entries` is compiler-generated and complete by construction:
+
+```kotlin
+// a filter UI offering every status — new leaves show up without touching this code
+val statusOptions: List<String> = Status.Enumish.entries.map { it.label }
+
+// aggregation axes that keep empty groups (groupBy alone would drop them)
+val fooCountByStatus: Map<Status.Enumish, Int> =
+    Status.Enumish.entries.associateWith { 0 } +
+        foos.groupingBy { it.status.asEnumish() }.eachCount()
+```
+
+### Round-tripping labels
+
+Persisting "which case" — a DB column, a query parameter, an analytics event — normally takes a
+hand-written string mapping that must follow the hierarchy.  
+`label` / `valueOf` are that mapping, generated; unlike `value::class.simpleName`, labels are
+compile-time constants — never null and unaffected by R8 / minification renaming:
+
+```kotlin
+// outbound: labels are the wire form
+fun statusQuery(selection: Set<Status.Enumish>): String =
+    selection.joinToString("&") { "status=${it.label}" }
+
+// inbound: GET /foos?status=Active&status=Deleted — parsed kinds feed searchFoo from above
+fun handle(rawStatuses: List<String>): List<Foo> {
+    val statuses = rawStatuses.map {
+        requireNotNull(Status.Enumish.valueOfOrNull(it)) { "unknown status: $it" }
+    }
+    return repository.searchFoo(*statuses.toTypedArray())
+}
+```
+
+`@EnumishLabel` keeps persisted labels stable across leaf renames — see
+[Label customization](#label-customization).
+
+### Verifying per-kind wiring
+
+Not all per-kind wiring fits an exhaustive `when` — handler registries assembled by DI or icon
+sets contributed by feature modules live in data, where the compiler cannot check completeness.  
+`entries` turns "one per leaf" into a single assertion:
+
+```kotlin
+// the map is assembled elsewhere — no single `when` site exists
+class StatusRenderer(private val cells: Map<Status.Enumish, CellRenderer>) {
+    init {
+        val missing = Status.Enumish.entries - cells.keys
+        require(missing.isEmpty()) { "statuses without a renderer: ${missing.map { it.label }}" }
+    }
+}
+```
+
+### Exhaustive tests over every leaf
+
+JUnit's `@EnumSource` has no sealed counterpart, and community substitutes build on
+`sealedSubclasses` — JVM-only reflection again.  
+`entries` drives a test over every leaf on any target, and `enumizedClass` states the expected
+type of a value obtained through a kind:
+
+```kotlin
+// production code: a per-kind factory (form defaults, DB seeding, fixtures, …)
+fun defaultStatusOf(kind: Status.Enumish): Status =
+    when (kind) {
+        Status.Active -> Status.Active(remarks = "")
+        Status.Suspended -> Status.Suspended(remarks = "payment failed")
+        Status.Deleted -> Status.Deleted
+    }
+
+class DefaultStatusTest {
+    @Test
+    fun `every status yields a default of its own type`() {
+        for (kind in Status.Enumish.entries) {
+            assertEquals(kind.enumizedClass, defaultStatusOf(kind)::class)
+        }
+    }
+}
+```
+
+A new leaf fails the factory's `when` at compile time; a branch fabricating the wrong case fails
+the `enumizedClass` assertion.  
+Values of an open leaf's absorbed subtypes report their runtime class via `::class` — compare
+kinds instead (`assertEquals(kind, value.asEnumish())`) in such hierarchies.
 
 ## Generated API
 
