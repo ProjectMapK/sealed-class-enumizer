@@ -1,0 +1,80 @@
+# CD（docs/チェックリスト.md §7）。タグ v<KotlinVersion>-<自版> の push で駆動し、
+# ルートビルドと integration-test の green を確認してから Maven Central と Gradle Plugin Portal へ公開する。
+# ランナーは macos 単騎（宣言済みの全ターゲットをネイティブ + クロスコンパイルで賄えるため）。
+# アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
+name: publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+# 公開は取り消せないため、走行中のランをキャンセルしない
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: macos-latest
+    timeout-minutes: 180
+    # ジョブ単位の permissions はワークフロー既定を置き換える。GitHub Release の作成に contents: write が要る
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
+      # 版の正はビルド（カタログの Kotlin 版 + gradle.properties の enumizerVersion）であり、タグは
+      # その写しに過ぎない。両者の一致をここで確かめる。SNAPSHOT のまま打たれたタグもこの照合で落ちる
+      - name: Verify tag matches derived version
+        run: |
+          set -euo pipefail
+          version=$(./gradlew -q properties --property version | sed -n 's/^version: //p')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match derived version $version"
+            exit 1
+          fi
+
+      # 公開前のゲート。CI と同じ範囲を 1 ジョブで通す
+      - run: ./gradlew build
+      - run: >-
+          ./gradlew -p integration-test build
+          -x :gradle-integration:test -x :maven-integration:test
+      # 重いテストはローカル Maven の非タイムスタンプ SNAPSHOT を入力に持ち UP-TO-DATE 判定が
+      # 信用できないため --rerun で必ず再実行する（build.yml と同じ理由）
+      - run: ./gradlew -p integration-test :gradle-integration:test --rerun
+      - run: ./gradlew -p integration-test :maven-integration:test --rerun
+
+      # Central Portal へはデプロイの作成までとし、公開の確定は Portal 上の validation 確認後に手で行う
+      # （publishAndReleaseToMavenCentral は使わない）。vanniktech の設定値は ORG_GRADLE_PROJECT_ 接頭辞の
+      # 環境変数で渡す（Gradle プロパティ名は大小文字を区別するため、シークレット名とは別に対応付ける）
+      - name: Publish to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+        run: ./gradlew publishToMavenCentral
+
+      # Plugin Portal は取り消しができないため Central の後に置く
+      - name: Publish to Gradle Plugin Portal
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+        run: ./gradlew :sealed-class-enumizer-gradle-plugin:publishPlugins
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
