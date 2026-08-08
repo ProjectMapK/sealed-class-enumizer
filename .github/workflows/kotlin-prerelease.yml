@@ -1,0 +1,93 @@
+# 週次マイナー横断ビルド（docs/チェックリスト.md §7）。Kotlin の新しい Beta / RC を検出し、
+# -PkotlinVersionOverride でカタログの Kotlin 版を差し替えてルートビルドと integration-test を通す。
+# 目的は対応版の発行判断に要る事前検知であり、結果は CI（build.yml）の必須チェックには関与しない。
+# アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
+name: kotlin-prerelease
+
+on:
+  schedule:
+    # JST 金曜 19:00 = 金曜 10:00 UTC（Dependabot の更新 PR と同じ周期）
+    - cron: "0 10 * * 5"
+  # 手元で版を指定して回すための入口（検出をとばして指定版で走る）
+  workflow_dispatch:
+    inputs:
+      kotlinVersion:
+        description: "検証する Kotlin 版（未指定なら Maven Central の最新 Beta / RC）"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  # 検証対象の版を決める。無ければ後続をスキップする（version が空文字になる）
+  detect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.pick.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: pick
+        env:
+          REQUESTED: ${{ inputs.kotlinVersion }}
+        run: |
+          set -euo pipefail
+          if [ -n "$REQUESTED" ]; then
+            echo "version=$REQUESTED" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Kotlin のプレリリースは安定版と同じく Maven Central へ公開される（プラグインマーカーも
+          # Plugin Portal 経由で解決できる）ため、メタデータの版一覧を情報源とする。
+          # 取得と抽出は分ける（取得の失敗はジョブの失敗、該当なしは通知のみとするため）
+          metadata=$(curl -fsSL \
+            https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-compiler-embeddable/maven-metadata.xml)
+          latest=$(printf '%s' "$metadata" | tr '<' '\n' | sed -n 's/^version>//p' \
+            | grep -E -- '-(Beta|RC)[0-9]*$' | sort -V | tail -1 || true)
+          if [ -z "$latest" ]; then
+            echo "::notice::no Kotlin prerelease published"
+            exit 0
+          fi
+          current=$(sed -n 's/^kotlin = "\(.*\)"$/\1/p' gradle/libs.versions.toml)
+          # 比較はプレリリース接尾辞を落とした版で行う。sort -V は 2.4.20-Beta2 を 2.4.20 より後ろへ置くため、
+          # プレリリースのまま比べると安定版が出た後もその版を拾い続けてしまう
+          base=${latest%%-*}
+          newest=$(printf '%s\n%s\n' "$current" "$base" | sort -V | tail -1)
+          if [ "$newest" = "$base" ] && [ "$base" != "$current" ]; then
+            echo "version=$latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::no Kotlin prerelease newer than $current (latest: $latest)"
+          fi
+
+  # 分割せず 1 ジョブで通す。CI と違って所要時間より「その版で全部通るか」の一括判定が要るため
+  build:
+    needs: detect
+    if: needs.detect.outputs.version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      KOTLIN_OVERRIDE: -PkotlinVersionOverride=${{ needs.detect.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      # K/N ツールチェーンは Kotlin 版に対応するため、キャッシュのキーは CI（カタログのハッシュ）と分ける。
+      # 同じキーを使うと、プレリリースの内容で CI 側のキャッシュを埋めてしまう
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ needs.detect.outputs.version }}
+      - run: ./gradlew build $KOTLIN_OVERRIDE
+      - run: >-
+          ./gradlew -p integration-test build $KOTLIN_OVERRIDE
+          -x :gradle-integration:test -x :maven-integration:test
+      # 重いテストはローカル Maven の非タイムスタンプ SNAPSHOT を入力に持ち UP-TO-DATE 判定が
+      # 信用できないため --rerun で必ず再実行する（build.yml と同じ理由）
+      - run: ./gradlew -p integration-test :gradle-integration:test --rerun $KOTLIN_OVERRIDE
+      - run: ./gradlew -p integration-test :maven-integration:test --rerun $KOTLIN_OVERRIDE

@@ -285,3 +285,12 @@ jobs:
       # （依存解決のみでコンパイルしないため ~/.konan のキャッシュも不要。他ジョブと同じキーで
       # 部分的な内容を保存してしまう事故も避ける）
       - uses: gradle/actions/dependency-submission@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        # 登録対象は配布物へ載る依存に絞る（alerts を利用者へ届くものに限るため）。対象とする
+        # runtime classpath は公開 POM の compile / runtime スコープの元であり、compileOnly（maven-core /
+        # kotlin-compiler-embeddable 等）・テスト・buildscript のクラスパスはここへ入らない。
+        # フィルタは configuration 名の完全一致で、include と exclude は両方が適用される。
+        # native ターゲットは runtime classpath を持たないが、runtime-api の依存は stdlib のみで
+        # jvm / js 側の登録に含まれる（native 限定の依存を足す場合はこの指定を見直すこと）
+        with:
+          dependency-graph-include-configurations: ".*[Rr]untimeClasspath"
+          dependency-graph-exclude-configurations: ".*[Tt]est[Rr]untimeClasspath"
