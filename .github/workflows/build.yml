@@ -35,6 +35,9 @@ on:
       - ".github/workflows/build.yml"
       - "!**.md"
   pull_request:
+  # GITHUB_TOKEN が作った PR は push / pull_request を起こさないため、CD が出す版更新の PR には
+  # 必須チェックが報告されない。その PR のブランチを指定して手で起動するための入口
+  workflow_dispatch:
 
 permissions:
   contents: read

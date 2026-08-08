@@ -151,3 +151,48 @@ jobs:
           path: build/dokka/html
       - id: deploy
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+  # 公開した版は消費済みのため、開発版（次パッチの -SNAPSHOT）へ戻す PR を出す。
+  # 直接 push しないのは、既定ブランチが PR 経由の更新を必須としているため。
+  # 配布物を説明する文書の版表記はここでは変わらない（同期の対象はリリース版を宣言している間に限るため、
+  # 公開済みの版を指したまま据え置かれる）
+  next-version:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # タグではなく既定ブランチを起点にする（タグの指す位置が既定ブランチの先端とは限らない）
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - name: Open version bump pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current=$(sed -n 's/^enumizerVersion=//p' gradle.properties)
+          case "$current" in
+            *-SNAPSHOT)
+              echo "::notice::$current is already a development version"
+              exit 0
+              ;;
+          esac
+          IFS=. read -r major minor patch <<< "$current"
+          next="$major.$minor.$((patch + 1))-SNAPSHOT"
+          branch="chore/next-version-$next"
+          sed -i "s/^enumizerVersion=.*/enumizerVersion=$next/" gradle.properties
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -q -am "build: 開発版を $next へ進める"
+          git push -q origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "build: 開発版を $next へ進める" \
+            --body "$(printf '%s\n' \
+              "${GITHUB_REF_NAME#v} の公開に伴い、開発版を次のパッチへ進める。" \
+              "" \
+              "配布物を説明する文書の版表記は公開済みの版を指したまま据え置かれる。" \
+              "次のリリースで -SNAPSHOT を外す際にまとめて追随する。")"
