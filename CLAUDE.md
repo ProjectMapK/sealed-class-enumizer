@@ -39,7 +39,7 @@
   - 何度もフェッチやチェックが走らないよう、必要に応じて取得関数や値オブジェクトを導入する必要がある
 - 値を比較するテストは、なるべく`data class`同士を1回の`assertEquals`で比較すること（個別プロパティ同士で比較しない）
 - 仕上げとして必ず`ktfmt`によるフォーマッティングを実行すること
-  - 変更したビルド側で`./gradlew ktfmtFormat`を実行する。`integration-test`は独立したビルドなので、そちらを変更した場合は`integration-test`ディレクトリでも実行する
+  - リポジトリルートで`./gradlew ktfmtFormat`を実行する。独立したビルドである`integration-test`もこれ1つで対象になる
   - フォーマット結果を含めて動作確認・コミットまで行う（未整形のまま完了報告しない）
-  - `ktfmtCheck`は`check`に紐付いているため、未整形のコードは`build`で失敗する
+  - `ktfmtCheck`は各ビルドの`check`に紐付いているため、未整形のコードはそのビルドの`build`で失敗する
   - `gradle-integration`のTestKitフィクスチャ（`src/test/resources/fixtures`）は診断の行番号を検証する入力であり、整形対象外とする
