@@ -210,10 +210,6 @@ allprojects {
     ktfmt { kotlinLangStyle() }
 }
 
-// ktfmt はプロジェクト毎にタスクを登録するため、ルートのタスク（:ktfmtFormat / :ktfmtCheck）が
-// 対象とするのはルート直下の *.kts のみで、サブプロジェクトも独立したビルドである integration-test も
-// 入らない。作業ツリー全体をルート指定の 1 コマンドで扱えるよう、両者をルートのタスクへ束ねる。
-// integration-test は別ビルドのためタスク依存では辿れず、GradleBuild で入れ子のビルドとして起動する
 // ktfmt はプロジェクト毎にタスクを登録するため、ルートを指定した :ktfmtFormat / :ktfmtCheck が
 // 対象とするのはルート直下の *.kts に限られる。ルートのタスクを集約点として各サブプロジェクトへ束ね、
 // ルート指定でルートビルド全体が対象になるようにする
