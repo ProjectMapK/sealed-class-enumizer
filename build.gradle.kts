@@ -32,14 +32,13 @@ allprojects {
     version = enumizerFullVersion
 }
 
-// README / docs / .idea 中の「現行バージョン」表記を単一情報源（Kotlin / Maven = version catalog・
-// 自版 = enumizerVersion・Gradle = wrapper properties）から導出した値へ揃える。
-// Dependabot 等の版更新はマニフェストしか書き換えず表記が置き去りになるため、
-// checkVersionMentions（check へ紐付け。CI では version-mentions ジョブ）が乖離を検出し、
-// syncVersionMentions が書き換える。
-// 置換は「現行版を指す表記」に限る。サポート下限（"Kotlin 2.4" / "Gradle 9+" / "Maven 3.9+"）・
-// 特定版に固定した実測エビデンス（設計00 の "Kotlin 2.4.0 実測"）・別版での版形式の例示は
-// 書き換えてはならないため、対象ファイルの許可リストと文脈付きパターンの両方で絞る
+// 版は次の 2 段で単一情報源から導出する。上流ほど源に近く、下流は上流の値を写した生成物として扱う。
+//   1. kotlin-maven-plugin の親 POM の <maven.version> → version catalog の maven 版（syncMavenVersion）
+//   2. version catalog / enumizerVersion / wrapper properties → README / docs / .idea 中の現行版表記
+//      （syncVersionMentions）
+// カタログの値は Gradle の構成時に読まれるため、1 の書き戻しを 2 へ反映するには起動を分ける必要がある。
+// Dependabot 等の版更新はマニフェストしか書き換えず下流が置き去りになるため、
+// check へ紐付けた checkMavenVersion / checkVersionMentions が乖離を検出し、同期タスクが書き換える
 fun minorOf(version: String) = version.split(".").take(2).joinToString(".")
 
 val kotlinCurrent = libs.versions.kotlin.get()
@@ -53,6 +52,87 @@ val gradleWrapperVersion =
         .map { checkNotNull(Regex("""/gradle-(\d+(?:\.\d+)+)-""").find(it)).groupValues[1] }
         .get()
 
+// maven-core は kotlin-maven-plugin の realm 側が実行時に供給するため compileOnly で参照する。
+// その版は kotlin-maven-plugin 自身が provided スコープで宣言する版が正だが、provided は Gradle の
+// POM 取り込み対象外で推移解決されないため、カタログのリテラルとして持つ必要がある。
+// リテラルは手で選ばず、kotlin-maven-plugin の親 POM が持つ <maven.version> から導出する
+// （syncMavenVersion が書き戻し、checkMavenVersion が乖離を検出する）。
+// 親 POM は座標を決め打ちで解決したうえで、子 POM の <parent> と照合し、
+// 上流のレイアウト変更を黙って取り込まないようにする
+
+// POM 自体はビルドの依存ではなく参照する入力に過ぎないため、detached configuration で取得する
+// （名前付きの構成として公開すると依存グラフの登録対象にも入ってしまう）
+fun pomOf(notation: String): FileCollection =
+    configurations
+        .detachedConfiguration(dependencies.create(notation))
+        .apply { isTransitive = false }
+        .incoming
+        .files
+
+// POM の解決を伴うため、値の取り出しは構成時ではなく実行時に行う
+val upstreamMavenVersion: Provider<String> = run {
+    val childPom = pomOf("org.jetbrains.kotlin:kotlin-maven-plugin:$kotlinCurrent@pom")
+    val parentPom = pomOf("org.jetbrains.kotlin:kotlin-project:$kotlinCurrent@pom")
+    providers.provider {
+        val child = childPom.singleFile.readText()
+        val parentBlock =
+            checkNotNull(
+                    Regex("""<parent>(.*?)</parent>""", RegexOption.DOT_MATCHES_ALL).find(child)
+                ) {
+                    "kotlin-maven-plugin の POM に <parent> がありません"
+                }
+                .groupValues[1]
+        val parentArtifact =
+            checkNotNull(Regex("""<artifactId>([^<]+)</artifactId>""").find(parentBlock)) {
+                    "kotlin-maven-plugin の POM の <parent> に artifactId がありません"
+                }
+                .groupValues[1]
+        check(parentArtifact == "kotlin-project") {
+            "kotlin-maven-plugin の親 POM が $parentArtifact へ変わっています。導出元の座標を見直してください"
+        }
+        checkNotNull(
+                Regex("""<maven\.version>([^<]+)</maven\.version>""")
+                    .find(parentPom.singleFile.readText())
+            ) {
+                "親 POM に <maven.version> がありません"
+            }
+            .groupValues[1]
+    }
+}
+
+val versionCatalogFile = layout.projectDirectory.file("gradle/libs.versions.toml").asFile
+
+val mavenVersionEntry = Regex("""^maven = "[^"]*"$""", RegexOption.MULTILINE)
+
+tasks.register("syncMavenVersion") {
+    val upstream = upstreamMavenVersion
+    val file = versionCatalogFile
+    val entry = mavenVersionEntry
+    doLast {
+        val current = file.readText()
+        val synced = entry.replace(current, "maven = \"${upstream.get()}\"")
+        if (synced != current) file.writeText(synced)
+    }
+}
+
+val checkMavenVersion =
+    tasks.register("checkMavenVersion") {
+        val upstream = upstreamMavenVersion
+        val declared = mavenCurrent
+        doLast {
+            val expected = upstream.get()
+            if (declared != expected) {
+                throw GradleException(
+                    "maven 版が kotlin-maven-plugin の参照版とズレています（宣言 $declared / 上流 $expected）。" +
+                        "./gradlew syncMavenVersion で追随してください"
+                )
+            }
+        }
+    }
+
+// 置換は「現行版を指す表記」に限る。サポート下限（"Kotlin 2.4" / "Gradle 9+" / "Maven 3.9+"）・
+// 特定版に固定した実測エビデンス（設計00 の "Kotlin 2.4.0 実測"）・別版での版形式の例示は
+// 書き換えてはならないため、対象ファイルの許可リストと文脈付きパターンの両方で絞る。
 // 3 成分（パッチ付き）と 2 成分（マイナーまで）の表記は、それぞれの粒度を保ったまま現行値へ置換する
 val versionMentionRules: List<Pair<Regex, String>> =
     listOf(
@@ -120,7 +200,7 @@ val checkVersionMentions =
         }
     }
 
-tasks.named("check") { dependsOn(checkVersionMentions) }
+tasks.named("check") { dependsOn(checkVersionMentions, checkMavenVersion) }
 
 // gradle.properties の kotlin.code.style=official に合わせ、ktfmt も Kotlin 公式スタイル
 // （ブロック・継続ともインデント 4、末尾カンマ付与）で揃える

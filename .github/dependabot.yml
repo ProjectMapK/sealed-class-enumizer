@@ -1,8 +1,8 @@
 # 依存の version updates（マニフェスト = version catalog / ビルドスクリプト / ワークフロー由来）。
 # Kotlin の更新 PR は catalog 経由で配布版 <KotlinVersion>-<自版> の導出まで自動で追随し、CI が検証する。
-# README / docs / .idea 中の現行バージョン表記はマニフェスト更新では変わらないため、
-# CI（ルートの checkVersionMentions）が乖離を検出したら、./gradlew syncVersionMentions の
-# 実行結果を更新 PR へコミットして追随させる。
+# catalog の maven 版・README / docs / .idea 中の現行バージョン表記はマニフェスト更新では変わらないため、
+# CI（ルートの checkMavenVersion / checkVersionMentions）が乖離を検出したら、
+# 同期タスク（syncMavenVersion / syncVersionMentions）の実行結果を更新 PR へコミットして追随させる。
 # 解決済み依存グラフ（推移依存含む）に対する alerts は build.yml の dependency-submission ジョブが補完する
 #
 # npm（kotlin-js-store/yarn.lock）は version updates の対象に含めない。lockfile は KGP が
@@ -23,6 +23,11 @@ updates:
       day: "friday"
       time: "19:00"
       timezone: "Asia/Tokyo"
+    ignore:
+      # Maven 系の版は kotlin-maven-plugin の親 POM から導出する値であり（ルートの syncMavenVersion）、
+      # 独立して選べる更新対象ではない。Kotlin の更新に伴って追随する
+      # （maven-core の他、ハーネスの apache-maven 配布物も catalog の maven 版を共有する）
+      - dependency-name: "org.apache.maven:*"
   # integration-test は独立した Gradle ビルド（バージョン宣言は親カタログ共有のため、対象は settings 等の残余）
   - package-ecosystem: "gradle"
     directory: "/integration-test"
