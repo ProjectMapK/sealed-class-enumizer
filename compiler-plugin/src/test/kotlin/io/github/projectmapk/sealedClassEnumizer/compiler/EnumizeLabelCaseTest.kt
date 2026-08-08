@@ -31,7 +31,8 @@ class EnumizeLabelCaseTest {
         // 具体ケースの集合と並びは一致していなければならない
         assertEquals(
             RuntimeLabelCase.entries.map { it.name },
-            listOf(RuntimeLabelCase.PROJECT_DEFAULT.name) + EnumizeLabelCase.entries.map { it.name },
+            listOf(RuntimeLabelCase.PROJECT_DEFAULT.name) +
+                EnumizeLabelCase.entries.map { it.name },
         )
     }
 

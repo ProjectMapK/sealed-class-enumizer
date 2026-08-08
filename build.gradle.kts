@@ -130,6 +130,41 @@ allprojects {
     ktfmt { kotlinLangStyle() }
 }
 
+// ktfmt はプロジェクト毎にタスクを登録するため、ルートのタスク（:ktfmtFormat / :ktfmtCheck）が
+// 対象とするのはルート直下の *.kts のみで、サブプロジェクトも独立したビルドである integration-test も
+// 入らない。作業ツリー全体をルート指定の 1 コマンドで扱えるよう、両者をルートのタスクへ束ねる。
+// integration-test は別ビルドのためタスク依存では辿れず、GradleBuild で入れ子のビルドとして起動する
+// ktfmt はプロジェクト毎にタスクを登録するため、ルートを指定した :ktfmtFormat / :ktfmtCheck が
+// 対象とするのはルート直下の *.kts に限られる。ルートのタスクを集約点として各サブプロジェクトへ束ね、
+// ルート指定でルートビルド全体が対象になるようにする
+listOf("ktfmtFormat", "ktfmtCheck").forEach { taskName ->
+    tasks.named(taskName) { dependsOn(subprojects.map { "${it.path}:$taskName" }) }
+}
+
+// integration-test は独立したビルドであり、上の集約でも allprojects でも辿れない。仕上げの整形を
+// ルート指定の 1 コマンドで完結させるため、ktfmtFormat からラッパー経由の別プロセスとして起動する
+// （入れ子のビルドを組む GradleBuild は、integration-test が親ビルドを includeBuild しているため
+// 「Cannot include build」となり使えない）。ラッパーと -p の組み合わせは CI が integration-test を
+// driving する形と同じで、Gradle 本体の版もルートのラッパーへ揃う。
+// 検証側（ktfmtCheck）を束ねないのは、それが check 経由でルートの build へ載り、ルートビルドの
+// 検証が integration-test 側の構成・依存解決の失敗に巻き込まれるため。未整形の検出はビルド毎の
+// check が担い、CI もビルド毎にジョブを分けている
+val ktfmtFormatIntegrationTest =
+    tasks.register<Exec>("ktfmtFormatIntegrationTest") {
+        val wrapper =
+            providers.systemProperty("os.name").map {
+                if (it.startsWith("Windows")) "gradlew.bat" else "gradlew"
+            }
+        commandLine(
+            layout.projectDirectory.file(wrapper.get()).asFile.absolutePath,
+            "-p",
+            "integration-test",
+            "ktfmtFormat",
+        )
+    }
+
+tasks.named("ktfmtFormat") { dependsOn(ktfmtFormatIntegrationTest) }
+
 // API ドキュメント（GitHub Pages 掲載用）の集約。対象は利用者がコードから触る公開 API を持つ 2 モジュールで、
 // compiler-plugin（内部実装）と maven-plugin（利用面は POM の設定であり Kotlin API ではない）は含めない。
 // 集約出力は build/dokka/html
