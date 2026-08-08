@@ -157,7 +157,8 @@ val versionMentionRules: List<Pair<Regex, String>> =
 
 // 対象箇所: README（セットアップ例・互換表・検証済みビルド環境）・概要 §7（版形式の現行例）・
 // 実装ノート / テスト戦略 / エッジケースへの対応方針（実測・テスト環境の宣言）・kotlinc.xml。
-// 現行版への言及を持つ資料を増やした場合はここへ追加する
+// 現行版への言及を持つ資料を増やした場合はここへ追加する。
+// ただし過去の版を記録する文書（CHANGELOG）は対象にしない。履歴の版が現行版へ書き換えられてしまう
 val versionMentionTargets =
     listOf(
             "README.md",
@@ -247,6 +248,21 @@ tasks.named("ktfmtFormat") { dependsOn(ktfmtFormatIntegrationTest) }
 dependencies {
     dokka(project(":sealed-class-enumizer-runtime-api"))
     dokka(project(":sealed-class-enumizer-gradle-plugin"))
+    // 版切替 UI を出すための Dokka プラグイン（HTML 形式のみが対象）。版指定は要らず、適用中の Dokka へ揃う
+    dokkaHtmlPlugin("org.jetbrains.dokka:versioning-plugin")
+}
+
+// 過去版の出力は保管場所から展開したディレクトリを -PolderDocsDir で渡す（版毎のサブディレクトリを持つ親を指す）。
+// 指定が無い場合は現行版だけの出力になるため、ローカルでの生成は保管場所を用意せずに行える
+dokka {
+    pluginsConfiguration {
+        versioning {
+            version = enumizerFullVersion
+            providers.gradleProperty("olderDocsDir").orNull?.let {
+                olderVersionsDir = layout.projectDirectory.dir(it)
+            }
+        }
+    }
 }
 
 // integration-test の TestKit フィクスチャ向けに、3 モジュールのローカル Maven 公開を集約する

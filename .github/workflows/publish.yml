@@ -78,3 +78,76 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
+
+  # API ドキュメントの掲載。Pages のソースは Actions のため、公開されるのはこのジョブが上げる成果物であり、
+  # 保管ブランチ（gh-pages）の内容が直接配信されることはない。同ブランチは過去版の出力だけを
+  # versions/<版>/ の形で持ち、版切替 UI の入力として使う。deploy はサイト全体を置き換えるため、
+  # 過去版の保持はこの保管場所から毎回作り直すことで成り立つ
+  docs:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      # 初回リリース時は保管ブランチがまだ無い。その場合は空の履歴から始める
+      - name: Restore archived versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          url="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$url" gh-pages >/dev/null 2>&1; then
+            git clone --branch gh-pages --depth 1 "$url" build/gh-pages
+          else
+            mkdir -p build/gh-pages
+            git -C build/gh-pages init -b gh-pages -q
+            git -C build/gh-pages remote add origin "$url"
+          fi
+          mkdir -p build/gh-pages/versions
+
+      - run: ./gradlew dokkaGenerate -PolderDocsDir=build/gh-pages/versions
+
+      # 保管するのは各版の出力そのものとし、生成物に含まれる過去版（older/）は落とす。
+      # 落とさないと版を重ねるたびに過去版が入れ子で積み上がる
+      - name: Archive this version
+        run: |
+          set -euo pipefail
+          dest="build/gh-pages/versions/${GITHUB_REF_NAME#v}"
+          rm -rf "$dest"
+          mkdir -p "$dest"
+          cp -r build/dokka/html/. "$dest/"
+          rm -rf "$dest/older"
+
+      # 保管ブランチの更新は通常のコミットで行う（force push は保護設定と整合しない）
+      - name: Update archive branch
+        working-directory: build/gh-pages
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "::notice::archive is already up to date"
+          else
+            git commit -q -m "docs: ${GITHUB_REF_NAME#v} の API ドキュメントを保管する"
+            git push origin gh-pages
+          fi
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: build/dokka/html
+      - id: deploy
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
