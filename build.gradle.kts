@@ -1,4 +1,6 @@
 import com.ncorti.ktfmt.gradle.KtfmtPlugin
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.plugins.signing.SigningExtension
 
 // ルートプロジェクトは集約のみを担う。各モジュールの構成は各自の build.gradle.kts が持つ。
 // integration-test は独立した composite build であり、ここには含めない（docs/test/テスト戦略.md）。
@@ -30,6 +32,25 @@ val enumizerFullVersion =
 allprojects {
     group = "io.github.projectmapk"
     version = enumizerFullVersion
+}
+
+// 署名を必須とする条件を、リモートリポジトリへ publish する場合に限る。
+// 公開プラグインの既定はリリース版であれば必須で、その判定はローカル公開にも及ぶ。
+// integration-test のフィクスチャは鍵の無い環境で publishToMavenLocal を使うため、そのままでは
+// リリース版を宣言した時点でローカル公開が成立しなくなる（ローカル公開のタスクはリモートとは別型）。
+// 未署名のまま公開へ進むことは、公開先の検証が受け付けないことで防がれる。
+// 設定は各モジュールのスクリプト評価中に書かれるため、上書きは評価後に行う
+allprojects {
+    plugins.withId("signing") {
+        afterEvaluate {
+            extensions.configure<SigningExtension> {
+                setRequired {
+                    !version.toString().endsWith("-SNAPSHOT") &&
+                        gradle.taskGraph.allTasks.any { it is PublishToMavenRepository }
+                }
+            }
+        }
+    }
 }
 
 // 版は次の 2 段で単一情報源から導出する。上流ほど源に近く、下流は上流の値を写した生成物として扱う。
