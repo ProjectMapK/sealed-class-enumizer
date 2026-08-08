@@ -1,12 +1,15 @@
 [versions]
 kotlin = "2.4.10"
-# maven-plugin がコンパイル時に参照する Maven API の版（kotlin-maven-plugin 自身が依存する版に揃える）
-maven = "3.9.12"
 autoservice = "0.1.5"
 ktfmt = "0.27.0"
 mavenPublish = "0.37.0"
 pluginPublish = "2.1.1"
 dokka = "2.2.0"
+
+# 以下は単一情報源から導出される版であり、手で選ばない。
+# maven は maven-plugin がコンパイル時に参照する Maven API の版で、kotlin-maven-plugin の親 POM の
+# <maven.version> が正（ルートの syncMavenVersion が書き戻し、checkMavenVersion が乖離を検出する）
+maven = "3.9.12"
 
 [libraries]
 kotlin-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
