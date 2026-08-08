@@ -43,8 +43,10 @@ fun minorOf(version: String) = version.split(".").take(2).joinToString(".")
 
 val kotlinCurrent = libs.versions.kotlin.get()
 val mavenCurrent = libs.versions.maven.get()
-val enumizerReleaseVersion =
-    providers.gradleProperty("enumizerVersion").get().removeSuffix("-SNAPSHOT")
+val enumizerDeclaredVersion = providers.gradleProperty("enumizerVersion").get()
+val enumizerReleaseVersion = enumizerDeclaredVersion.removeSuffix("-SNAPSHOT")
+// リリース版を宣言している状態か（開発中は -SNAPSHOT が付く）。配布物を説明する文書の同期対象を切り替える
+val isReleaseVersion = enumizerDeclaredVersion == enumizerReleaseVersion
 val gradleWrapperVersion =
     providers
         .fileContents(layout.projectDirectory.file("gradle/wrapper/gradle-wrapper.properties"))
@@ -155,19 +157,27 @@ val versionMentionRules: List<Pair<Regex, String>> =
         Regex("""(?<=Maven )\d+\.\d+(?![\d.+])""") to minorOf(mavenCurrent),
     )
 
-// 対象箇所: README（セットアップ例・互換表・検証済みビルド環境）・概要 §7（版形式の現行例）・
-// 実装ノート / テスト戦略 / エッジケースへの対応方針（実測・テスト環境の宣言）・kotlinc.xml。
-// 現行版への言及を持つ資料を増やした場合はここへ追加する。
-// ただし過去の版を記録する文書（CHANGELOG）は対象にしない。履歴の版が現行版へ書き換えられてしまう
-val versionMentionTargets =
+// 対象は文書の性質で 2 群に分ける。現行版への言及を持つ資料を増やした場合は該当する群へ追加する。
+// ただし過去の版を記録する文書（CHANGELOG）はどちらにも入れない。履歴の版が現行版へ書き換えられてしまう。
+//
+// 配布物を説明する文書（README のセットアップ例・互換表・概要 §7 の版形式）。表記が指すのは
+// 利用者が実際に入手できる版であり、開発中に追随させると未公開の版を案内してしまう。
+// このためリリース版を宣言している間だけ対象とし、開発中は据え置く
+val releaseVersionMentionTargets = listOf("README.md", "docs/概要.md")
+
+// 現在の開発・検証環境を記録する文書と、IDE が同期時に書き戻す設定。
+// カタログやラッパーの更新へ即座に追随させる（追随しないと作業ツリーへ差分が残る）
+val environmentVersionMentionTargets =
     listOf(
-            "README.md",
-            "docs/概要.md",
-            "docs/実装ノート.md",
-            "docs/test/テスト戦略.md",
-            "docs/エッジケースへの対応方針.md",
-            ".idea/kotlinc.xml",
-        )
+        "docs/実装ノート.md",
+        "docs/test/テスト戦略.md",
+        "docs/エッジケースへの対応方針.md",
+        ".idea/kotlinc.xml",
+    )
+
+val versionMentionTargets =
+    (environmentVersionMentionTargets +
+            releaseVersionMentionTargets.takeIf { isReleaseVersion }.orEmpty())
         .map { it to layout.projectDirectory.file(it).asFile }
 
 tasks.register("syncVersionMentions") {
