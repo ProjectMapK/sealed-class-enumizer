@@ -1,5 +1,6 @@
 # sealed-class-enumizer
 
+[![Gradle Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/io.github.projectmapk.sealed-class-enumizer)](https://plugins.gradle.org/plugin/io.github.projectmapk.sealed-class-enumizer)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.projectmapk/sealed-class-enumizer-runtime-api)](https://central.sonatype.com/artifact/io.github.projectmapk/sealed-class-enumizer-runtime-api)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
@@ -12,6 +13,10 @@ No runtime reflection involved, working on all Kotlin Multiplatform targets.
 ## Setup
 
 ### Gradle
+
+Published on the
+[Gradle Plugin Portal](https://plugins.gradle.org/plugin/io.github.projectmapk.sealed-class-enumizer),
+so `plugins {}` resolves it without extra repository configuration:
 
 ```kotlin
 plugins {
