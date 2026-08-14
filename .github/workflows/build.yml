@@ -68,7 +68,7 @@ jobs:
       # このフィルタは PR のみ評価する（push では常に false = ジョブをスキップ）
       versionMentions: ${{ github.event_name == 'pull_request' && steps.filter.outputs.versionMentions }}
     steps:
-      - uses: dorny/paths-filter@4711b7a31b4aa89103d8c6ffab2e3b8e7b6381c7 # master（v4.0.2 + some-with-excludes）
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # master（v4.0.2 + some-with-excludes）
         id: filter
         if: github.event_name == 'pull_request'
         with:
