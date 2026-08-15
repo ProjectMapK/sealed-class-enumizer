@@ -16,26 +16,27 @@
 #      major 跨ぎの強制上書きは、上流が検証していない組み合わせをテストランナーへ注入することになるため採らない
 version: 2
 updates:
+  # integration-test は独立した Gradle ビルドだが、その settings はルートビルドを composite 参照するため、
+  # /integration-test の更新ジョブが見るマニフェストはルート側（gradle wrapper 等）を含む。
+  # ディレクトリごとに更新ジョブを分けると同一の更新が別々の PR として二重に出るため、両者を1つの
+  # 更新設定にまとめ、group-by で依存名ごとの単一 PR へ束ねる（PR の対象範囲と表題も一致する）
   - package-ecosystem: "gradle"
-    directory: "/"
+    directories:
+      - "/"
+      - "/integration-test"
     schedule:
       interval: "weekly"
       day: "friday"
       time: "19:00"
       timezone: "Asia/Tokyo"
+    groups:
+      gradle-builds:
+        group-by: "dependency-name"
     ignore:
       # Maven 系の版は kotlin-maven-plugin の親 POM から導出する値であり（ルートの syncMavenVersion）、
       # 独立して選べる更新対象ではない。Kotlin の更新に伴って追随する
       # （maven-core の他、ハーネスの apache-maven 配布物も catalog の maven 版を共有する）
       - dependency-name: "org.apache.maven:*"
-  # integration-test は独立した Gradle ビルド（バージョン宣言は親カタログ共有のため、対象は settings 等の残余）
-  - package-ecosystem: "gradle"
-    directory: "/integration-test"
-    schedule:
-      interval: "weekly"
-      day: "friday"
-      time: "19:00"
-      timezone: "Asia/Tokyo"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
