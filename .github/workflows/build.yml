@@ -1,6 +1,6 @@
 # CI（docs/チェックリスト.md §7）。基本は ubuntu（ルート build / integration-test のモジュールビルド /
 # TestKit の分割実行 / Maven ビルド）で、OS 分岐は必要な範囲のみ: macos = Apple ターゲットのネイティブツールチェーン確認
-# （ルート build のみ）・windows = mingwX64 の実行テストのみ（native の box 実行はホスト依存ゲートで
+# （ルート build と公開可能ターゲットの検査）・windows = mingwX64 の実行テストのみ（native の box 実行はホスト依存ゲートで
 # Windows でしか走らない）。main への push では加えて依存グラフを登録する。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）。
 name: build
@@ -199,6 +199,9 @@ jobs:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
       - run: ./gradlew build
+      # CD と同じランナーで、宣言ターゲットが全て公開できることを確かめる（賄えないターゲットの
+      # publication は静かに落ちるため、公開時ではなく PR の時点で検出する）
+      - run: ./gradlew :sealed-class-enumizer-runtime-api:checkPublishableTargets
 
   native-windows:
     needs: changes

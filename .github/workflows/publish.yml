@@ -46,6 +46,12 @@ jobs:
             exit 1
           fi
 
+      # ランナーが宣言ターゲットを全て賄えることを先に確かめる。賄えないターゲットの publication は
+      # kotlin.native.ignoreDisabledTargets により静かに落ち、成果物が欠けたまま公開が成功してしまう。
+      # 実行時の担保は publish タスクの依存としても掛かっており、ここは長いゲートの前で落とすための前倒し
+      - name: Verify all declared targets are publishable
+        run: ./gradlew :sealed-class-enumizer-runtime-api:checkPublishableTargets
+
       # 公開前のゲート。CI と同じ範囲を 1 ジョブで通す
       - run: ./gradlew build
       - run: >-
