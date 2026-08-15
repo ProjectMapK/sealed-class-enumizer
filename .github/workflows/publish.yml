@@ -1,4 +1,4 @@
-# CD（docs/チェックリスト.md §7）。タグ v<KotlinVersion>-<自版> の push で駆動し、
+# CD。タグ v<KotlinVersion>-<自版> の push で駆動し、
 # ルートビルドと integration-test の green を確認してから Maven Central と Gradle Plugin Portal へ公開する。
 # ランナーは macos 単騎（宣言済みの全ターゲットをネイティブ + クロスコンパイルで賄えるため）。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）

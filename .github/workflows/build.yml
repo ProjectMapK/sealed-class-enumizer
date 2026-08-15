@@ -1,4 +1,4 @@
-# CI（docs/チェックリスト.md §7）。基本は ubuntu（ルート build / integration-test のモジュールビルド /
+# CI。基本は ubuntu（ルート build / integration-test のモジュールビルド /
 # TestKit の分割実行 / Maven ビルド）で、OS 分岐は必要な範囲のみ: macos = Apple ターゲットのネイティブツールチェーン確認
 # （ルート build と公開可能ターゲットの検査）・windows = mingwX64 の実行テストのみ（native の box 実行はホスト依存ゲートで
 # Windows でしか走らない）。main への push では加えて依存グラフを登録する。
@@ -16,7 +16,7 @@ name: build
 # .txt は TestKit フィクスチャの入力種別のため、除外の対象にしてはならない。
 #
 # PR では起動条件に paths を置かない。paths でスキップされたワークフローのチェックは pending のまま残り、
-# 必須チェック（ci-gate）が報告されずマージがブロックされるため（docs/チェックリスト.md §8 R-6）。
+# 必須チェック（ci-gate）が報告されずマージがブロックされるため。
 # 判定は changes ジョブへ降ろし、各ジョブの実行条件として扱う
 on:
   push:
@@ -239,7 +239,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - run: ./gradlew :checkVersionMentions
 
-  # 必須チェックはこの 1 本へ集約する（docs/チェックリスト.md §8 R-6）。
+  # 必須チェックはこの 1 本へ集約する。
   # matrix を含む個別のジョブ名を必須チェックとして列挙すると、shard 数の変更で保護設定側が
   # 存在しない名前を要求し、マージ不能または無防備のどちらかへ静かに倒れるため。
   # ビルド入力に変更が無い PR では needs のジョブがスキップされるが、それは成功として扱う
