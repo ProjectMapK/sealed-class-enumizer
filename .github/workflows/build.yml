@@ -2,8 +2,7 @@
 # TestKit の分割実行 / Maven ビルド）で、OS 分岐は必要な範囲のみ: macos = Apple ターゲットのネイティブツールチェーン確認
 # （ルート build のみ）・windows = mingwX64 の実行テストのみ（native の box 実行はホスト依存ゲートで
 # Windows でしか走らない）。main への push では加えて依存グラフを登録する。
-# アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する。
-# dorny/paths-filter のみ未リリース機能のため master のコミットを指す。理由は changes ジョブのコメント）
+# アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）。
 name: build
 
 # ビルド入力の allowlist で無駄な実行を避ける（除外方式は、他のワークフローの追加・編集など
@@ -51,10 +50,7 @@ jobs:
   # フィルタは push の paths と同義に保つ。評価器（picomatch）の記法差のみ吸収し、
   # `**.kts` 形式は階層をまたがないため `**/*.kts` 形式とした上でルート直下向けの `*.kts` も併記する。
   # 除外（`!`）は predicate-quantifier: some-with-excludes を指定した時のみ意図どおり働く
-  # （既定の some では除外パターンが OR 評価となり「.md 以外の全ファイル」へ一致してしまう）。
-  # この値は未リリースのため、アクションは最新リリース v4.0.2 より先の master コミットを指す。
-  # リリースへ入り次第タグの SHA へ戻すこと。Dependabot が出す v4.0.2 への「更新」は実質のロールバックで、
-  # 取り込むと未対応値としてジョブが失敗する（除外がサイレントに外れることはない）
+  # （既定の some では除外パターンが OR 評価となり「.md 以外の全ファイル」へ一致してしまう）
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -68,7 +64,7 @@ jobs:
       # このフィルタは PR のみ評価する（push では常に false = ジョブをスキップ）
       versionMentions: ${{ github.event_name == 'pull_request' && steps.filter.outputs.versionMentions }}
     steps:
-      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # master（v4.0.2 + some-with-excludes）
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         if: github.event_name == 'pull_request'
         with:
