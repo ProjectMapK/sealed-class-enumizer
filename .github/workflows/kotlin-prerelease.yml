@@ -1,4 +1,4 @@
-# 週次マイナー横断ビルド（docs/チェックリスト.md §7）。Kotlin の新しい Beta / RC を検出し、
+# 週次マイナー横断ビルド。Kotlin の新しい Beta / RC を検出し、
 # -PkotlinVersionOverride でカタログの Kotlin 版を差し替えてルートビルドと integration-test を通す。
 # 目的は対応版の発行判断に要る事前検知であり、結果は CI（build.yml）の必須チェックには関与しない。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
