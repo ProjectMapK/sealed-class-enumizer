@@ -55,8 +55,7 @@ allprojects {
 
 // 版は次の 2 段で単一情報源から導出する。上流ほど源に近く、下流は上流の値を写した生成物として扱う。
 //   1. kotlin-maven-plugin の親 POM の <maven.version> → version catalog の maven 版（syncMavenVersion）
-//   2. version catalog / enumizerVersion / wrapper properties → README / docs / .idea 中の現行版表記
-//      （syncVersionMentions）
+//   2. version catalog / enumizerVersion → README / docs / .idea 中の現行版表記（syncVersionMentions）
 // カタログの値は Gradle の構成時に読まれるため、1 の書き戻しを 2 へ反映するには起動を分ける必要がある。
 // Dependabot 等の版更新はマニフェストしか書き換えず下流が置き去りになるため、
 // check へ紐付けた checkMavenVersion / checkVersionMentions が乖離を検出し、同期タスクが書き換える
@@ -68,12 +67,6 @@ val enumizerDeclaredVersion = providers.gradleProperty("enumizerVersion").get()
 val enumizerReleaseVersion = enumizerDeclaredVersion.removeSuffix("-SNAPSHOT")
 // リリース版を宣言している状態か（開発中は -SNAPSHOT が付く）。配布物を説明する文書の同期対象を切り替える
 val isReleaseVersion = enumizerDeclaredVersion == enumizerReleaseVersion
-val gradleWrapperVersion =
-    providers
-        .fileContents(layout.projectDirectory.file("gradle/wrapper/gradle-wrapper.properties"))
-        .asText
-        .map { checkNotNull(Regex("""/gradle-(\d+(?:\.\d+)+)-""").find(it)).groupValues[1] }
-        .get()
 
 // maven-core は kotlin-maven-plugin の realm 側が実行時に供給するため compileOnly で参照する。
 // その版は kotlin-maven-plugin 自身が provided スコープで宣言する版が正だが、provided は Gradle の
@@ -153,10 +146,15 @@ val checkMavenVersion =
         }
     }
 
-// 置換は「現行版を指す表記」に限る。サポート下限（"Kotlin 2.4" / "Gradle 9+" / "Maven 3.9+"）・
-// 特定版に固定した実測エビデンス（設計00 の "Kotlin 2.4.0 実測"）・別版での版形式の例示は
-// 書き換えてはならないため、対象ファイルの許可リストと文脈付きパターンの両方で絞る。
-// 3 成分（パッチ付き）と 2 成分（マイナーまで）の表記は、それぞれの粒度を保ったまま現行値へ置換する
+// 追随の対象は配布物を左右する版、すなわち Kotlin 版と自版に限る。
+// ビルドツール（Gradle / Maven）の版は配布物へ影響しないため、資料はサポート下限
+// （"Gradle 9+" / "Maven 3.9+"）のみを書き、具体的な版へは言及しない。言及した場合、
+// 配布物と無関係なラッパー・ハーネスの更新が資料の追随を要求し、その更新 PR が CI で落ちる。
+//
+// 置換は「現行版を指す表記」に限る。サポート下限（"Kotlin 2.4"）・特定版に固定した実測エビデンス
+// （設計00 の "Kotlin 2.4.0 実測"）・別版での版形式の例示は書き換えてはならないため、
+// 対象ファイルの許可リストと文脈付きパターンの両方で絞る。
+// パッチまでの表記とマイナーまでの表記は、それぞれの粒度を保ったまま現行値へ置換する
 val versionMentionRules: List<Pair<Regex, String>> =
     listOf(
         // 配布版のフル形式 <KotlinVersion>-<自版>（README のセットアップ例・版形式の現行例）
@@ -171,11 +169,6 @@ val versionMentionRules: List<Pair<Regex, String>> =
         Regex("""(?<=Kotlin )\d+\.\d+\.\d+(?![\d.-])""") to kotlinCurrent,
         // 対応マイナーの表記（README の互換表の "2.4.x"）
         Regex("""\d+\.\d+\.x""") to "${minorOf(kotlinCurrent)}.x",
-        // Gradle / Maven。下限表記（"9+" / "3.9+"）は後置の + により対象外となる
-        Regex("""(?<=Gradle )\d+\.\d+\.\d+(?![\d.+])""") to gradleWrapperVersion,
-        Regex("""(?<=Gradle )\d+\.\d+(?![\d.+])""") to minorOf(gradleWrapperVersion),
-        Regex("""(?<=Maven )\d+\.\d+\.\d+(?![\d.+])""") to mavenCurrent,
-        Regex("""(?<=Maven )\d+\.\d+(?![\d.+])""") to minorOf(mavenCurrent),
     )
 
 // 対象は文書の性質で 2 群に分ける。現行版への言及を持つ資料を増やした場合は該当する群へ追加する。
@@ -187,7 +180,7 @@ val versionMentionRules: List<Pair<Regex, String>> =
 val releaseVersionMentionTargets = listOf("README.md", "docs/概要.md")
 
 // 現在の開発・検証環境を記録する文書と、IDE が同期時に書き戻す設定。
-// カタログやラッパーの更新へ即座に追随させる（追随しないと作業ツリーへ差分が残る）
+// カタログの更新へ即座に追随させる（追随しないと作業ツリーへ差分が残る）
 val environmentVersionMentionTargets =
     listOf(
         "docs/実装ノート.md",
