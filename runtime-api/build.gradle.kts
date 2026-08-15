@@ -1,5 +1,6 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -54,3 +55,23 @@ mavenPublishing {
     signAllPublications()
     configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty()))
 }
+
+// 公開の取りこぼしの検知。ホストが対応しないターゲットは kotlin.native.ignoreDisabledTargets により
+// publication ごと静かに落ち、成果物が欠けたまま公開が成功してしまうため、リモートへの公開時に
+// 宣言ターゲットが全て publishable であることを確かめる。
+// ローカル公開は対象にしない（ホスト差の吸収は integration-test のフィクスチャ経路の前提であり、
+// 検査するのは配布物を作る経路に限る）
+val checkPublishableTargets =
+    tasks.register("checkPublishableTargets") {
+        val unpublishable = kotlin.targets.filterNot { it.publishable }.map { it.name }.sorted()
+        doLast {
+            if (unpublishable.isNotEmpty()) {
+                throw GradleException(
+                    "このホストでは公開できないターゲットがあります: ${unpublishable.joinToString()}。" +
+                        "宣言した全ターゲットを賄えるホストで公開してください"
+                )
+            }
+        }
+    }
+
+tasks.withType<PublishToMavenRepository>().configureEach { dependsOn(checkPublishableTargets) }
