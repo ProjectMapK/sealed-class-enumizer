@@ -26,6 +26,7 @@ kotlin {
 
     @OptIn(ExperimentalWasmDsl::class) wasmWasi { nodejs() }
     linuxX64()
+    linuxArm64()
     // macosX64 は Intel Mac 廃止に伴い KGP 2.4 で非推奨化されたが、代替ターゲットは無く
     // （macosArm64 は別アーキテクチャ）、Intel Mac 向け klib の公開を維持するため宣言を残す。
     // KGP から関数が削除された時点で改めて対応する
@@ -37,6 +38,12 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
     iosX64()
+    // Android NDK 向けの native ターゲット。Android/JVM（androidTarget）とは別物であり、
+    // そちらは jvm variant が受ける（KGP の platform.type 互換規則）
+    androidNativeArm32()
+    androidNativeArm64()
+    androidNativeX64()
+    androidNativeX86()
     mingwX64()
 }
 
