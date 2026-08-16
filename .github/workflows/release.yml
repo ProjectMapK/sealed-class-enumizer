@@ -1,0 +1,150 @@
+# リリース準備。版宣言（`-SNAPSHOT` の除去・版表記の同期・CHANGELOG の節起こし）の PR を出すところまでと、
+# その PR がマージされた時点でのタグ付けを担う。公開そのものは publish.yml が引き取る。
+# 手順は「本ワークフローを実行 → 出た PR をマージ（タグが付く）→ そのタグで GitHub Release を作成」で、
+# Central の公開確定（Portal の validation 確認）だけが従来どおり手作業として残る。
+# アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "自版（例: 0.1.1）。空なら現在の enumizerVersion から -SNAPSHOT を落とした値"
+        required: false
+        type: string
+  # 版宣言の PR がマージされた時点でタグを付ける。gradle.properties は版の単一情報源であり、
+  # 版宣言も次版への差し戻しも必ずこのファイルを通る
+  push:
+    branches: [main]
+    paths: ["gradle.properties"]
+
+permissions:
+  contents: read
+
+# 版宣言とタグ付けは互いに前後関係を持つため直列化する
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  # 版宣言の PR を出す。既定ブランチは PR 経由の更新を必須とするため、直接 push はしない
+  declare:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # ジョブ単位の permissions はワークフロー既定を置き換える。ブランチの push に contents: write・
+    # PR の作成に pull-requests: write・CI の起動に actions: write が要る
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      # タグではなく既定ブランチを起点にする（リリースは既定ブランチの先端から切る）
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      # 版の正はビルド（カタログの Kotlin 版 + gradle.properties の enumizerVersion）にあるため、
+      # フル版は書き換え後のビルドから導出する。入力は shell へ直接展開せず環境変数で受ける
+      - name: Declare the release version
+        id: declare
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          current=$(sed -n 's/^enumizerVersion=//p' gradle.properties)
+          version="${INPUT_VERSION:-${current%-SNAPSHOT}}"
+          case "$version" in
+            *-SNAPSHOT)
+              echo "::error::release version must not be a development version: $version"
+              exit 1
+              ;;
+          esac
+          sed -i "s/^enumizerVersion=.*/enumizerVersion=$version/" gradle.properties
+          # 配布物を説明する文書の版表記は、リリース版を宣言している間だけ同期対象になる。
+          # ここで走らせておかないと公開ゲートの checkVersionMentions で落ちる
+          ./gradlew syncVersionMentions
+          full=$(./gradlew -q properties --property version | sed -n 's/^version: //p')
+          if git ls-remote --exit-code --tags origin "refs/tags/v$full" >/dev/null 2>&1; then
+            echo "::error::v$full is already released"
+            exit 1
+          fi
+          # CHANGELOG は Unreleased の見出しの下へ節を起こす（既存の記載はそのまま新しい版の節に入る）
+          if ! grep -q "^## \[$full\]$" CHANGELOG.md; then
+            sed -i "0,/^## \[Unreleased\]$/s//## [Unreleased]\n\n## [$full]/" CHANGELOG.md
+          fi
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+          echo "branch=release/v$full" >> "$GITHUB_OUTPUT"
+
+      - name: Open release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FULL: ${{ steps.declare.outputs.full }}
+          BRANCH: ${{ steps.declare.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -q -am "build: リリース版 $FULL を宣言する"
+          git push -q origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "build: リリース版 $FULL を宣言する" \
+            --body "$(printf '%s\n' \
+              "リリース $FULL の版宣言。マージすると release ワークフローがタグ \`v$FULL\` を作る。" \
+              "" \
+              "残りの手順:" \
+              "" \
+              "1. CHANGELOG の \`[$FULL]\` 節へ変更点を書く（節は空で起こされている）" \
+              "2. 本 PR をマージする" \
+              "3. タグ \`v$FULL\` で GitHub Release を作成する（publish ワークフローの起点）" \
+              "4. Central Portal の validation 通過を確認して release する")"
+
+      # GITHUB_TOKEN が作った PR は push / pull_request を起こさず必須チェックが報告されないため、
+      # ブランチを指定して CI を起こす（workflow_dispatch は GITHUB_TOKEN でも起動できる）。
+      # チェックはコミットの SHA へ紐付くため、この起動で PR 側の必須チェックが満たされる
+      - name: Start CI for the release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.declare.outputs.branch }}
+        run: gh workflow run build.yml --ref "$BRANCH"
+
+  # 版宣言のマージでタグを付ける。GITHUB_TOKEN が作ったタグの push はワークフローを起こさないため、
+  # これで公開が始まることはない（公開の起点は GitHub Release の作成）
+  tag:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: Tag the declared release version
+        run: |
+          set -euo pipefail
+          current=$(sed -n 's/^enumizerVersion=//p' gradle.properties)
+          case "$current" in
+            *-SNAPSHOT)
+              echo "::notice::$current is a development version"
+              exit 0
+              ;;
+          esac
+          version=$(./gradlew -q properties --property version | sed -n 's/^version: //p')
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null 2>&1; then
+            echo "::notice::v$version already exists"
+            exit 0
+          fi
+          git tag "v$version"
+          git push origin "v$version"
+          echo "::notice::created v$version — create a GitHub Release for it to publish"

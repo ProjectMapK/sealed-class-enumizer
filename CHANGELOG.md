@@ -9,6 +9,11 @@ for what each part means.
 
 ## [Unreleased]
 
+### Added
+
+- Runtime API artifacts for the `linuxArm64` and `androidNative*` (Arm32 / Arm64 / X64 / X86)
+  targets.
+
 ## [2.4.10-0.1.0]
 
 Initial release.
