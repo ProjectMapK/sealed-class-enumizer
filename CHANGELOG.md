@@ -7,13 +7,15 @@ Artifacts are versioned as `<KotlinVersion>-<PluginVersion>`, and all artifacts 
 under the same version. See [Versioning and support policy](README.md#versioning-and-support-policy)
 for what each part means.
 
+Each entry is written as `- #<PullRequestNumber>: <change>`.
+
 ## [Unreleased]
 
 ## [2.4.10-0.1.1]
 
 ### Added
 
-- Runtime API artifacts for the `linuxArm64` and `androidNative*` (Arm32 / Arm64 / X64 / X86)
+- #43: Runtime API artifacts for the `linuxArm64` and `androidNative*` (Arm32 / Arm64 / X64 / X86)
   targets.
 
 ## [2.4.10-0.1.0]
