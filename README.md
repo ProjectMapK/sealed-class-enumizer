@@ -21,7 +21,7 @@ so `plugins {}` resolves it without extra repository configuration:
 ```kotlin
 plugins {
     kotlin("jvm") version "2.4.10" // or kotlin("multiplatform") — any Kotlin target plugin
-    id("io.github.projectmapk.sealed-class-enumizer") version "2.4.10-0.1.0"
+    id("io.github.projectmapk.sealed-class-enumizer") version "2.4.10-0.1.1"
 }
 ```
 
@@ -57,7 +57,7 @@ execution, production and test compilations alike.
     <dependency>
       <groupId>io.github.projectmapk</groupId>
       <artifactId>sealed-class-enumizer-maven-plugin</artifactId>
-      <version>2.4.10-0.1.0</version>
+      <version>2.4.10-0.1.1</version>
     </dependency>
   </dependencies>
 </plugin>
@@ -70,7 +70,7 @@ dependency (Maven resolves the platform artifact, hence the `-jvm` suffix):
 <dependency>
   <groupId>io.github.projectmapk</groupId>
   <artifactId>sealed-class-enumizer-runtime-api-jvm</artifactId>
-  <version>2.4.10-0.1.0</version>
+  <version>2.4.10-0.1.1</version>
 </dependency>
 ```
 
@@ -319,7 +319,7 @@ Label uniqueness within a hierarchy is enforced at compile time.
 | | |
 |---|---|
 | Kotlin | 2.4.x, K2 only. The plugin version encodes the Kotlin minor it targets; applying it to another Kotlin minor produces a build warning |
-| Version format | `<KotlinVersion>-<pluginVersion>`, e.g. `2.4.10-0.1.0` |
+| Version format | `<KotlinVersion>-<pluginVersion>`, e.g. `2.4.10-0.1.1` |
 | Build environment | Gradle 9+ or Maven 3.9+ / JDK 17+ |
 | runtime-api (JVM) | Java 8+ bytecode |
 | runtime-api targets | `jvm`, `js`, `wasmJs`, `wasmWasi`, `linuxX64`, `linuxArm64`, `mingwX64`, `macosX64`, `macosArm64`, `iosArm64`, `iosSimulatorArm64`, `iosX64`, `androidNativeArm32`, `androidNativeArm64`, `androidNativeX64`, `androidNativeX86` |
