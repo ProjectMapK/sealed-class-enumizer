@@ -61,8 +61,24 @@ allprojects {
 // check へ紐付けた checkMavenVersion / checkVersionMentions が乖離を検出し、同期タスクが書き換える
 fun minorOf(version: String) = version.split(".").take(2).joinToString(".")
 
-val kotlinCurrent = libs.versions.kotlin.get()
-val mavenCurrent = libs.versions.maven.get()
+val versionCatalogFile = layout.projectDirectory.file("gradle/libs.versions.toml").asFile
+
+val kotlinVersionEntry = Regex("""^kotlin = "([^"]*)"$""", RegexOption.MULTILINE)
+
+val mavenVersionEntry = Regex("""^maven = "([^"]*)"$""", RegexOption.MULTILINE)
+
+// 整合の機構が源とするのはカタログの宣言そのものであり、解決後の値ではない。
+// マイナー横断ビルドが与える -PkotlinVersionOverride は解決値だけを差し替えるもので、
+// カタログの宣言も、それを写した資料も変わらない。解決値を源にすると、宣言と一致した資料を
+// 乖離と見なして検査が落ち、同期タスクは宣言に無い版を資料や上流 POM の導出へ持ち込む
+fun declaredVersion(entry: Regex): String =
+    checkNotNull(entry.find(versionCatalogFile.readText())) {
+            "gradle/libs.versions.toml に版の宣言がありません: $entry"
+        }
+        .groupValues[1]
+
+val kotlinDeclaredVersion = declaredVersion(kotlinVersionEntry)
+val mavenDeclaredVersion = declaredVersion(mavenVersionEntry)
 val enumizerDeclaredVersion = providers.gradleProperty("enumizerVersion").get()
 val enumizerReleaseVersion = enumizerDeclaredVersion.removeSuffix("-SNAPSHOT")
 // リリース版を宣言している状態か（開発中は -SNAPSHOT が付く）。配布物を説明する文書の同期対象を切り替える
@@ -87,8 +103,8 @@ fun pomOf(notation: String): FileCollection =
 
 // POM の解決を伴うため、値の取り出しは構成時ではなく実行時に行う
 val upstreamMavenVersion: Provider<String> = run {
-    val childPom = pomOf("org.jetbrains.kotlin:kotlin-maven-plugin:$kotlinCurrent@pom")
-    val parentPom = pomOf("org.jetbrains.kotlin:kotlin-project:$kotlinCurrent@pom")
+    val childPom = pomOf("org.jetbrains.kotlin:kotlin-maven-plugin:$kotlinDeclaredVersion@pom")
+    val parentPom = pomOf("org.jetbrains.kotlin:kotlin-project:$kotlinDeclaredVersion@pom")
     providers.provider {
         val child = childPom.singleFile.readText()
         val parentBlock =
@@ -116,10 +132,6 @@ val upstreamMavenVersion: Provider<String> = run {
     }
 }
 
-val versionCatalogFile = layout.projectDirectory.file("gradle/libs.versions.toml").asFile
-
-val mavenVersionEntry = Regex("""^maven = "[^"]*"$""", RegexOption.MULTILINE)
-
 tasks.register("syncMavenVersion") {
     val upstream = upstreamMavenVersion
     val file = versionCatalogFile
@@ -134,7 +146,7 @@ tasks.register("syncMavenVersion") {
 val checkMavenVersion =
     tasks.register("checkMavenVersion") {
         val upstream = upstreamMavenVersion
-        val declared = mavenCurrent
+        val declared = mavenDeclaredVersion
         doLast {
             val expected = upstream.get()
             if (declared != expected) {
@@ -159,16 +171,16 @@ val versionMentionRules: List<Pair<Regex, String>> =
     listOf(
         // 配布版のフル形式 <KotlinVersion>-<自版>（README のセットアップ例・版形式の現行例）
         Regex("""(?<![\d.])\d+\.\d+\.\d+-\d+\.\d+\.\d+(?![\d.-])""") to
-            "$kotlinCurrent-$enumizerReleaseVersion",
+            "$kotlinDeclaredVersion-$enumizerReleaseVersion",
         // README のセットアップ例が指定する KGP 版
         Regex("""(?<=kotlin\("(?:multiplatform|jvm)"\) version ")\d+\.\d+\.\d+(?=")""") to
-            kotlinCurrent,
+            kotlinDeclaredVersion,
         // .idea/kotlinc.xml（IDE が同期時に書き戻す Kotlin 版。PR 側で揃え、同期後の作業ツリー差分を防ぐ）
-        Regex("""(?<=name="version" value=")\d+\.\d+\.\d+(?=")""") to kotlinCurrent,
+        Regex("""(?<=name="version" value=")\d+\.\d+\.\d+(?=")""") to kotlinDeclaredVersion,
         // 文中の現行 Kotlin 版（3 成分のみ。2 成分のサポート下限 "Kotlin 2.4" には一致しない）
-        Regex("""(?<=Kotlin )\d+\.\d+\.\d+(?![\d.-])""") to kotlinCurrent,
+        Regex("""(?<=Kotlin )\d+\.\d+\.\d+(?![\d.-])""") to kotlinDeclaredVersion,
         // 対応マイナーの表記（README の互換表の "2.4.x"）
-        Regex("""\d+\.\d+\.x""") to "${minorOf(kotlinCurrent)}.x",
+        Regex("""\d+\.\d+\.x""") to "${minorOf(kotlinDeclaredVersion)}.x",
     )
 
 // 対象は文書の性質で 2 群に分ける。現行版への言及を持つ資料を増やした場合は該当する群へ追加する。
