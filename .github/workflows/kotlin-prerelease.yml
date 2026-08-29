@@ -83,7 +83,14 @@ jobs:
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ needs.detect.outputs.version }}
+      # kotlin-js-store/yarn.lock はカタログの宣言版で解決した npm 依存を固定したものであり、
+      # 版を差し替えると一致せず kotlinStoreYarnLock が失敗する。マイナー更新では両ビルドの
+      # ロックを作り直して取り込む必要があり、横断ビルドはその作り直しまでを含めて先行検証する
+      # （ここで作り直した結果は取り込まない）。ビルドと同じ起動に混ぜると作り直しと照合の順序が
+      # 定まらないため、起動を分ける
+      - run: ./gradlew kotlinUpgradeYarnLock $KOTLIN_OVERRIDE
       - run: ./gradlew build $KOTLIN_OVERRIDE
+      - run: ./gradlew -p integration-test kotlinUpgradeYarnLock $KOTLIN_OVERRIDE
       - run: >-
           ./gradlew -p integration-test build $KOTLIN_OVERRIDE
           -x :gradle-integration:test -x :maven-integration:test
