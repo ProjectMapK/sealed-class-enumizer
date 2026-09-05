@@ -1,14 +1,14 @@
-# CD。タグ v<KotlinVersion>-<自版> の GitHub Release の公開で駆動し、
-# ルートビルドと integration-test の green を確認してから Maven Central と Gradle Plugin Portal へ公開する。
-# タグ自体は release.yml が版宣言のマージ時に作る。GITHUB_TOKEN が作ったタグの push は
-# ワークフローを起こさないため、起点は Release の作成という明示の操作に置く。
+# CD。タグ v<KotlinVersion>-<自版> を ref に取り、ルートビルドと integration-test の green を
+# 確認してから Maven Central と Gradle Plugin Portal へ公開する。GitHub Release は公開が通った
+# 記録として最後に作る。タグ付けと起動は release.yml が版宣言のマージ時に行う（GITHUB_TOKEN が
+# 押したタグの push はワークフローを起こさないため、起点を workflow_dispatch に置く）。
 # ランナーは macos 単騎（宣言済みの全ターゲットをネイティブ + クロスコンパイルで賄えるため）。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
 name: publish
 
 on:
-  release:
-    types: [published]
+  # ref はタグ。別の ref で起こしても、下の版照合が食い違いとして落とす
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -78,6 +78,36 @@ jobs:
           GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
           GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
         run: ./gradlew :sealed-class-enumizer-gradle-plugin:publishPlugins
+
+  # 公開の記録として GitHub Release を作る。公開の後に作るため、成果物が無いまま Latest release が
+  # 立つことはない。本文に変更点は持たず CHANGELOG の当該節を指す（変更点の正は CHANGELOG であり、
+  # 写しを置くと版を跨いで食い違う）。Full Changelog 行だけは GitHub の自動生成と同じものを API から取る
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      # 作業ツリーは要らない。gh は GH_REPO で対象を取る
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::notice::a release for $TAG already exists"
+            exit 0
+          fi
+          # CHANGELOG の版見出し `## [<版>]` に付くアンカー。記号が落ちた形になる
+          anchor=$(printf '%s' "${TAG#v}" | tr -d .)
+          full=$(gh api "repos/$GH_REPO/releases/generate-notes" -f tag_name="$TAG" --jq .body \
+            | grep '^\*\*Full Changelog\*\*:')
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes "$(printf '%s\n\n%s\n' \
+            "Changes in this release: [CHANGELOG](https://github.com/$GH_REPO/blob/$TAG/CHANGELOG.md#$anchor)" \
+            "$full")"
 
   # API ドキュメントの掲載。Pages のソースは Actions のため、公開されるのはこのジョブが上げる成果物であり、
   # 保管ブランチ（gh-pages）の内容が直接配信されることはない。同ブランチは過去版の出力だけを
