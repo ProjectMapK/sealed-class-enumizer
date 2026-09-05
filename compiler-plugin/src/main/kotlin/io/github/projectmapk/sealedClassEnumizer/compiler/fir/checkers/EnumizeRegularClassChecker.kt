@@ -317,7 +317,8 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         names: Set<Name>,
     ): List<FirDeclaration> =
         declaration.declarations.filter { member ->
-            callableNameOf(member) in names && !isGeneratedByEnumize(member)
+            val name = callableNameOf(member)
+            name != null && name in names && !isGeneratedByEnumize(member)
         }
 
     // 階層外のユーザー interface から同名メンバーの default 実装（具象）を継承している構成の検出
