@@ -3,7 +3,7 @@
 # （ルート build と公開可能ターゲットの検査）・windows = mingwX64 の実行テストのみ（native の box 実行はホスト依存ゲートで
 # Windows でしか走らない）。main への push では加えて依存グラフを登録する。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）。
-name: build
+name: CI
 
 # ビルド入力の allowlist で無駄な実行を避ける（除外方式は、他のワークフローの追加・編集など
 # 無関係ファイルの変更で起動してしまうため採らない）。ビルド入力となるファイル種別・パスを増やした場合は
@@ -31,10 +31,10 @@ on:
       - "kotlin-js-store/**"
       - "integration-test/kotlin-js-store/**"
       - ".gitattributes"
-      - ".github/workflows/build.yml"
+      - ".github/workflows/ci.yml"
       - "!**.md"
   pull_request:
-  # GITHUB_TOKEN が作った PR は push / pull_request を起こさないため、release / publish が出す
+  # GITHUB_TOKEN が作った PR は push / pull_request を起こさないため、release / _publish が出す
   # 版更新の PR には必須チェックが報告されない。それらがブランチを指定して起こすための入口
   # （workflow_dispatch は GITHUB_TOKEN でも起動できる）。手での起動口も兼ねる
   workflow_dispatch:
@@ -85,7 +85,7 @@ jobs:
               - "kotlin-js-store/**"
               - "integration-test/kotlin-js-store/**"
               - ".gitattributes"
-              - ".github/workflows/build.yml"
+              - ".github/workflows/ci.yml"
               - "!**/*.md"
             versionMentions:
               - "README.md"

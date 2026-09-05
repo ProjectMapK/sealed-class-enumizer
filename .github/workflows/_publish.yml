@@ -2,9 +2,10 @@
 # 確認してから Maven Central と Gradle Plugin Portal へ公開する。GitHub Release は公開が通った
 # 記録として最後に作る。タグ付けと起動は release.yml が版宣言のマージ時に行う（GITHUB_TOKEN が
 # 押したタグの push はワークフローを起こさないため、起点を workflow_dispatch に置く）。
+# 名前の接頭辞 `_` は手で起こさないワークフローの印であり、リリースの入口は release.yml が持つ。
 # ランナーは macos 単騎（宣言済みの全ターゲットをネイティブ + クロスコンパイルで賄えるため）。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
-name: publish
+name: _publish (internal)
 
 on:
   # ref はタグ。別の ref で起こしても、下の版照合が食い違いとして落とす
@@ -57,7 +58,7 @@ jobs:
           ./gradlew -p integration-test build
           -x :gradle-integration:test -x :maven-integration:test
       # 重いテストはローカル Maven の非タイムスタンプ SNAPSHOT を入力に持ち UP-TO-DATE 判定が
-      # 信用できないため --rerun で必ず再実行する（build.yml と同じ理由）
+      # 信用できないため --rerun で必ず再実行する（ci.yml と同じ理由）
       - run: ./gradlew -p integration-test :gradle-integration:test --rerun
       - run: ./gradlew -p integration-test :maven-integration:test --rerun
 
@@ -229,4 +230,4 @@ jobs:
               "配布物を説明する文書の版表記は公開済みの版を指したまま据え置かれる。" \
               "次のリリースで -SNAPSHOT を外す際にまとめて追随する。")"
           # チェックはコミットの SHA へ紐付くため、この起動で PR 側の必須チェックが満たされる
-          gh workflow run build.yml --ref "$branch"
+          gh workflow run ci.yml --ref "$branch"
