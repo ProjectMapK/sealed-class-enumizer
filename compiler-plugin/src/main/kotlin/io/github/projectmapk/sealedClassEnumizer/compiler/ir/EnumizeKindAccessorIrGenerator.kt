@@ -137,16 +137,17 @@ class EnumizeKindAccessorIrGenerator(private val ctx: EnumizeIrContext) {
 
     // ---- アクセサ宣言の生成 ----
 
-    // 末端クラス内にネストした IR-only object。外側クラスの private / protected companion を intra-scope で参照する
+    // 壁を宣言しているクラスの中へ置く IR-only object（典型は末端クラスとその private companion）。
+    // 壁と同一スコープに居ることで、参照不能な kind を intra-scope で参照できる
     private fun createNestedAccessor(
-        target: IrClass,
+        kind: IrClass,
         container: IrClass,
         enumishType: IrType,
     ): IrSimpleFunction {
         val accessor =
             ctx.pluginContext.irFactory.buildClass {
                 name = EnumizeNames.KIND_ACCESSOR_NAME
-                kind = ClassKind.OBJECT
+                this.kind = ClassKind.OBJECT
                 modality = Modality.FINAL
                 visibility = DescriptorVisibilities.INTERNAL
                 origin = ctx.generatedOrigin
@@ -156,7 +157,7 @@ class EnumizeKindAccessorIrGenerator(private val ctx: EnumizeIrContext) {
         accessor.createThisReceiverParameter()
         accessor.superTypes = listOf(ctx.anyType)
         generateAccessorConstructor(accessor)
-        return generateAccessorGetter(accessor, target, enumishType)
+        return generateAccessorGetter(accessor, kind, enumishType)
     }
 
     private fun generateAccessorConstructor(accessor: IrClass) {

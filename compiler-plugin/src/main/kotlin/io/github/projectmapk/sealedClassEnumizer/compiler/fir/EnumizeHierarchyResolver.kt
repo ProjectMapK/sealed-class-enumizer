@@ -74,6 +74,16 @@ class EnumizeHierarchyResolver(
     private val labelCaseCache: FirCache<FirRegularClassSymbol, EnumizeLabelCase, Nothing?> =
         session.firCachesFactory.createCache { base -> computeLabelCase(base) }
 
+    // 基底ごとの階層メンバーと、クラスごとの解決済み supertype 閉包。どちらも走査コストが
+    // 継承グラフの大きさに比例し、同じ引数で繰り返し引かれるため一度だけ計算する
+    private val hierarchyMembersCache:
+        FirCache<FirRegularClassSymbol, List<FirRegularClassSymbol>, Nothing?> =
+        session.firCachesFactory.createCache { base -> computeHierarchyMembers(base) }
+
+    private val supertypeClosureCache:
+        FirCache<FirRegularClassSymbol, List<FirRegularClassSymbol>, Nothing?> =
+        session.firCachesFactory.createCache { symbol -> computeSupertypeClosure(symbol) }
+
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(EnumizePredicates.ENUMIZE)
         register(EnumizePredicates.ENUMISH_LABEL)
@@ -96,8 +106,14 @@ class EnumizeHierarchyResolver(
 
     fun isSealed(symbol: FirRegularClassSymbol): Boolean = tracker.isRawSealed(symbol)
 
-    fun isOurGenerated(symbol: FirBasedSymbol<*>): Boolean =
-        (symbol.origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
+    // 自プラグインが生成した宣言か（IR 側の IrDeclaration.isGeneratedByEnumize と対になる判定）
+    fun isGeneratedByEnumize(symbol: FirBasedSymbol<*>): Boolean = isEnumizeOrigin(symbol.origin)
+
+    fun isGeneratedByEnumize(declaration: FirDeclaration): Boolean =
+        isEnumizeOrigin(declaration.origin)
+
+    private fun isEnumizeOrigin(origin: FirDeclarationOrigin): Boolean =
+        (origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
 
     // このシンボルが生成 Enumish（SI.Enumish）を表すか。同一 IC ラウンドの生成物は origin で判定できるが、
     // ラウンド外のファイル由来は前ラウンドのメタデータからの逆直列化で origin が失われるため、
@@ -105,13 +121,10 @@ class EnumizeHierarchyResolver(
     // RESERVED_NAME_CLASH でコンパイル不能のため、有効な前ラウンド出力とは衝突しない）
     fun representsGeneratedEnumish(symbol: FirRegularClassSymbol): Boolean {
         if (symbol.classId.shortClassName != EnumizeNames.ENUMISH_NAME) return false
-        if (isOurGenerated(symbol)) return true
+        if (isGeneratedByEnumize(symbol)) return true
         val outer = tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return false
         return isEnumizeBase(outer)
     }
-
-    fun isOurGeneratedDeclaration(declaration: FirDeclaration): Boolean =
-        (declaration.origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
 
     fun generatedEnumishClassId(base: FirRegularClassSymbol): ClassId =
         base.classId.createNestedClassId(EnumizeNames.ENUMISH_NAME)
@@ -122,17 +135,14 @@ class EnumizeHierarchyResolver(
 
     // 基底の sealed inheritors 属性を再帰展開した階層の全メンバー（中間 sealed を含む・基底自身を除く）。
     // 並べ替えは行わず、コンパイラが提供する継承者リストの走査順のまま返す（docs/コンパイラプラグイン設計00.md §6.2）
-    fun hierarchyMembersOf(base: FirRegularClassSymbol): List<FirRegularClassSymbol> {
-        val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
-        collectMembers(base, LinkedHashSet(), result)
-        return result.values.toList()
-    }
+    private fun hierarchyMembersOf(base: FirRegularClassSymbol): List<FirRegularClassSymbol> =
+        hierarchyMembersCache.getValue(base)
 
     // 階層の末端のみ（中間 sealed の位置にその継承者が入れ子展開された順序）
-    fun leavesOf(base: FirRegularClassSymbol): List<FirRegularClassSymbol> =
+    private fun leavesOf(base: FirRegularClassSymbol): List<FirRegularClassSymbol> =
         hierarchyMembersOf(base).filterNot { tracker.isRawSealed(it) }
 
-    fun kindClassIdOf(leaf: FirRegularClassSymbol): ClassId? =
+    private fun kindClassIdOf(leaf: FirRegularClassSymbol): ClassId? =
         if (leaf.classKind == ClassKind.OBJECT) leaf.classId
         else leaf.companionObjectSymbol?.classId
 
@@ -143,7 +153,7 @@ class EnumizeHierarchyResolver(
 
     // @EnumishLabel の明示 label。空白のみの値は ENUMIZE_INVALID_LABEL の対象であり、
     // label の決定上は無指定と同じ扱いへ倒して衝突判定を安定させる
-    fun explicitLabelOf(leaf: FirRegularClassSymbol): String? =
+    private fun explicitLabelOf(leaf: FirRegularClassSymbol): String? =
         leaf
             .getAnnotationByClassId(EnumizeNames.ENUMISH_LABEL_ANNOTATION_CLASS_ID, session)
             ?.getStringArgument(EnumizeNames.VALUE_PARAMETER)
@@ -194,7 +204,7 @@ class EnumizeHierarchyResolver(
         val enumishType = generatedEnumishClassId(base).constructClassLikeType()
         if (leaf.classKind == ClassKind.OBJECT) return leaf.defaultType()
         val companion = leaf.companionObjectSymbol ?: return enumishType
-        if (isOurGenerated(companion)) return companion.defaultType()
+        if (isGeneratedByEnumize(companion)) return companion.defaultType()
         return if (effectiveVisibilityAtLeast(companion, leaf)) companion.defaultType()
         else enumishType
     }
@@ -231,32 +241,23 @@ class EnumizeHierarchyResolver(
         return result.distinct()
     }
 
-    fun directlyImplements(symbol: FirRegularClassSymbol, classId: ClassId): Boolean =
+    private fun directlyImplements(symbol: FirRegularClassSymbol, classId: ClassId): Boolean =
         symbol.resolvedSuperTypeRefs.any { it.coneType.classId == classId }
 
-    // 解決済み supertype の全閉包（sealed に限らない全エッジ）。継承経路を見る診断（AMBIGUOUS_KIND・
-    // MANUAL_SUPERTYPE_MISMATCH・MEMBER_CONFLICT・EXTENSION_SHADOWED）の判定に使う
-    fun supertypeClosure(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> {
-        val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
-        collectClosure(symbol, result)
-        return result.values.toList()
-    }
+    // 解決済み supertype の全閉包（sealed に限らない全エッジ・自身は含まない）。継承経路を見る診断
+    // （AMBIGUOUS_KIND・MANUAL_SUPERTYPE_MISMATCH・MEMBER_CONFLICT・EXTENSION_SHADOWED）の判定に使う
+    fun supertypeClosure(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> =
+        supertypeClosureCache.getValue(symbol)
 
     fun hasUserDeclaredNestedEnumish(base: FirRegularClassSymbol): Boolean =
         base.fir.declarations.any { declaration ->
             declaration is FirRegularClass &&
                 declaration.name == EnumizeNames.ENUMISH_NAME &&
-                !isOurGenerated(declaration.symbol)
+                !isGeneratedByEnumize(declaration.symbol)
         }
 
     fun declaredCallableNames(symbol: FirRegularClassSymbol): Set<Name> =
-        symbol.fir.declarations.mapNotNullTo(LinkedHashSet()) { declaration ->
-            when (declaration) {
-                is FirNamedFunction -> declaration.name
-                is FirProperty -> declaration.name
-                else -> null
-            }
-        }
+        symbol.fir.declarations.mapNotNullTo(LinkedHashSet(), ::callableNameOf)
 
     // sealed 連鎖のみを上向きに辿り、到達できる相異なる @Enumize 基底を集める
     private fun computeBases(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> {
@@ -280,6 +281,12 @@ class EnumizeHierarchyResolver(
         }
     }
 
+    private fun computeHierarchyMembers(base: FirRegularClassSymbol): List<FirRegularClassSymbol> {
+        val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
+        collectMembers(base, LinkedHashSet(), result)
+        return result.values.toList()
+    }
+
     private fun collectMembers(
         current: FirRegularClassSymbol,
         visitedSealed: MutableSet<ClassId>,
@@ -297,6 +304,14 @@ class EnumizeHierarchyResolver(
         }
     }
 
+    private fun computeSupertypeClosure(
+        symbol: FirRegularClassSymbol
+    ): List<FirRegularClassSymbol> {
+        val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
+        collectClosure(symbol, result)
+        return result.values.toList()
+    }
+
     private fun collectClosure(
         symbol: FirRegularClassSymbol,
         result: LinkedHashMap<ClassId, FirRegularClassSymbol>,
@@ -308,6 +323,14 @@ class EnumizeHierarchyResolver(
         }
     }
 }
+
+// 宣言が持つ callable 名（名前を持たない宣言種別は null）
+fun callableNameOf(declaration: FirDeclaration): Name? =
+    when (declaration) {
+        is FirNamedFunction -> declaration.name
+        is FirProperty -> declaration.name
+        else -> null
+    }
 
 // セッション単一の階層照会コンポーネントへの入口（registrar が登録する）
 val FirSession.enumizeHierarchyResolver: EnumizeHierarchyResolver

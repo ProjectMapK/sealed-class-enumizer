@@ -86,7 +86,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
                     ownerSymbol.fir,
                 ) -> generateEnumishClass(ownerSymbol)
             name != SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT -> null
-            isGeneratedEnumish(ownerSymbol) -> generateEnumishCompanion(ownerSymbol)
+            isGeneratedEnumish(ownerSymbol) -> enumishCompanionOf(ownerSymbol)
             isCompanionGenerationCandidate(ownerSymbol) -> generateLeafCompanion(ownerSymbol)
             else -> null
         }
@@ -102,7 +102,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         if (symbol.isLocal) return emptySet()
         val names = mutableSetOf<Name>()
         // 生成 companion は候補判定の誤検知（外側が末端でなかった）でもコンストラクタだけは必要（docs/コンパイラプラグイン設計01.md §6.2）
-        if (symbol.rawStatus.isCompanion && resolver.isOurGenerated(symbol)) {
+        if (symbol.rawStatus.isCompanion && resolver.isGeneratedByEnumize(symbol)) {
             names += SpecialNames.INIT
         }
         val role = roleOf(symbol)
@@ -207,7 +207,8 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         context: MemberGenerationContext
     ): List<FirConstructorSymbol> {
         val owner = context.owner as? FirRegularClassSymbol ?: return emptyList()
-        if (!owner.rawStatus.isCompanion || !resolver.isOurGenerated(owner)) return emptyList()
+        if (!owner.rawStatus.isCompanion || !resolver.isGeneratedByEnumize(owner))
+            return emptyList()
         return listOf(createDefaultPrivateConstructor(owner, EnumizeKey).symbol)
     }
 
@@ -233,10 +234,10 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
     // getNestedClassifiersNames は COMPANION_GENERATION 後にも再評価される（KMP では
     // 宣言側とは別のセッションが直列化時にネスト分類子スコープを構築し直す）ため、
     // 生成済みを理由に false へ転ずるとネスト索引から companion が落ちる（docs/コンパイラプラグイン設計01.md §6.1 の
-    // 「同一入力に常に同一の答えを返す」要件）。手動宣言の companion は従来どおり候補から外す
+    // 「同一入力に常に同一の答えを返す」要件）。手動宣言の companion は候補から外す
     private fun hasForeignCompanion(symbol: FirRegularClassSymbol): Boolean {
         val companion = symbol.companionObjectSymbol ?: return false
-        return !resolver.isOurGenerated(companion)
+        return !resolver.isGeneratedByEnumize(companion)
     }
 
     // 所属（membership）は resolver が一度だけ計算した事実を読み、役割へ写像する。
@@ -250,28 +251,22 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
             // companion 自身が末端である場合（階層外クラスの companion が単独で末端になる許容構成）は
             // 末端 object として扱う。kind = その companion・label = companion の宣言名
             // （docs/コンパイラプラグイン設計01.md §7.2）
-            val selfMembership = resolver.membershipOf(symbol)
-            if (selfMembership != null && selfMembership.isLeaf) {
-                return EnumizeGenerationRole.LeafObject(selfMembership.base)
+            if (resolver.membershipOf(symbol)?.isLeaf == true) {
+                return EnumizeGenerationRole.LeafObject
             }
             val outer = tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return null
-            if (isGeneratedEnumish(outer))
-                return EnumizeGenerationRole.GeneratedEnumishCompanion(outer)
-            val outerMembership = resolver.membershipOf(outer) ?: return null
-            if (!outerMembership.isLeaf) return null
-            return EnumizeGenerationRole.KindCompanion(outer, outerMembership.base)
+            if (isGeneratedEnumish(outer)) return EnumizeGenerationRole.GeneratedEnumishCompanion
+            if (resolver.membershipOf(outer)?.isLeaf != true) return null
+            return EnumizeGenerationRole.KindCompanion(outer)
         }
         val membership = resolver.membershipOf(symbol) ?: return null
         if (!membership.isLeaf) return null
-        return if (symbol.classKind == ClassKind.OBJECT) {
-            EnumizeGenerationRole.LeafObject(membership.base)
-        } else {
-            EnumizeGenerationRole.LeafClass(membership.base)
-        }
+        return if (symbol.classKind == ClassKind.OBJECT) EnumizeGenerationRole.LeafObject
+        else EnumizeGenerationRole.LeafClass(membership.base)
     }
 
     private fun isGeneratedEnumish(symbol: FirRegularClassSymbol): Boolean =
-        resolver.isOurGenerated(symbol) &&
+        resolver.isGeneratedByEnumize(symbol) &&
             symbol.classId.shortClassName == EnumizeNames.ENUMISH_NAME
 
     private fun nestedNamesForBase(base: FirRegularClassSymbol): Set<Name> =
@@ -298,30 +293,27 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
                 modality = Modality.SEALED
                 superType(EnumizeNames.ENUMISH_CLASS_ID.constructClassLikeType())
             }
-        val companion = buildEnumishCompanion(enumish.symbol)
-        enumish.replaceCompanionObjectSymbol(companion)
-        EnumizeOwnerGeneratorPatch.stamp(companion.fir, this)
-        enumishCompanions[enumish.symbol] = companion
+        enumish.replaceCompanionObjectSymbol(enumishCompanionOf(enumish.symbol))
         // 継承者一覧の lazy 登録（V1）。計算は登録せず遅延し、実際の列挙は網羅性検査以降に走る（docs/コンパイラプラグイン設計01.md §5.2）
         enumish.setSealedClassInheritors { resolver.computeGeneratedEnumishInheritors(base) }
         return enumish.symbol
     }
 
-    private fun generateEnumishCompanion(enumish: FirRegularClassSymbol): FirClassLikeSymbol<*> =
-        enumishCompanions[enumish] ?: buildEnumishCompanion(enumish)
-
-    private fun buildEnumishCompanion(enumish: FirRegularClassSymbol): FirRegularClassSymbol {
-        val enumishType = enumish.classId.constructClassLikeType()
-        val companion =
-            createCompanionObject(enumish, EnumizeKey) {
-                superType(
-                    EnumizeNames.ENUMISH_COMPANION_CLASS_ID.constructClassLikeType(
-                        arrayOf<ConeTypeProjection>(enumishType)
+    // 生成 Enumish の companion は、ネスト分類子としての要求（generateNestedClassLikeDeclaration）と
+    // Enumish 自身への連結の両方から引かれるため、階層ごとに 1 インスタンスを作って共有する
+    private fun enumishCompanionOf(enumish: FirRegularClassSymbol): FirRegularClassSymbol =
+        enumishCompanions.getOrPut(enumish) {
+            val companion =
+                createCompanionObject(enumish, EnumizeKey) {
+                    superType(
+                        EnumizeNames.ENUMISH_COMPANION_CLASS_ID.constructClassLikeType(
+                            arrayOf<ConeTypeProjection>(enumish.classId.constructClassLikeType())
+                        )
                     )
-                )
-            }
-        return companion.symbol
-    }
+                }
+            EnumizeOwnerGeneratorPatch.stamp(companion, this)
+            companion.symbol
+        }
 
     // supertype transformer はプラグイン生成の companion を訪問しないため、生成 Enumish と同様に
     // supertype を生成時へ直接指定する（docs/コンパイラプラグイン設計01.md §5.1）。候補判定の誤検知時は解決済み supertype による

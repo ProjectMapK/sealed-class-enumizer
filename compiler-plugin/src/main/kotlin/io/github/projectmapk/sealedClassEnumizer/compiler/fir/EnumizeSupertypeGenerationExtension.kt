@@ -45,15 +45,12 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) :
         return when {
             session.predicateBasedProvider.matches(EnumizePredicates.ENUMIZE, regularClass) -> true
             regularClass.classKind != ClassKind.OBJECT -> false
-            !regularClass.status.isCompanion -> couldBeHierarchyMember(regularClass.symbol)
+            !regularClass.status.isCompanion -> tracker.isHierarchyCandidate(regularClass.symbol)
             else ->
-                couldBeHierarchyMember(regularClass.symbol) ||
-                    outerSymbolOf(regularClass)?.let(::couldBeHierarchyMember) == true
+                tracker.isHierarchyCandidate(regularClass.symbol) ||
+                    outerSymbolOf(regularClass)?.let(tracker::isHierarchyCandidate) == true
         }
     }
-
-    private fun couldBeHierarchyMember(symbol: FirRegularClassSymbol): Boolean =
-        tracker.isHierarchyCandidate(symbol)
 
     override fun computeAdditionalSupertypes(
         classLikeDeclaration: FirClassLikeDeclaration,

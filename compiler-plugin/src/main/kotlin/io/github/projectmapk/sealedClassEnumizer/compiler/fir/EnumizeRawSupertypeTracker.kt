@@ -40,20 +40,12 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         findEnumizeBase(classSymbol) != null
 
     fun findEnumizeBase(classSymbol: FirRegularClassSymbol): FirRegularClassSymbol? =
-        findEnumizeBase(classSymbol, LinkedHashSet())
+        findEnumizeBaseAmong(supertypeClassSymbols(classSymbol), mutableSetOf(classSymbol.classId))
 
     // 解決済み supertype として与えられたクラス群を起点に基底を探す
     // （computeAdditionalSupertypes が受け取る resolvedSupertypes 用の入口）
-    fun findEnumizeBaseAmong(superSymbols: List<FirRegularClassSymbol>): FirRegularClassSymbol? {
-        for (superSymbol in superSymbols) {
-            if (isEnumizeBase(superSymbol) && isRawSealed(superSymbol)) return superSymbol
-            if (isRawSealed(superSymbol)) {
-                val base = findEnumizeBase(superSymbol)
-                if (base != null) return base
-            }
-        }
-        return null
-    }
+    fun findEnumizeBaseAmong(superSymbols: List<FirRegularClassSymbol>): FirRegularClassSymbol? =
+        findEnumizeBaseAmong(superSymbols, mutableSetOf())
 
     // supertype グラフ上で targetClassId へ到達できるか（Enumized の間接継承検出などの汎用到達判定）
     fun reachesSupertype(classSymbol: FirRegularClassSymbol, targetClassId: ClassId): Boolean =
@@ -112,17 +104,19 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
     fun resolveExpandedClassSymbol(coneType: ConeKotlinType): FirRegularClassSymbol? =
         resolveClassSymbol(expandedClassId(coneType))
 
-    private fun findEnumizeBase(
-        classSymbol: FirRegularClassSymbol,
+    // sealed 連鎖のみを上向きに辿り、最初に到達した @Enumize 基底を返す。
+    // 基底の無い部分木は visited で記録して再訪しない（見つかった時点で即座に返るため、
+    // 訪問済みは「探索し尽くして基底が無かった」ことを意味する）
+    private fun findEnumizeBaseAmong(
+        superSymbols: List<FirRegularClassSymbol>,
         visited: MutableSet<ClassId>,
     ): FirRegularClassSymbol? {
-        if (!visited.add(classSymbol.classId)) return null
-        for (superSymbol in supertypeClassSymbols(classSymbol)) {
-            if (isEnumizeBase(superSymbol) && isRawSealed(superSymbol)) return superSymbol
-            if (isRawSealed(superSymbol)) {
-                val base = findEnumizeBase(superSymbol, visited)
-                if (base != null) return base
-            }
+        for (superSymbol in superSymbols) {
+            if (!isRawSealed(superSymbol)) continue
+            if (isEnumizeBase(superSymbol)) return superSymbol
+            if (!visited.add(superSymbol.classId)) continue
+            val base = findEnumizeBaseAmong(supertypeClassSymbols(superSymbol), visited)
+            if (base != null) return base
         }
         return null
     }

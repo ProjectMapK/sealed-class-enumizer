@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 import org.jetbrains.kotlin.ir.util.companionObject
 import org.jetbrains.kotlin.ir.util.defaultType
+import org.jetbrains.kotlin.ir.util.kotlinFqName
 
 // 基底ファイル帰属の IR 生成（docs/コンパイラプラグイン設計02.md §4・§5.1）: $EntriesHolder の生成と、生成 Enumish・
 // その companion のボディ充填。継承者の集合に依存する生成物はここでのみ作られ、基底が IC ラウンドに
@@ -34,7 +35,7 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
                 it.isGeneratedByEnumize && it.name == EnumizeNames.ENUMISH_NAME
             } ?: return
         val companion = enumish.companionObject() ?: return
-        val kinds = collectLeaves(base).mapNotNull(::kindOf)
+        val kinds = collectLeaves(base).map(::kindOf)
         // 参照不能 kind には IR-only アクセサを生成し、createEntries はその取得式ビルダで組み立てる（docs/コンパイラプラグイン設計02.md §4.3）
         val kindProviders = accessorGenerator.buildKindProviders(base, enumish, kinds)
         val holder = holderGenerator.generate(enumish, base, kindProviders)
@@ -64,14 +65,19 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
         }
     }
 
-    private fun kindOf(leaf: IrClass): IrClass? =
-        if (leaf.kind == ClassKind.OBJECT) leaf else leaf.companionObject()
+    // 末端 class の kind は companion であり、FIR が手動宣言の流用か自動生成のどちらかで必ず用意する
+    // （docs/コンパイラプラグイン設計01.md §6.2）。欠けたまま進むと entries が静かに不完全になるため、ここで失敗させる
+    private fun kindOf(leaf: IrClass): IrClass =
+        if (leaf.kind == ClassKind.OBJECT) leaf
+        else
+            leaf.companionObject()
+                ?: error("companion object missing for leaf ${leaf.kotlinFqName}")
 
     // ---- 生成 Enumish とその companion のボディ（docs/コンパイラプラグイン設計02.md §5.1） ----
 
     private fun fillEnumishCompanionProperty(enumish: IrClass, companion: IrClass) {
         val getter =
-            ctx.ourPropertyGetter(enumish, EnumizeNames.ENUMISH_COMPANION_PROPERTY) ?: return
+            ctx.prepareGeneratedGetter(enumish, EnumizeNames.ENUMISH_COMPANION_PROPERTY) ?: return
         getter.body =
             ctx.builder(getter.symbol).run {
                 irBlockBody { +irReturn(irGetObjectValue(companion.defaultType, companion.symbol)) }
@@ -79,13 +85,13 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
     }
 
     private fun fillCompanionMembers(companion: IrClass, holder: IrClass) {
-        ctx.ourPropertyGetter(companion, EnumizeNames.ENTRIES)?.let { getter ->
+        ctx.prepareGeneratedGetter(companion, EnumizeNames.ENTRIES)?.let { getter ->
             fillHolderDelegatingGetter(getter, holder)
         }
-        ctx.ourFunction(companion, EnumizeNames.VALUE_OF)?.let { function ->
+        ctx.generatedFunction(companion, EnumizeNames.VALUE_OF)?.let { function ->
             fillHolderDelegatingFunction(function, holder, ctx.holderGetByLabel)
         }
-        ctx.ourFunction(companion, EnumizeNames.VALUE_OF_OR_NULL)?.let { function ->
+        ctx.generatedFunction(companion, EnumizeNames.VALUE_OF_OR_NULL)?.let { function ->
             fillHolderDelegatingFunction(function, holder, ctx.holderGetByLabelOrNull)
         }
     }

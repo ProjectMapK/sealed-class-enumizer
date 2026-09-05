@@ -66,7 +66,7 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
     // ---- 末端宣言に属するメンバー ----
 
     private fun fillAsEnumish(leaf: IrClass) {
-        val function = ctx.ourFunction(leaf, EnumizeNames.AS_ENUMISH) ?: return
+        val function = ctx.generatedFunction(leaf, EnumizeNames.AS_ENUMISH) ?: return
         function.body =
             ctx.builder(function.symbol).run {
                 irBlockBody {
@@ -90,7 +90,7 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
     // 生成 enumizedClass を持つクラスが kind であり、その宣言型が対応する末端を一意に決める
     private fun fillKindMembers(kind: IrClass) {
         val enumizedClassGetter =
-            ctx.ourPropertyGetter(kind, EnumizeNames.ENUMIZED_CLASS_PROPERTY) ?: return
+            ctx.prepareGeneratedGetter(kind, EnumizeNames.ENUMIZED_CLASS_PROPERTY) ?: return
         val leaf = leafOf(enumizedClassGetter)
         fillEnumizedClass(enumizedClassGetter, leaf)
         fillLabel(kind, leaf)
@@ -124,7 +124,7 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
     }
 
     private fun fillLabel(kind: IrClass, leaf: IrClass) {
-        val getter = ctx.ourPropertyGetter(kind, EnumizeNames.LABEL) ?: return
+        val getter = ctx.prepareGeneratedGetter(kind, EnumizeNames.LABEL) ?: return
         val label = labelOf(leaf)
         getter.body = ctx.builder(getter.symbol).run { irBlockBody { +irReturn(irString(label)) } }
     }
@@ -136,11 +136,14 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
     private fun labelOf(leaf: IrClass): String =
         explicitLabelOf(leaf) ?: labelCaseOf(leaf).convert(leaf.name.asString())
 
+    // 空白のみの値は ENUMIZE_INVALID_LABEL の対象であり、label の決定上は無指定と同じ扱いへ倒す
+    // （FIR 側 EnumizeHierarchyResolver.explicitLabelOf と同一の規則）
     private fun explicitLabelOf(leaf: IrClass): String? =
         leaf
             .getAnnotation(EnumizeNames.ENUMISH_LABEL_ANNOTATION_FQ_NAME)
             ?.let { annotationArgument(it, EnumizeNames.VALUE_PARAMETER) }
             ?.let { (it as? IrConst)?.value as? String }
+            ?.takeUnless { it.isBlank() }
 
     // 基底は末端の supertype 閉包から探す — 末端は基底に依存するため、基底が IC ラウンドに
     // 同席しなくても逆直列化された宣言（アノテーション込み）へ到達できる
@@ -193,7 +196,7 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
         if (toStrings.any { !it.isFakeOverride }) return
         // 継承経路上の最も派生側の toString が Any 以外の具象実装なら生成しない（原則 1）
         if (findInheritedConcreteToString(kind) != null) return
-        val labelGetter = ctx.ourPropertyGetter(kind, EnumizeNames.LABEL) ?: return
+        val labelGetter = ctx.prepareGeneratedGetter(kind, EnumizeNames.LABEL) ?: return
         val fakeOverrides = toStrings.filter { it.isFakeOverride }
         val overridden = fakeOverrides.firstOrNull()?.overriddenSymbols ?: listOf(ctx.anyToString)
         kind.declarations.removeAll(fakeOverrides)

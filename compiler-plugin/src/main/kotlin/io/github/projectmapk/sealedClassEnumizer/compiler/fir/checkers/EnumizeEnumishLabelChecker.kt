@@ -34,7 +34,6 @@ object EnumizeEnumishLabelChecker : FirRegularClassChecker(MppCheckerKind.Common
                 EnumizeErrors.ENUMIZE_INVALID_LABEL,
                 "it is applicable only to a leaf declaration of an '@Enumize' hierarchy. " +
                     "Remove the annotation or move it to the leaf declaration.",
-                context,
             )
             return
         }
@@ -44,7 +43,6 @@ object EnumizeEnumishLabelChecker : FirRegularClassChecker(MppCheckerKind.Common
                 source,
                 EnumizeErrors.ENUMIZE_INVALID_LABEL,
                 "the label must not be blank. Specify a non-blank label.",
-                context,
             )
         }
     }
