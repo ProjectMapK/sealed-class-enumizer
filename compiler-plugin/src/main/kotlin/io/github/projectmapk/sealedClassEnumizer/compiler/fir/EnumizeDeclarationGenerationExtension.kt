@@ -234,7 +234,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
     // getNestedClassifiersNames は COMPANION_GENERATION 後にも再評価される（KMP では
     // 宣言側とは別のセッションが直列化時にネスト分類子スコープを構築し直す）ため、
     // 生成済みを理由に false へ転ずるとネスト索引から companion が落ちる（docs/コンパイラプラグイン設計01.md §6.1 の
-    // 「同一入力に常に同一の答えを返す」要件）。手動宣言の companion は従来どおり候補から外す
+    // 「同一入力に常に同一の答えを返す」要件）。手動宣言の companion は候補から外す
     private fun hasForeignCompanion(symbol: FirRegularClassSymbol): Boolean {
         val companion = symbol.companionObjectSymbol ?: return false
         return !resolver.isGeneratedByEnumize(companion)

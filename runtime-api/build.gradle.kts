@@ -49,7 +49,7 @@ kotlin {
 }
 
 // Maven Central 公開設定（POM の共通値はルート、モジュール別値は本モジュールの gradle.properties）。
-// javadoc jar は空で Central の要件を満たす（Kotlin ライブラリの慣行。Dokka の導入は KDoc 整備とセットで別途判断）
+// javadoc jar は空で Central の要件を満たす（API ドキュメントはルートで集約した Dokka が GitHub Pages へ出す）
 mavenPublishing {
     publishToMavenCentral()
     signAllPublications()

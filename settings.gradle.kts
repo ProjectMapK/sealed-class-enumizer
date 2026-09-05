@@ -22,7 +22,7 @@ include(":runtime-api", ":compiler-plugin", ":gradle-plugin", ":maven-plugin")
 // 公開 artifactId は「sealed-class-enumizer-」接頭辞付きとする（group 直下に汎用名を置かない）。
 // artifactId の源泉であるプロジェクト名ごと揃えることで、KMP のターゲット別 publication の派生名と、
 // integration-test からの composite 自動置換（group:プロジェクト名での対応付け）を追加設定なしに保つ。
-// ディレクトリ名は従来の短い名前のままとする
+// ディレクトリ名は接頭辞を付けない短い名前とする
 project(":runtime-api").name = "sealed-class-enumizer-runtime-api"
 
 project(":compiler-plugin").name = "sealed-class-enumizer-compiler-plugin"
