@@ -128,7 +128,7 @@ object FixtureCompiler {
     // test コンパイレーションは接尾辞付き）
     private fun moduleNameOf(fixture: String, unit: FixtureCompilation): String {
         val owner = unit.sourceRoot.substringBefore("/src/", fixture)
-        return if (unit.friendOfPrevious) "_test" else owner
+        return if (unit.friendOfPrevious) owner + "_test" else owner
     }
 
     private fun defaultLabelCaseOption(): String =
