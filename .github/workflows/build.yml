@@ -64,6 +64,8 @@ jobs:
       # push はビルド入力の変更でしか起動せず、そちらは build ジョブの check が版表記検証を含むため、
       # このフィルタは PR のみ評価する（push では常に false = ジョブをスキップ）
       versionMentions: ${{ github.event_name == 'pull_request' && steps.filter.outputs.versionMentions }}
+      # 配布物のソースを変更したか。エントリの要否は PR 単位でしか決まらないため PR のみ評価する
+      changelog: ${{ github.event_name == 'pull_request' && steps.filter.outputs.changelog }}
     steps:
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
@@ -89,6 +91,13 @@ jobs:
               - "README.md"
               - "docs/**"
               - ".idea/kotlinc.xml"
+            # 公開 4 モジュールの production ソース（利用者へ配られる変更の範囲）。テストソース・
+            # integration-test（パスが 1 段深い）・ビルドスクリプトは配布物の内容を変えないため含めない。
+            # 版更新（catalog）も対象外とする — 版そのものは版形式が表しており、Dependabot は
+            # エントリを書けない
+            changelog:
+              - "*/src/main/**"
+              - "*/src/commonMain/**"
 
   build:
     needs: changes
@@ -240,6 +249,44 @@ jobs:
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - run: ./gradlew :checkVersionMentions
 
+  # 配布物のソースを変更する PR に CHANGELOG のエントリを要求する。
+  # 記載漏れはリリースの準備まで気付けず、その時点では変更の意図が失われているため、PR の時点で検出する。
+  # 照合は「## [Unreleased] 配下に当該 PR 番号の行があるか」だけを見る。書き方の規約は CLAUDE.md
+  # 「CHANGELOG のルール」が正であり、ここは強制だけを持つ（CHANGELOG 本文へ運用は書かない）。
+  # PR 番号は PR が立つまで確定しないため、ルートの check ではなく CI 側の検査とする。
+  #
+  # 記載が要らないのはコメント・整形のみの PR に限られる（内部変更には Internal 節という置き場がある）。
+  # その判定は自動化せず、コミットの「Changelog: none」トレーラで書き手が明示する。自動判定を採らない理由:
+  #   - 差分の行頭による判定は、スプレッド演算子や折り返しの継続行など * で始まるコード行を
+  #     コメントと誤認しうる（＝記載漏れを見逃す側に倒れる）
+  #   - 生成物のバイト比較でも解けない。コメント行の増減は LineNumberTable を動かすためクラスファイルが
+  #     変わり、まさに除外したいケースで差分が出る（実測）。デバッグ属性を落とす正規化と base 側の
+  #     ビルドが要り、費用に見合わない
+  # トレーラはコミットに含まれるため push で自然に再評価される（ラベルは PR イベントを再発火させない）
+  changelog:
+    needs: changes
+    if: needs.changes.outputs.changelog == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        # PR のコミットメッセージを辿るため、base から到達できる深さで取得する
+        with:
+          fetch-depth: 0
+      - env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if git log --format=%B "$BASE_SHA..HEAD" | grep -qiE '^Changelog:[[:space:]]*none[[:space:]]*$'; then
+            echo "Changelog: none のトレーラがあるため CHANGELOG のエントリは要求しない"
+            exit 0
+          fi
+          unreleased=$(awk '/^## \[Unreleased\]/ { inside = 1; next } /^## \[/ { inside = 0 } inside' CHANGELOG.md)
+          if ! printf '%s\n' "$unreleased" | grep -q "^- #${PR_NUMBER}: "; then
+            echo "::error file=CHANGELOG.md::CHANGELOG.md の '## [Unreleased]' に '- #${PR_NUMBER}: <変更>' の行がありません。書き方は CLAUDE.md の「CHANGELOG のルール」を参照してください。コメント・整形のみの PR はコミットへ 'Changelog: none' のトレーラを入れてください"
+            exit 1
+          fi
+
   # 必須チェックはこの 1 本へ集約する。
   # matrix を含む個別のジョブ名を必須チェックとして列挙すると、shard 数の変更で保護設定側が
   # 存在しない名前を要求し、マージ不能または無防備のどちらかへ静かに倒れるため。
@@ -255,6 +302,7 @@ jobs:
       - build-macos
       - native-windows
       - version-mentions
+      - changelog
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
