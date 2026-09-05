@@ -58,6 +58,7 @@ object FixtureCompiler {
             results +=
                 runUnit(
                     unit = unit,
+                    fixture = fixture,
                     sources = sourcesOf(fixture, unit),
                     classesDir = workRoot.resolve(fixture).resolve(index.toString()),
                     upstream = results.map(CompileResult::classesDir),
@@ -82,6 +83,7 @@ object FixtureCompiler {
 
     private fun runUnit(
         unit: FixtureCompilation,
+        fixture: String,
         sources: List<String>,
         classesDir: Path,
         upstream: List<Path>,
@@ -104,7 +106,7 @@ object FixtureCompiler {
                 // stdlib はテストクラスパス側から与えるため、既定の同梱解決は行わせない
                 noStdlib = true
                 noReflect = true
-                moduleName = classesDir.parent.fileName.toString()
+                moduleName = moduleNameOf(fixture, unit)
                 pluginClasspaths = if (unit.pluginApplied) arrayOf(pluginJar) else emptyArray()
                 // プロジェクト既定の label ケースは Gradle 側が常に具体値で渡すため、
                 // フィクスチャのコンパイルでも組み込み既定を明示して同じ状態にする
@@ -120,6 +122,13 @@ object FixtureCompiler {
             )
         val exitCode = K2JVMCompiler().exec(collector, Services.EMPTY, arguments)
         return CompileResult(exitCode, messages.toString(Charsets.UTF_8), classesDir)
+    }
+
+    // -module-name は Gradle と同じ粒度で与える（モジュール = ソースルートの持ち主・
+    // test コンパイレーションは接尾辞付き）
+    private fun moduleNameOf(fixture: String, unit: FixtureCompilation): String {
+        val owner = unit.sourceRoot.substringBefore("/src/", fixture)
+        return if (unit.friendOfPrevious) "_test" else owner
     }
 
     private fun defaultLabelCaseOption(): String =
