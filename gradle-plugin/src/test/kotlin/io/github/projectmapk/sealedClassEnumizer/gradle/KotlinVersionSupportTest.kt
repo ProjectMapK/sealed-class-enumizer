@@ -22,7 +22,7 @@ class KotlinVersionSupportTest {
             )
         assertEquals(
             cases.map { it.expected },
-            cases.map { isSupportedKotlinVersion(it.applied, it.supported) },
+            cases.map { KotlinVersionSupport.isSupported(it.applied, it.supported) },
         )
     }
 }
