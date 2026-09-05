@@ -1,8 +1,8 @@
 # 週次マイナー横断ビルド。Kotlin の新しい Beta / RC を検出し、
 # -PkotlinVersionOverride でカタログの Kotlin 版を差し替えてルートビルドと integration-test を通す。
-# 目的は対応版の発行判断に要る事前検知であり、結果は CI（build.yml）の必須チェックには関与しない。
+# 目的は対応版の発行判断に要る事前検知であり、結果は CI（ci.yml）の必須チェックには関与しない。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
-name: kotlin-prerelease
+name: kotlin-prerelease (weekly)
 
 on:
   schedule:
@@ -95,6 +95,6 @@ jobs:
           ./gradlew -p integration-test build $KOTLIN_OVERRIDE
           -x :gradle-integration:test -x :maven-integration:test
       # 重いテストはローカル Maven の非タイムスタンプ SNAPSHOT を入力に持ち UP-TO-DATE 判定が
-      # 信用できないため --rerun で必ず再実行する（build.yml と同じ理由）
+      # 信用できないため --rerun で必ず再実行する（ci.yml と同じ理由）
       - run: ./gradlew -p integration-test :gradle-integration:test --rerun $KOTLIN_OVERRIDE
       - run: ./gradlew -p integration-test :maven-integration:test --rerun $KOTLIN_OVERRIDE

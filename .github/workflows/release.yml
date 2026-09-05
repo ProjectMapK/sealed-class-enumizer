@@ -1,9 +1,9 @@
 # リリース準備。版宣言（`-SNAPSHOT` の除去・版表記の同期・CHANGELOG の節起こし）の PR を出すところまでと、
-# その PR がマージされた時点でのタグ付けと公開の起動を担う。公開そのものは publish.yml が引き取る。
+# その PR がマージされた時点でのタグ付けと公開の起動を担う。公開そのものは _publish.yml が引き取る。
 # 手順は「本ワークフローを実行 → 出た PR をマージ」までで、以降はタグ付けから公開まで自動で進む。
 # Central の公開確定（Portal の validation 確認）だけが従来どおり手作業として残る。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
-name: release
+name: release (manual)
 
 on:
   workflow_dispatch:
@@ -111,7 +111,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.declare.outputs.branch }}
-        run: gh workflow run build.yml --ref "$BRANCH"
+        run: gh workflow run ci.yml --ref "$BRANCH"
 
   # 版宣言のマージでタグを付け、公開を起こす。GITHUB_TOKEN が押したタグの push はワークフローを
   # 起こさないため、公開は起動をこちらから掛ける（workflow_dispatch は GITHUB_TOKEN でも起動できる）
@@ -151,12 +151,12 @@ jobs:
           git push origin "v$version"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
-      # publish はタグを ref に取り、起点によらず「タグの指す位置」だけを見る。手で起こす場合も
-      # ref にはタグを選ぶ（既定ブランチで起こすと publish 側の版照合で落ちる）。
+      # _publish はタグを ref に取り、起点によらず「タグの指す位置」だけを見る。手で起こす場合も
+      # ref にはタグを選ぶ（既定ブランチで起こすと _publish 側の版照合で落ちる）。
       # タグを付けなかった場合は出力が空になり、このステップは飛ぶ
       - name: Start publishing
         if: steps.tag.outputs.tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
-        run: gh workflow run publish.yml --ref "$TAG"
+        run: gh workflow run _publish.yml --ref "$TAG"

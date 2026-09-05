@@ -3,7 +3,7 @@
 # catalog の maven 版・README / docs / .idea 中の現行バージョン表記はマニフェスト更新では変わらないため、
 # CI（ルートの checkMavenVersion / checkVersionMentions）が乖離を検出したら、
 # 同期タスク（syncMavenVersion / syncVersionMentions）の実行結果を更新 PR へコミットして追随させる。
-# 解決済み依存グラフ（推移依存含む）に対する alerts は build.yml の dependency-submission ジョブが補完する
+# 解決済み依存グラフ（推移依存含む）に対する alerts は ci.yml の dependency-submission ジョブが補完する
 #
 # npm（kotlin-js-store/yarn.lock）は version updates の対象に含めない。lockfile は KGP が
 # JS/wasm テストランナー用に生成する成果物であり、宣言元の package.json はリポジトリに存在しないため、
