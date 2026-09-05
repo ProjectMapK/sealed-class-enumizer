@@ -113,9 +113,6 @@ class EnumizeHierarchyResolver(
     fun isGeneratedByEnumize(declaration: FirDeclaration): Boolean =
         isEnumizeOrigin(declaration.origin)
 
-    private fun isEnumizeOrigin(origin: FirDeclarationOrigin): Boolean =
-        (origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
-
     // このシンボルが生成 Enumish（SI.Enumish）を表すか。同一 IC ラウンドの生成物は origin で判定できるが、
     // ラウンド外のファイル由来は前ラウンドのメタデータからの逆直列化で origin が失われるため、
     // 「@Enumize 付き基底の直下の Enumish」という構造で判定する（ネスト名 Enumish の手動宣言は
@@ -327,6 +324,10 @@ class EnumizeHierarchyResolver(
         }
     }
 }
+
+// 自プラグインの生成物に付く origin か（生成宣言はすべて EnumizeKey を刻印する）
+fun isEnumizeOrigin(origin: FirDeclarationOrigin): Boolean =
+    (origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
 
 // 宣言が持つ callable 名（名前を持たない宣言種別は null）
 fun callableNameOf(declaration: FirDeclaration): Name? =

@@ -69,9 +69,10 @@ class DiagSingleOkTest : DiagTestBase() {
         assertFragmentAbsent(ok(), DiagFragments.COMPANION_LEAF_CONFLICT)
     }
 
-    // docs/test/ケース04-診断.md DIA-31: raw 追跡スコープ順の表記（外側ネスト・import 別名・
-    // 同一 pkg 直接名・FQN）+ enum 末端・末端 object で候補判定成立 = kind 成立
-    // （star import 直接形は sealed の同一 pkg 制約で言語上不能・別 pkg typealias 経由 = DIA-32 のみ成立）
+    // docs/test/ケース04-診断.md DIA-31: raw 追跡スコープ順の表記（外側ネスト・外側クラスの companion /
+    // superclass の static scope 経由・import 別名・同一 pkg 直接名・FQN）+ enum 末端・末端 object で
+    // 候補判定成立 = kind 成立（abstract 末端の IR 失敗も不在。
+    // star import 直接形は sealed の同一 pkg 制約で言語上不能・別 pkg typealias 経由 = DIA-32 のみ成立）
     @Test
     fun everyRawSupertypeNotationYieldsAKind() {
         val output = ok()
