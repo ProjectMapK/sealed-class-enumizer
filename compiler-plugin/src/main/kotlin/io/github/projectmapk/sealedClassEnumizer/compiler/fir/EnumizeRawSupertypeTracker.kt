@@ -5,6 +5,7 @@
 package io.github.projectmapk.sealedClassEnumizer.compiler.fir
 
 import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeNames
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.FirImport
@@ -198,7 +199,7 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         return parts.drop(1).fold(scopeClassId) { id, part -> id.createNestedClassId(part) }
     }
 
-    // 名前解決のスコープ順に忠実な候補選択: 外側クラスのネスト分類子（レキシカルに内側が優先）→
+    // 名前解決のスコープ順に忠実な候補選択: 外側クラスの static scope（レキシカルに内側が優先）→
     // ファイルの明示 import → 同一パッケージのトップレベル → star import。最初に解決される候補のみを
     // 検査対象とし、外側候補への「ついで照会」はしない（名前を占有していれば typealias も候補確定）
     private fun resolveFirstPartClassId(
@@ -208,8 +209,9 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
     ): ClassId? {
         var outerId = useSite.classId.outerClassId
         while (outerId != null) {
-            val nested = outerId.createNestedClassId(firstName)
-            if (resolvesToClassLike(nested)) return nested
+            staticScopeClassId(outerId, firstName)?.let {
+                return it
+            }
             outerId = outerId.outerClassId
         }
         // 明示 import は同一パッケージのトップレベルより優先されるため、束縛があればその import 先だけが
@@ -219,6 +221,46 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         val topLevel = ClassId(useSite.classId.packageFqName, firstName)
         if (resolvesToClassLike(topLevel)) return topLevel
         return starImportedClassId(firstName, imports, useSite)
+    }
+
+    // 外側クラス 1 段の static scope。コンパイラが nested class の supertype 解決へ与えるスコープと同じ構成で、
+    // 外側クラス自身のネスト分類子 → その companion のネスト分類子 → その superclass 連鎖のネスト分類子
+    // （interface と companion の supertype は含まない）の順に、最初に実在する候補を採る。
+    // 自前の生成 companion はネスト分類子を持たず、生成の前後で答えを変えないよう入力にしない
+    private fun staticScopeClassId(outerId: ClassId, name: Name): ClassId? {
+        val nested = outerId.createNestedClassId(name)
+        if (resolvesToClassLike(nested)) return nested
+        val outer = resolveClassSymbol(outerId) ?: return null
+        val companion = outer.companionObjectSymbol?.takeUnless { isEnumizeOrigin(it.origin) }
+        if (companion != null) {
+            val inCompanion = companion.classId.createNestedClassId(name)
+            if (resolvesToClassLike(inCompanion)) return inCompanion
+        }
+        return superclassNestedClassId(outer, name)
+    }
+
+    // superclass 連鎖の探索は各 superclass の supertype 解決を経て外側クラスの static scope を再び引くため、
+    // 外側クラスが自身のネストクラス配下を継承する循環構成では同じクラスの探索へ再入する。
+    // 探索中のクラスを控え、再入した探索は候補なしとして打ち切る（循環継承としてコンパイラ本体が診断する構成）
+    private val superclassLookupsInProgress = HashSet<ClassId>()
+
+    // superclass 連鎖を上向きに辿り、各 superclass のネスト分類子から最初に実在する候補を採る
+    // （supertype ref は raw のままでも同じ機構で解決される）
+    private fun superclassNestedClassId(symbol: FirRegularClassSymbol, name: Name): ClassId? {
+        if (!superclassLookupsInProgress.add(symbol.classId)) return null
+        try {
+            for (superSymbol in supertypeClassSymbols(symbol)) {
+                if (superSymbol.classKind == ClassKind.INTERFACE) continue
+                val nested = superSymbol.classId.createNestedClassId(name)
+                if (resolvesToClassLike(nested)) return nested
+                superclassNestedClassId(superSymbol, name)?.let {
+                    return it
+                }
+            }
+            return null
+        } finally {
+            superclassLookupsInProgress.remove(symbol.classId)
+        }
     }
 
     private fun importsOf(useSite: FirClassLikeSymbol<*>): List<FirImport> =

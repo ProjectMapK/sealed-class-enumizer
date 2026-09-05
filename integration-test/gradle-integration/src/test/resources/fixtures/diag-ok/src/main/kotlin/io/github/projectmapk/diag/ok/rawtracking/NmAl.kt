@@ -36,3 +36,26 @@ object NmOutHost {
 
     class NLeaf(val v: Int) : NBase
 }
+
+// 外側クラスの superclass の static scope 経由の解決（NmSubHost 内から NmSuperHost のネスト基底を単純名で参照）。
+// abstract 末端は言語エラーで止まらないため、候補判定の見逃しが IR の失敗として現れる回帰ゲートを兼ねる
+open class NmSuperHost {
+    @Enumize
+    sealed interface SBase
+}
+
+class NmSubHost : NmSuperHost() {
+    class SLeaf(val v: Int) : SBase
+
+    abstract class SOpen : SBase
+}
+
+// 外側クラスの companion の static scope 経由の解決
+class NmCompHost {
+    companion object {
+        @Enumize
+        sealed interface CBase
+    }
+
+    class CLeaf(val v: Int) : CBase
+}

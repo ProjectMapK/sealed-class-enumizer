@@ -69,9 +69,10 @@ class DiagSingleOkTest : DiagTestBase() {
         assertFragmentAbsent(ok(), DiagFragments.COMPANION_LEAF_CONFLICT)
     }
 
-    // docs/test/ケース04-診断.md DIA-31: raw 追跡スコープ順の表記（外側ネスト・import 別名・
-    // 同一 pkg 直接名・FQN）+ enum 末端・末端 object で候補判定成立 = kind 成立
-    // （star import 直接形は sealed の同一 pkg 制約で言語上不能・別 pkg typealias 経由 = DIA-32 のみ成立）
+    // docs/test/ケース04-診断.md DIA-31: raw 追跡スコープ順の表記（外側ネスト・外側クラスの companion /
+    // superclass の static scope 経由・import 別名・同一 pkg 直接名・FQN）+ enum 末端・末端 object で
+    // 候補判定成立 = kind 成立（abstract 末端の IR 失敗も不在。
+    // star import 直接形は sealed の同一 pkg 制約で言語上不能・別 pkg typealias 経由 = DIA-32 のみ成立）
     @Test
     fun everyRawSupertypeNotationYieldsAKind() {
         val output = ok()
@@ -98,13 +99,12 @@ class DiagSingleOkTest : DiagTestBase() {
         assertFragmentAbsent(ok(), DiagFragments.LABEL_CLASH)
     }
 
-    // docs/test/ケース04-診断.md DIA-37: 可視 label メンバーの宣言（末端 class 本体・基底自身・
-    // 関数形 fun label()・階層内手動実装 leaf の Enumish 由来 override）で ES 警告
+    // docs/test/ケース04-診断.md DIA-37: 可視 label プロパティの宣言（末端 class 本体・基底自身・
+    // 階層内手動実装 leaf の Enumish 由来 override）で ES 警告
     @Test
     fun declaredLabelMemberWarns() {
         val output = ok()
         assertDiagnosticAt(output, "ExtensionShadowed.kt", 13, DiagFragments.EXTENSION_SHADOWED)
-        assertDiagnosticAt(output, "ExtensionShadowed.kt", 18, DiagFragments.EXTENSION_SHADOWED)
         assertDiagnosticAt(output, "ExtensionShadowed.kt", 29, DiagFragments.EXTENSION_SHADOWED)
         assertDiagnosticAt(output, "ManualImplAllowed.kt", 20, DiagFragments.EXTENSION_SHADOWED)
     }
@@ -129,12 +129,12 @@ class DiagSingleOkTest : DiagTestBase() {
         )
     }
 
-    // docs/test/ケース04-診断.md DIA-39: 非発火 3 形（label 以外・末端 object の継承・private label。
-    // 階層内手動実装 leaf の Enumish 由来 label は除外されず ES 発火 = DIA-37）
+    // docs/test/ケース04-診断.md DIA-39: 非発火 4 形（label 以外・関数形 fun label()・末端 object の継承・
+    // private label。階層内手動実装 leaf の Enumish 由来 label は除外されず ES 発火 = DIA-37）
     @Test
     fun shadowingExclusionsDoNotWarn() {
         val output = ok()
-        listOf(15, 31, 50).forEach { line ->
+        listOf(15, 18, 31, 50).forEach { line ->
             assertNoDiagnosticAt(output, "ExtensionShadowed.kt", line)
         }
     }

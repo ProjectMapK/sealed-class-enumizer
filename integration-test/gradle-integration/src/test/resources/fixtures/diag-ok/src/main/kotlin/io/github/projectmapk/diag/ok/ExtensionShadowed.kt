@@ -2,12 +2,12 @@ package io.github.projectmapk.diag.ok
 
 import io.github.projectmapk.sealedClassEnumizer.Enumize
 
-// docs/test/ケース04-診断.md DIA-37/38/39: 可視 label メンバーの宣言・継承で
-// ENUMIZE_EXTENSION_SHADOWED 警告が出る形と、除外される 3 形を同居させる。
+// docs/test/ケース04-診断.md DIA-37/38/39: 可視 label プロパティの宣言・継承で
+// ENUMIZE_EXTENSION_SHADOWED 警告が出る形と、除外される 4 形を同居させる。
 // 階層内手動実装 leaf の Enumish 由来 label（発火側）は ManualImplAllowed.kt が担う
 
-// DIA-37: 末端 class 本体の label 宣言（Tagged = ctor プロパティ・Fn = 関数形）で ES。
-// DIA-39: label 以外の名前（Named）は非対象
+// DIA-37: 末端 class 本体の label プロパティ宣言（Tagged = ctor プロパティ）で ES。
+// DIA-39: label 以外の名前（Named）と関数形の label（Fn。プロパティ参照の候補にならない）は非対象
 @Enumize
 sealed interface WlSi {
     data class Tagged(val label: String) : WlSi
