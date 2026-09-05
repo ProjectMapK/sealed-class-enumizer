@@ -156,7 +156,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
                     }
                 EnumizeNames.LABEL ->
                     when (role) {
-                        is EnumizeGenerationRole.KindCompanion -> labelProperty(owner)
+                        is EnumizeGenerationRole.KindCompanion,
                         is EnumizeGenerationRole.LeafObject -> labelProperty(owner)
                         else -> null
                     }
