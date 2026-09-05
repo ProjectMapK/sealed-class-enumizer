@@ -109,7 +109,7 @@ object EnumizeErrorMessages : BaseDiagnosticRendererFactory() {
             )
             map.put(
                 EnumizeErrors.ENUMIZE_EXTENSION_SHADOWED,
-                "A visible member named 'label' declared in ''{0}'' shadows the 'Enumized.label' " +
+                "A visible property named 'label' declared in ''{0}'' shadows the 'Enumized.label' " +
                     "extension property at call sites. Use 'asEnumish().label' to reliably read the kind label.",
                 CommonRenderers.STRING,
             )

@@ -424,7 +424,8 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
 
     // ---- 拡張シャドーイング警告 ----
 
-    // label という可視メンバーは、宣言でも継承でも呼び出し点で Enumized<T>.label 拡張を隠す（docs/概要.md §8）。
+    // label という可視プロパティは、宣言でも継承でも呼び出し点で Enumized<T>.label 拡張を隠す（docs/概要.md §8）。
+    // 同名の関数はプロパティ参照の候補にならず拡張を隠さないため対象外である。
     // 自クラスの宣言はその位置へ、継承のみの構成は宣言元を添えてクラスの位置へ報告する（docs/コンパイラプラグイン設計01.md §7.1 の報告先規則）
     context(context: CheckerContext, reporter: DiagnosticReporter)
     private fun EnumizeHierarchyResolver.checkLabelShadowing(
@@ -432,7 +433,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         membership: EnumizeMembership?,
     ) {
         val symbol = declaration.symbol
-        val declared = declaration.declarations.filter { isVisibleLabelMember(it) }
+        val declared = declaration.declarations.filter { isVisibleLabelProperty(it) }
         for (member in declared) {
             reporter.reportOn(
                 member.source,
@@ -459,21 +460,15 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         supertypeClosure(symbol).firstOrNull { superSymbol ->
             superSymbol.classId != EnumizeNames.ENUMISH_CLASS_ID &&
                 !representsGeneratedEnumish(superSymbol) &&
-                superSymbol.fir.declarations.any { isVisibleLabelMember(it) }
+                superSymbol.fir.declarations.any { isVisibleLabelProperty(it) }
         }
 
-    // private メンバーはクラス外の呼び出し点の解決に参加せず継承もされないため、シャドーイングの対象から外す
-    private fun EnumizeHierarchyResolver.isVisibleLabelMember(
+    // private プロパティはクラス外の呼び出し点の解決に参加せず継承もされないため、シャドーイングの対象から外す
+    private fun EnumizeHierarchyResolver.isVisibleLabelProperty(
         declaration: FirDeclaration
     ): Boolean {
-        if (callableNameOf(declaration) != EnumizeNames.LABEL) return false
+        if (declaration !is FirProperty || declaration.name != EnumizeNames.LABEL) return false
         if (isGeneratedByEnumize(declaration)) return false
-        val visibility =
-            when (declaration) {
-                is FirNamedFunction -> declaration.status.visibility
-                is FirProperty -> declaration.status.visibility
-                else -> return false
-            }
-        return visibility != Visibilities.Private
+        return declaration.status.visibility != Visibilities.Private
     }
 }

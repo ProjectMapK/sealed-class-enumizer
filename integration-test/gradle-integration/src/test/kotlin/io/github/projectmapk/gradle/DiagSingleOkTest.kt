@@ -99,13 +99,12 @@ class DiagSingleOkTest : DiagTestBase() {
         assertFragmentAbsent(ok(), DiagFragments.LABEL_CLASH)
     }
 
-    // docs/test/ケース04-診断.md DIA-37: 可視 label メンバーの宣言（末端 class 本体・基底自身・
-    // 関数形 fun label()・階層内手動実装 leaf の Enumish 由来 override）で ES 警告
+    // docs/test/ケース04-診断.md DIA-37: 可視 label プロパティの宣言（末端 class 本体・基底自身・
+    // 階層内手動実装 leaf の Enumish 由来 override）で ES 警告
     @Test
     fun declaredLabelMemberWarns() {
         val output = ok()
         assertDiagnosticAt(output, "ExtensionShadowed.kt", 13, DiagFragments.EXTENSION_SHADOWED)
-        assertDiagnosticAt(output, "ExtensionShadowed.kt", 18, DiagFragments.EXTENSION_SHADOWED)
         assertDiagnosticAt(output, "ExtensionShadowed.kt", 29, DiagFragments.EXTENSION_SHADOWED)
         assertDiagnosticAt(output, "ManualImplAllowed.kt", 20, DiagFragments.EXTENSION_SHADOWED)
     }
@@ -130,12 +129,12 @@ class DiagSingleOkTest : DiagTestBase() {
         )
     }
 
-    // docs/test/ケース04-診断.md DIA-39: 非発火 3 形（label 以外・末端 object の継承・private label。
-    // 階層内手動実装 leaf の Enumish 由来 label は除外されず ES 発火 = DIA-37）
+    // docs/test/ケース04-診断.md DIA-39: 非発火 4 形（label 以外・関数形 fun label()・末端 object の継承・
+    // private label。階層内手動実装 leaf の Enumish 由来 label は除外されず ES 発火 = DIA-37）
     @Test
     fun shadowingExclusionsDoNotWarn() {
         val output = ok()
-        listOf(15, 31, 50).forEach { line ->
+        listOf(15, 18, 31, 50).forEach { line ->
             assertNoDiagnosticAt(output, "ExtensionShadowed.kt", line)
         }
     }

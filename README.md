@@ -148,8 +148,9 @@ Notes:
 - Leaves may stay open (`open` / `abstract` class, `interface`, `fun interface`): subtypes defined
   outside the hierarchy are absorbed into the leaf's kind, so `entries` stays fixed while
   implementations remain extensible.
-- Members always win over extensions in Kotlin: if the hierarchy declares its own `label` member,
-  the extension is shadowed (the plugin warns about it) — `asEnumish().label` is always reliable.
+- Member properties always win over extension properties in Kotlin: if the hierarchy declares or
+  inherits its own `label` property, the extension is shadowed (the plugin warns about it) —
+  `asEnumish().label` is always reliable.
 
 ### Kinds as parameters
 
