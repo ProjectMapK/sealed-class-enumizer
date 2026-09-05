@@ -10,6 +10,8 @@ for what each part means.
 
 ## [Unreleased]
 
+## [2.4.10-0.1.2]
+
 ### Fixed
 
 - #56: A blank `@EnumishLabel` value now falls back to the label derived from the leaf name, instead
