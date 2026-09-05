@@ -14,7 +14,7 @@ import kotlin.io.path.writeText
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 
-// TestKit フィクスチャの展開と GradleRunner の起動を集約するハーネス（docs/test/フィクスチャ構成.md §4 の
+// TestKit フィクスチャの展開と GradleRunner の起動を集約するハーネス（docs/test/フィクスチャ構成.md §5 の
 // Gradle TestKit 方針）。フィクスチャは src/test/resources/fixtures/<name> に置き、
 // settings.gradle.kts 等のプレースホルダをコピー時に置換する:
 // - %%BUILD_CACHE_DIR%% … テスト毎に隔離したローカルビルドキャッシュのディレクトリ
@@ -34,7 +34,7 @@ object TestKitHarness {
         }
 
     // フィクスチャビルドのデーモン設定。全フィクスチャへ同一値を与えることで TestKit のデーモンが
-    // 1 種類に揃い、同じホームを使うビルドの間で使い回される（docs/test/フィクスチャ構成.md §4）。
+    // 1 種類に揃い、同じホームを使うビルドの間で使い回される（docs/test/フィクスチャ構成.md §5）。
     // メタスペースは Gradle の既定（384m）では KGP を載せるのに不足するため引き上げる。
     // ヒープは同時実行数の算出と同じ値を使う必要があるため、gradle-integration の test タスクから受け取る。
     // ワーカー数の既定はホストのコア数であり、フィクスチャ（1〜4 プロジェクト）には過大で、
@@ -96,7 +96,7 @@ object TestKitHarness {
     // フィクスチャのテキストは checkout 環境の改行コードに左右されうるため、展開時に LF へ確定させる。
     // replaceInFile 等の下流はテストコード中の LF 文字列と直接照合するので、
     // ここで正規化しないと CRLF の作業ツリーで一致に失敗する。行数は変わらないため、
-    // 診断の行番号を検証するフィクスチャの前提は保たれる（docs/test/フィクスチャ構成.md §4）
+    // 診断の行番号を検証するフィクスチャの前提は保たれる（docs/test/フィクスチャ構成.md §5）
     private fun expandTextFixture(text: String, cacheDir: Path): String =
         text
             .replace("\r\n", "\n")
@@ -129,7 +129,7 @@ object TestKitHarness {
 
     // forwardOutput() は付けない。検証は BuildResult.output を読むため不要で、フィクスチャビルド
     // 全本数分の出力をテストワーカーの標準出力へ流すと、並行実行時に結果ストリームが壊れて
-    // テストタスク自体が落ちる（docs/test/フィクスチャ構成.md §4 の並行実行方針）
+    // テストタスク自体が落ちる（docs/test/フィクスチャ構成.md §5 の並行実行方針）
     private fun runner(projectDir: Path, arguments: Array<out String>): GradleRunner =
         GradleRunner.create()
             .withTestKitDir(slotHome.get().toFile())

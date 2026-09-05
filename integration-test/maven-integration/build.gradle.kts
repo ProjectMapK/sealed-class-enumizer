@@ -35,7 +35,7 @@ val unpackMaven =
     }
 
 // フィクスチャのプレースホルダ置換（MavenHarness）へ渡す版。自版は親ビルドの gradle.properties、
-// Kotlin 版は共有カタログを正とする（docs/test/フィクスチャ構成.md §6）
+// Kotlin 版は共有カタログを正とする（docs/test/フィクスチャ構成.md §7）
 val enumizerOwnVersion: String =
     Properties()
         .apply { rootDir.resolve("../gradle.properties").inputStream().use(::load) }
@@ -43,7 +43,7 @@ val enumizerOwnVersion: String =
 
 val enumizerKotlinVersion: String = libs.versions.kotlin.get()
 
-// Maven のローカルリポジトリはテスト専用の場所へ隔離する（docs/test/フィクスチャ構成.md §6）。
+// Maven のローカルリポジトリはテスト専用の場所へ隔離する（docs/test/フィクスチャ構成.md §7）。
 // 既定の ~/.m2/repository を使うと、Maven が取得する Gradle module metadata を伴わない成果物が
 // そこへ入り、mavenLocal() を宣言する TestKit フィクスチャの variant 解決を壊す
 val mavenLocalRepo = layout.buildDirectory.dir("maven-local-repo")
@@ -53,7 +53,7 @@ val mavenLocalRepo = layout.buildDirectory.dir("maven-local-repo")
 val publishedRepo = providers.systemProperty("user.home").map { "$it/.m2/repository" }
 
 // フィクスチャの展開先。失敗解析のため実行後は残し、次回の実行開始時に作り直す
-// （docs/test/フィクスチャ構成.md §6（展開先は実行前に回収する））
+// （docs/test/フィクスチャ構成.md §7（展開先は実行前に回収する））
 val fixtureWorkRoot = layout.buildDirectory.dir("maven-fixtures")
 
 val cleanFixtureWorkRoot =
@@ -65,7 +65,7 @@ val cleanFixtureWorkRoot =
 tasks.test {
     dependsOn(cleanFixtureWorkRoot, unpackMaven)
     // フィクスチャはプラグイン一式をローカル Maven から解決するため、テスト前に公開しておく
-    // （docs/test/フィクスチャ構成.md §6 の local-repo 経路）
+    // （docs/test/フィクスチャ構成.md §7 の local-repo 経路）
     dependsOn(gradle.includedBuild("sealed-class-enumizer").task(":publishAllToMavenLocal"))
     useJUnitPlatform()
     systemProperty(

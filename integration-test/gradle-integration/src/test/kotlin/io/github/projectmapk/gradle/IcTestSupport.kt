@@ -13,7 +13,7 @@ import kotlin.io.path.writeText
 import kotlin.streams.asSequence
 import org.gradle.testkit.runner.BuildResult
 
-// TestKit テスト群の共通観測ヘルパ（docs/test/フィクスチャ構成.md §4 の検証手段 4 種:
+// TestKit テスト群の共通観測ヘルパ（docs/test/フィクスチャ構成.md §5 の検証手段 4 種:
 // 実行時 OUT: 行・生成 .class のバイト比較・出力タイムスタンプによる再コンパイル追跡）。
 // フィクスチャの展開と GradleRunner の起動は TestKitHarness が持ち、観測系は本オブジェクトへ集約する
 object IcTestSupport {

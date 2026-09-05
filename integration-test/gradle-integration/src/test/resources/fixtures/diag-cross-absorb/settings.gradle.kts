@@ -1,4 +1,4 @@
-// diag-cross-absorb フィクスチャ（docs/test/フィクスチャ構成.md §4「TestKit 運用方針」）
+// diag-cross-absorb フィクスチャ（docs/test/フィクスチャ構成.md §5「TestKit 運用方針」）
 pluginManagement {
     repositories {
         mavenLocal()

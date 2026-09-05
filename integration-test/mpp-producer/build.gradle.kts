@@ -1,6 +1,6 @@
 // MPP 生成側（docs/test/テスト戦略.md §4）。commonMain の @Enumize 階層を
 // 全ターゲット（jvm / js / native(host) / wasmJs / wasmWasi）で box 検証する。
-// native ターゲットはホスト依存でゲートする（docs/test/フィクスチャ構成.md §4）
+// native ターゲットはホスト依存でゲートする（docs/test/フィクスチャ構成.md §5）
 
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 

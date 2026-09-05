@@ -42,4 +42,5 @@
   - リポジトリルートで`./gradlew ktfmtFormat`を実行する。独立したビルドである`integration-test`もこれ1つで対象になる
   - フォーマット結果を含めて動作確認・コミットまで行う（未整形のまま完了報告しない）
   - `ktfmtCheck`は各ビルドの`check`に紐付いているため、未整形のコードはそのビルドの`build`で失敗する
-  - `gradle-integration`のTestKitフィクスチャ（`src/test/resources/fixtures`）は診断の行番号を検証する入力であり、整形対象外とする
+  - テストフィクスチャ（`compiler-plugin/src/test/fixtures` と `gradle-integration`の`src/test/resources/fixtures`）は
+    診断の行番号を検証する入力であり、整形対象外とする

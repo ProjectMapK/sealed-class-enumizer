@@ -4,7 +4,7 @@ plugins {
 }
 
 repositories {
-    // プラグインが自動追加する runtime-api の解決先（docs/test/フィクスチャ構成.md §4 の local-repo 経路）
+    // プラグインが自動追加する runtime-api の解決先（docs/test/フィクスチャ構成.md §5 の local-repo 経路）
     mavenLocal()
     mavenCentral()
 }

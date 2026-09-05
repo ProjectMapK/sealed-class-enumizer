@@ -20,7 +20,7 @@ dependencies {
 }
 
 // フィクスチャのプレースホルダ置換（TestKitHarness）へ渡す版。自版は親ビルドの gradle.properties、
-// Kotlin 版は共有カタログを正とする（docs/test/フィクスチャ構成.md §4）
+// Kotlin 版は共有カタログを正とする（docs/test/フィクスチャ構成.md §5）
 val enumizerOwnVersion: String =
     Properties()
         .apply { rootDir.resolve("../gradle.properties").inputStream().use(::load) }
@@ -37,7 +37,7 @@ fun hostPhysicalMemoryGb(): Int? =
 
 // フィクスチャの展開先（IcTestSupport が使う）。テスト毎に一意なディレクトリを掘るため、
 // 実行を重ねると際限なく溜まってテスト時間が実行毎に悪化する。失敗解析のため実行後は残し、
-// 次回の実行開始時に作り直す（docs/test/フィクスチャ構成.md §4（フィクスチャ展開先の回収））
+// 次回の実行開始時に作り直す（docs/test/フィクスチャ構成.md §5（フィクスチャ展開先の回収））
 val fixtureWorkRoot = layout.buildDirectory.dir("testkit-fixtures")
 
 // 並行実行するフィクスチャビルドへ配る Gradle ユーザーホームの置き場（TestKitHarness が
@@ -98,7 +98,7 @@ val cleanFixtureWorkRoot =
 tasks.test {
     dependsOn(cleanFixtureWorkRoot)
     // フィクスチャはプラグイン一式をローカル Maven から解決するため、テスト前に公開しておく
-    // （docs/test/フィクスチャ構成.md §4 の local-repo 経路）
+    // （docs/test/フィクスチャ構成.md §5 の local-repo 経路）
     dependsOn(gradle.includedBuild("sealed-class-enumizer").task(":publishAllToMavenLocal"))
     useJUnitPlatform()
     systemProperty("enumizer.fixtureWorkRoot", fixtureWorkRoot.get().asFile.absolutePath)

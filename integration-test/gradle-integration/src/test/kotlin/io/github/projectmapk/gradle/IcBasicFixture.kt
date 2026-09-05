@@ -3,7 +3,7 @@ package io.github.projectmapk.gradle
 // ic-basic フィクスチャ（多ファイル分散のトップレベル基底 SI・独立階層 TI・非 sealed 外側クラス内の
 // ネスト基底 NB・無関係ファイルの同居）の共有定数。
 // IC 回帰テスト群（IcRegressionTest / IcCompanionTest）が参照する
-// （docs/test/ケース06-ビルド動態.md BLD-01・docs/test/フィクスチャ構成.md §3）
+// （docs/test/ケース06-ビルド動態.md BLD-01・docs/test/フィクスチャ構成.md §4）
 object IcBasicFixture {
     const val NAME = "ic-basic"
 

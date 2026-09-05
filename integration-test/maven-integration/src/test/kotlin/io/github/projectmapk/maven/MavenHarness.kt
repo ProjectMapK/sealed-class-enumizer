@@ -12,7 +12,7 @@ import kotlin.io.path.readText
 import kotlin.io.path.relativeTo
 import kotlin.io.path.writeText
 
-// Maven フィクスチャの展開と Maven の起動を集約するハーネス（docs/test/フィクスチャ構成.md §6）。
+// Maven フィクスチャの展開と Maven の起動を集約するハーネス（docs/test/フィクスチャ構成.md §7）。
 // フィクスチャは src/test/resources/fixtures/<name> に置き、テキストのプレースホルダを展開時に置換する:
 // - %%ENUMIZER_VERSION%% … 本プラグインのフル版（<KotlinVersion>-<自版>）
 // - %%KOTLIN_VERSION%% … フィクスチャが適用する kotlin-maven-plugin の版
@@ -99,7 +99,7 @@ object MavenHarness {
                 // 対話なし・ダウンロード進捗なしで、出力を照合可能な形に保つ
                 "-B",
                 "-ntp",
-                // ローカルリポジトリはテスト専用の場所へ隔離する（docs/test/フィクスチャ構成.md §6）。
+                // ローカルリポジトリはテスト専用の場所へ隔離する（docs/test/フィクスチャ構成.md §7）。
                 // 既定の ~/.m2/repository を使うと、Maven が取得する Gradle module metadata を伴わない
                 // 成果物がそこへ入り、mavenLocal() を宣言する TestKit フィクスチャの variant 解決を壊す
                 "-Dmaven.repo.local=$mavenLocalRepo",

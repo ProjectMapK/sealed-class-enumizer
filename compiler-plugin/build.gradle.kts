@@ -22,7 +22,7 @@ dependencies {
 }
 
 // Maven Central 公開設定（POM の共通値はルート、モジュール別値は本モジュールの gradle.properties）。
-// TestKit フィクスチャの local-repo 経路（docs/test/フィクスチャ構成.md §4）も
+// TestKit フィクスチャの local-repo 経路（docs/test/フィクスチャ構成.md §5）も
 // この publication の publishToMavenLocal を使う。javadoc jar は空で Central の要件を満たす
 mavenPublishing {
     publishToMavenCentral()

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 
-// 診断カタログ系テストの共通基盤（docs/test/フィクスチャ構成.md §4「TestKit 運用方針」）。
+// 診断カタログ系テストの共通基盤（docs/test/フィクスチャ構成.md §5「TestKit 運用方針」）。
 // 同一フィクスチャを参照する複数のテストメソッドが 1 回のビルド結果を共有して、TestKit の
 // 起動回数を抑える（1 フィクスチャ = 1 ビルドで複数診断をまとめて検証する方針）。
 // キャッシュキーはフィクスチャ + 起動引数であり、同一フィクスチャの複数ビルド
