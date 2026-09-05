@@ -10,6 +10,14 @@ plugins {
 
 kotlin { jvmToolchain(17) }
 
+// フィクスチャのコンパイルクラスパス。テスト実行時のクラスパスをそのまま使うと 57MB の
+// kotlin-compiler-embeddable まで載り、コンパイル毎にその索引付けを繰り返すことになる。
+// フィクスチャが必要とするのは stdlib と runtime-api だけであり、それだけを解決して渡す
+val fixtureCompileDeps = configurations.dependencyScope("fixtureCompileDeps")
+
+val fixtureCompileClasspath =
+    configurations.resolvable("fixtureCompileClasspath") { extendsFrom(fixtureCompileDeps.get()) }
+
 dependencies {
     compileOnly(libs.kotlin.compiler.embeddable)
     // プラグイン本体は runtime-api をロードせず、名前定数はリテラルで持つ（公式・著名プラグインと同じ方針）。
@@ -19,6 +27,8 @@ dependencies {
     testImplementation(libs.kotlin.test)
     // 値引数名の取得（KCallable.parameters）に必要
     testImplementation(libs.kotlin.reflect)
+    fixtureCompileDeps(project(":sealed-class-enumizer-runtime-api"))
+    fixtureCompileDeps(kotlin("stdlib"))
 }
 
 // Maven Central 公開設定（POM の共通値はルート、モジュール別値は本モジュールの gradle.properties）。
@@ -43,7 +53,12 @@ tasks.test {
         .withPropertyName("compilerPluginJar")
         .withNormalizer(ClasspathNormalizer::class)
     inputs.dir(fixtures).withPropertyName("fixtures").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs
+        .files(fixtureCompileClasspath)
+        .withPropertyName("fixtureCompileClasspath")
+        .withNormalizer(ClasspathNormalizer::class)
     systemProperty("enumizer.pluginJar", tasks.jar.get().archiveFile.get().asFile.absolutePath)
     systemProperty("enumizer.fixtureRoot", fixtures.asFile.absolutePath)
+    systemProperty("enumizer.fixtureClasspath", fixtureCompileClasspath.get().asPath)
     systemProperty("enumizer.compileWorkRoot", workRoot.get().asFile.absolutePath)
 }

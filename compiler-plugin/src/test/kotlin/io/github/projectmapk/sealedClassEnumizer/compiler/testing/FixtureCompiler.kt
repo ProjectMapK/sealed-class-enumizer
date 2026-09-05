@@ -29,9 +29,9 @@ object FixtureCompiler {
 
     private val workRoot: Path = Path.of(requiredProperty("enumizer.compileWorkRoot"))
 
-    // フィクスチャのコンパイルクラスパス。テスト実行時のクラスパスには kotlin-stdlib と
-    // runtime-api が含まれ、実ビルドのフィクスチャが解決するものと同じ座標である
-    private val baseClasspath: String = System.getProperty("java.class.path")
+    // フィクスチャのコンパイルクラスパス（stdlib と runtime-api だけ。実ビルドのフィクスチャが
+    // 解決するものと同じ座標であり、コンパイラ本体は載せない）
+    private val baseClasspath: String = requiredProperty("enumizer.fixtureClasspath")
 
     private val cache = mutableMapOf<String, List<CompileResult>>()
 
