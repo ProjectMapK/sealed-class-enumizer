@@ -74,6 +74,16 @@ class EnumizeHierarchyResolver(
     private val labelCaseCache: FirCache<FirRegularClassSymbol, EnumizeLabelCase, Nothing?> =
         session.firCachesFactory.createCache { base -> computeLabelCase(base) }
 
+    // 基底ごとの階層メンバーと、クラスごとの解決済み supertype 閉包。どちらも走査コストが
+    // 継承グラフの大きさに比例し、同じ引数で繰り返し引かれるため一度だけ計算する
+    private val hierarchyMembersCache:
+        FirCache<FirRegularClassSymbol, List<FirRegularClassSymbol>, Nothing?> =
+        session.firCachesFactory.createCache { base -> computeHierarchyMembers(base) }
+
+    private val supertypeClosureCache:
+        FirCache<FirRegularClassSymbol, List<FirRegularClassSymbol>, Nothing?> =
+        session.firCachesFactory.createCache { symbol -> computeSupertypeClosure(symbol) }
+
     override fun FirDeclarationPredicateRegistrar.registerPredicates() {
         register(EnumizePredicates.ENUMIZE)
         register(EnumizePredicates.ENUMISH_LABEL)
@@ -122,17 +132,14 @@ class EnumizeHierarchyResolver(
 
     // 基底の sealed inheritors 属性を再帰展開した階層の全メンバー（中間 sealed を含む・基底自身を除く）。
     // 並べ替えは行わず、コンパイラが提供する継承者リストの走査順のまま返す（docs/コンパイラプラグイン設計00.md §6.2）
-    fun hierarchyMembersOf(base: FirRegularClassSymbol): List<FirRegularClassSymbol> {
-        val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
-        collectMembers(base, LinkedHashSet(), result)
-        return result.values.toList()
-    }
+    private fun hierarchyMembersOf(base: FirRegularClassSymbol): List<FirRegularClassSymbol> =
+        hierarchyMembersCache.getValue(base)
 
     // 階層の末端のみ（中間 sealed の位置にその継承者が入れ子展開された順序）
-    fun leavesOf(base: FirRegularClassSymbol): List<FirRegularClassSymbol> =
+    private fun leavesOf(base: FirRegularClassSymbol): List<FirRegularClassSymbol> =
         hierarchyMembersOf(base).filterNot { tracker.isRawSealed(it) }
 
-    fun kindClassIdOf(leaf: FirRegularClassSymbol): ClassId? =
+    private fun kindClassIdOf(leaf: FirRegularClassSymbol): ClassId? =
         if (leaf.classKind == ClassKind.OBJECT) leaf.classId
         else leaf.companionObjectSymbol?.classId
 
@@ -143,7 +150,7 @@ class EnumizeHierarchyResolver(
 
     // @EnumishLabel の明示 label。空白のみの値は ENUMIZE_INVALID_LABEL の対象であり、
     // label の決定上は無指定と同じ扱いへ倒して衝突判定を安定させる
-    fun explicitLabelOf(leaf: FirRegularClassSymbol): String? =
+    private fun explicitLabelOf(leaf: FirRegularClassSymbol): String? =
         leaf
             .getAnnotationByClassId(EnumizeNames.ENUMISH_LABEL_ANNOTATION_CLASS_ID, session)
             ?.getStringArgument(EnumizeNames.VALUE_PARAMETER)
@@ -231,16 +238,13 @@ class EnumizeHierarchyResolver(
         return result.distinct()
     }
 
-    fun directlyImplements(symbol: FirRegularClassSymbol, classId: ClassId): Boolean =
+    private fun directlyImplements(symbol: FirRegularClassSymbol, classId: ClassId): Boolean =
         symbol.resolvedSuperTypeRefs.any { it.coneType.classId == classId }
 
-    // 解決済み supertype の全閉包（sealed に限らない全エッジ）。継承経路を見る診断（AMBIGUOUS_KIND・
-    // MANUAL_SUPERTYPE_MISMATCH・MEMBER_CONFLICT・EXTENSION_SHADOWED）の判定に使う
-    fun supertypeClosure(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> {
-        val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
-        collectClosure(symbol, result)
-        return result.values.toList()
-    }
+    // 解決済み supertype の全閉包（sealed に限らない全エッジ・自身は含まない）。継承経路を見る診断
+    // （AMBIGUOUS_KIND・MANUAL_SUPERTYPE_MISMATCH・MEMBER_CONFLICT・EXTENSION_SHADOWED）の判定に使う
+    fun supertypeClosure(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> =
+        supertypeClosureCache.getValue(symbol)
 
     fun hasUserDeclaredNestedEnumish(base: FirRegularClassSymbol): Boolean =
         base.fir.declarations.any { declaration ->
@@ -280,6 +284,12 @@ class EnumizeHierarchyResolver(
         }
     }
 
+    private fun computeHierarchyMembers(base: FirRegularClassSymbol): List<FirRegularClassSymbol> {
+        val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
+        collectMembers(base, LinkedHashSet(), result)
+        return result.values.toList()
+    }
+
     private fun collectMembers(
         current: FirRegularClassSymbol,
         visitedSealed: MutableSet<ClassId>,
@@ -295,6 +305,14 @@ class EnumizeHierarchyResolver(
                 collectMembers(inheritor, visitedSealed, result)
             }
         }
+    }
+
+    private fun computeSupertypeClosure(
+        symbol: FirRegularClassSymbol
+    ): List<FirRegularClassSymbol> {
+        val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
+        collectClosure(symbol, result)
+        return result.values.toList()
     }
 
     private fun collectClosure(
