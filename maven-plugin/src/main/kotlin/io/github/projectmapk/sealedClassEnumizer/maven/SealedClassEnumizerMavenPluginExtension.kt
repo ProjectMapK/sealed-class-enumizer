@@ -106,7 +106,12 @@ class SealedClassEnumizerMavenPluginExtension : KotlinMavenPluginExtension {
         ) {
             return
         }
-        logger.warn(unsupportedKotlinWarning(appliedKotlinVersion, project.artifactId))
+        logger.warn(
+            "sealed-class-enumizer ${SealedClassEnumizerCoordinates.VERSION} targets Kotlin " +
+                "${SealedClassEnumizerCoordinates.KOTLIN_VERSION} and is not verified against " +
+                "Kotlin $appliedKotlinVersion applied to ${project.artifactId}. Compilation may " +
+                "fail; use the plugin version matching your Kotlin version."
+        )
     }
 
     companion object {
@@ -146,12 +151,6 @@ internal fun resolveLabelCase(project: MavenProject): LabelCase {
                 "'$declared'. Expected one of: ${LabelCase.entries.joinToString { it.name }}"
         )
 }
-
-internal fun unsupportedKotlinWarning(appliedKotlinVersion: String, projectName: String): String =
-    "sealed-class-enumizer ${SealedClassEnumizerCoordinates.VERSION} targets Kotlin " +
-        "${SealedClassEnumizerCoordinates.KOTLIN_VERSION} and is not verified against Kotlin " +
-        "$appliedKotlinVersion applied to $projectName. Compilation may fail; use the plugin " +
-        "version matching your Kotlin version."
 
 // サポート判定はマイナー一致とする（同一 <major>.<minor> ならパッチ・プレリリースの差は対応内。
 // 版形式 <KotlinVersion>-<自版> の下で、成果物は対応マイナーの全パッチへ同一物を配るため）

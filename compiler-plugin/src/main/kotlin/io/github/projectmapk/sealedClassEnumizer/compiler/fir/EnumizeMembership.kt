@@ -8,12 +8,9 @@ import org.jetbrains.kotlin.name.ClassId
 // null を返して表現するため、このオブジェクトが存在する時点で base は常に一意である。
 // 異常状態の内訳が必要な診断は resolver.basesOf を使う
 class EnumizeMembership(val base: FirRegularClassSymbol, private val subjectIsSealed: Boolean) {
-    // 末端 = 階層に属する非 sealed（docs/コンパイラプラグイン設計00.md §1）
+    // 末端 = 階層に属する非 sealed。sealed であれば中間 sealed である（docs/コンパイラプラグイン設計00.md §1）
     val isLeaf: Boolean
         get() = !subjectIsSealed
-
-    val isIntermediate: Boolean
-        get() = subjectIsSealed
 
     fun isMemberOf(baseClassId: ClassId): Boolean = base.classId == baseClassId
 }

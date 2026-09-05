@@ -251,24 +251,18 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
             // companion 自身が末端である場合（階層外クラスの companion が単独で末端になる許容構成）は
             // 末端 object として扱う。kind = その companion・label = companion の宣言名
             // （docs/コンパイラプラグイン設計01.md §7.2）
-            val selfMembership = resolver.membershipOf(symbol)
-            if (selfMembership != null && selfMembership.isLeaf) {
-                return EnumizeGenerationRole.LeafObject(selfMembership.base)
+            if (resolver.membershipOf(symbol)?.isLeaf == true) {
+                return EnumizeGenerationRole.LeafObject
             }
             val outer = tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return null
-            if (isGeneratedEnumish(outer))
-                return EnumizeGenerationRole.GeneratedEnumishCompanion(outer)
-            val outerMembership = resolver.membershipOf(outer) ?: return null
-            if (!outerMembership.isLeaf) return null
-            return EnumizeGenerationRole.KindCompanion(outer, outerMembership.base)
+            if (isGeneratedEnumish(outer)) return EnumizeGenerationRole.GeneratedEnumishCompanion
+            if (resolver.membershipOf(outer)?.isLeaf != true) return null
+            return EnumizeGenerationRole.KindCompanion(outer)
         }
         val membership = resolver.membershipOf(symbol) ?: return null
         if (!membership.isLeaf) return null
-        return if (symbol.classKind == ClassKind.OBJECT) {
-            EnumizeGenerationRole.LeafObject(membership.base)
-        } else {
-            EnumizeGenerationRole.LeafClass(membership.base)
-        }
+        return if (symbol.classKind == ClassKind.OBJECT) EnumizeGenerationRole.LeafObject
+        else EnumizeGenerationRole.LeafClass(membership.base)
     }
 
     private fun isGeneratedEnumish(symbol: FirRegularClassSymbol): Boolean =
