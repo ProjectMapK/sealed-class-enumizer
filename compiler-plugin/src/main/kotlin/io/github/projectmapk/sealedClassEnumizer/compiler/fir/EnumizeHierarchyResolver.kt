@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirEnumEntrySymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeStarProjection
@@ -180,13 +181,16 @@ class EnumizeHierarchyResolver(
         return entryName?.let { EnumizeLabelCase.fromNameOrNull(it.asString()) } ?: defaultLabelCase
     }
 
-    // enum エントリ引数の読み取り。ソース由来は解決済み参照（FirQualifiedAccessExpression）、
+    // enum エントリ引数の読み取り。ソース由来は解決済み参照（FirQualifiedAccessExpression。参照の表記名
+    // ではなく参照先エントリの名前を読み、エントリを import 別名で書いた場合も IR 側と同じ答えにする）、
     // IC ラウンド外のファイル由来はメタデータからの逆直列化形で現れる
     private fun enumEntryArgumentName(annotation: FirAnnotation, parameter: Name): Name? =
         when (val argument = annotation.argumentMapping.mapping[parameter]) {
             is FirEnumEntryDeserializedAccessExpression -> argument.enumEntryName
             is FirQualifiedAccessExpression ->
-                (argument.calleeReference as? FirResolvedNamedReference)?.name
+                ((argument.calleeReference as? FirResolvedNamedReference)?.resolvedSymbol
+                        as? FirEnumEntrySymbol)
+                    ?.name
             else -> null
         }
 

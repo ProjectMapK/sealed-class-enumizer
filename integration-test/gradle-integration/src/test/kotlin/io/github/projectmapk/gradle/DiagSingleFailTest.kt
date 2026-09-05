@@ -548,7 +548,8 @@ class DiagSingleFailTest : DiagTestBase() {
     }
 
     // docs/test/ケース04-診断.md DIA-74: ケース変換で初めて衝突する単純名は最終 label で判定され、
-    // 両末端に LABEL_CLASH（変換後 label がメッセージに現れる）
+    // 両末端に LABEL_CLASH（変換後 label がメッセージに現れる）。labelCase を enum エントリの
+    // import 別名で指定した形（LblEntryAlias.kt）でも参照先エントリの変換で判定される
     @Test
     fun conversionInducedLabelClashIsReported() {
         val output = fail()
@@ -556,6 +557,15 @@ class DiagSingleFailTest : DiagTestBase() {
             assertDiagnosticAt(
                 output,
                 "LabelAnnotation.kt",
+                line,
+                DiagFragments.LABEL_CLASH,
+                "FOO_BAR",
+            )
+        }
+        listOf(12, 14).forEach { line ->
+            assertDiagnosticAt(
+                output,
+                "LblEntryAlias.kt",
                 line,
                 DiagFragments.LABEL_CLASH,
                 "FOO_BAR",
