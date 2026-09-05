@@ -1,6 +1,6 @@
 # リリース準備。版宣言（`-SNAPSHOT` の除去・版表記の同期・CHANGELOG の節起こし）の PR を出すところまでと、
-# その PR がマージされた時点でのタグ付けを担う。公開そのものは publish.yml が引き取る。
-# 手順は「本ワークフローを実行 → 出た PR をマージ（タグが付く）→ そのタグで GitHub Release を作成」で、
+# その PR がマージされた時点でのタグ付けと公開の起動を担う。公開そのものは publish.yml が引き取る。
+# 手順は「本ワークフローを実行 → 出た PR をマージ」までで、以降はタグ付けから公開まで自動で進む。
 # Central の公開確定（Portal の validation 確認）だけが従来どおり手作業として残る。
 # アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
 name: release
@@ -96,14 +96,13 @@ jobs:
           gh pr create --base main --head "$BRANCH" \
             --title "build: リリース版 $FULL を宣言する" \
             --body "$(printf '%s\n' \
-              "リリース $FULL の版宣言。マージすると release ワークフローがタグ \`v$FULL\` を作る。" \
+              "リリース $FULL の版宣言。マージするとタグ \`v$FULL\` が付き、公開が始まる。" \
               "" \
               "残りの手順:" \
               "" \
-              "1. CHANGELOG の \`[$FULL]\` 節へ変更点を書く（節は空で起こされている）" \
+              "1. CHANGELOG の \`[$FULL]\` 節を確認する（\`[Unreleased]\` の記載がそのまま入っている）" \
               "2. 本 PR をマージする" \
-              "3. タグ \`v$FULL\` で GitHub Release を作成する（publish ワークフローの起点）" \
-              "4. Central Portal の validation 通過を確認して release する")"
+              "3. Central Portal の validation 通過を確認して release する")"
 
       # GITHUB_TOKEN が作った PR は push / pull_request を起こさず必須チェックが報告されないため、
       # ブランチを指定して CI を起こす（workflow_dispatch は GITHUB_TOKEN でも起動できる）。
@@ -114,14 +113,16 @@ jobs:
           BRANCH: ${{ steps.declare.outputs.branch }}
         run: gh workflow run build.yml --ref "$BRANCH"
 
-  # 版宣言のマージでタグを付ける。GITHUB_TOKEN が作ったタグの push はワークフローを起こさないため、
-  # これで公開が始まることはない（公開の起点は GitHub Release の作成）
+  # 版宣言のマージでタグを付け、公開を起こす。GITHUB_TOKEN が押したタグの push はワークフローを
+  # 起こさないため、公開は起動をこちらから掛ける（workflow_dispatch は GITHUB_TOKEN でも起動できる）
   tag:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
+      # 公開の起動に要る
+      actions: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
@@ -131,6 +132,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
       - name: Tag the declared release version
+        id: tag
         run: |
           set -euo pipefail
           current=$(sed -n 's/^enumizerVersion=//p' gradle.properties)
@@ -147,4 +149,14 @@ jobs:
           fi
           git tag "v$version"
           git push origin "v$version"
-          echo "::notice::created v$version — create a GitHub Release for it to publish"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      # publish はタグを ref に取り、起点によらず「タグの指す位置」だけを見る。手で起こす場合も
+      # ref にはタグを選ぶ（既定ブランチで起こすと publish 側の版照合で落ちる）。
+      # タグを付けなかった場合は出力が空になり、このステップは飛ぶ
+      - name: Start publishing
+        if: steps.tag.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: gh workflow run publish.yml --ref "$TAG"
