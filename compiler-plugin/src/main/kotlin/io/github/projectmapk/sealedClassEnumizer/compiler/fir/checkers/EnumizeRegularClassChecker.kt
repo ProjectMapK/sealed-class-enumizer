@@ -124,7 +124,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             declaration.declarations.firstOrNull { nested ->
                 nested is FirRegularClass &&
                     nested.name == EnumizeNames.ENUMISH_NAME &&
-                    !resolver.isOurGenerated(nested.symbol)
+                    !resolver.isGeneratedByEnumize(nested.symbol)
             } ?: return
         reporter.reportOn(userEnumish.source, EnumizeErrors.ENUMIZE_RESERVED_NAME_CLASH, context)
     }
@@ -265,7 +265,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     ) {
         val symbol = declaration.symbol
         val companion = symbol.companionObjectSymbol ?: return
-        if (resolver.isOurGenerated(companion)) return
+        if (resolver.isGeneratedByEnumize(companion)) return
         if (resolver.membershipOf(companion)?.isLeaf == true) {
             reporter.reportOn(
                 companion.source,
@@ -310,7 +310,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         reportConflicts(declaration, symbol, leafNames, base, resolver, context, reporter)
         if (isObjectLeaf) return
         val companion = symbol.companionObjectSymbol ?: return
-        if (resolver.isOurGenerated(companion)) return
+        if (resolver.isGeneratedByEnumize(companion)) return
         val kindNames = setOf(EnumizeNames.LABEL, EnumizeNames.ENUMIZED_CLASS_PROPERTY)
         reportConflicts(companion.fir, companion, kindNames, base, resolver, context, reporter)
     }
@@ -353,7 +353,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     ): List<FirDeclaration> =
         declaration.declarations.filter { member ->
             val name = memberNameOf(member)
-            name != null && name in names && !resolver.isOurGeneratedDeclaration(member)
+            name != null && name in names && !resolver.isGeneratedByEnumize(member)
         }
 
     private fun memberNameOf(declaration: FirDeclaration): Name? =
@@ -529,7 +529,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         resolver: EnumizeHierarchyResolver,
     ): Boolean {
         if (memberNameOf(declaration) != EnumizeNames.LABEL) return false
-        if (resolver.isOurGeneratedDeclaration(declaration)) return false
+        if (resolver.isGeneratedByEnumize(declaration)) return false
         val visibility =
             when (declaration) {
                 is FirNamedFunction -> declaration.status.visibility

@@ -102,7 +102,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         if (symbol.isLocal) return emptySet()
         val names = mutableSetOf<Name>()
         // 生成 companion は候補判定の誤検知（外側が末端でなかった）でもコンストラクタだけは必要（docs/コンパイラプラグイン設計01.md §6.2）
-        if (symbol.rawStatus.isCompanion && resolver.isOurGenerated(symbol)) {
+        if (symbol.rawStatus.isCompanion && resolver.isGeneratedByEnumize(symbol)) {
             names += SpecialNames.INIT
         }
         val role = roleOf(symbol)
@@ -207,7 +207,8 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         context: MemberGenerationContext
     ): List<FirConstructorSymbol> {
         val owner = context.owner as? FirRegularClassSymbol ?: return emptyList()
-        if (!owner.rawStatus.isCompanion || !resolver.isOurGenerated(owner)) return emptyList()
+        if (!owner.rawStatus.isCompanion || !resolver.isGeneratedByEnumize(owner))
+            return emptyList()
         return listOf(createDefaultPrivateConstructor(owner, EnumizeKey).symbol)
     }
 
@@ -236,7 +237,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
     // 「同一入力に常に同一の答えを返す」要件）。手動宣言の companion は従来どおり候補から外す
     private fun hasForeignCompanion(symbol: FirRegularClassSymbol): Boolean {
         val companion = symbol.companionObjectSymbol ?: return false
-        return !resolver.isOurGenerated(companion)
+        return !resolver.isGeneratedByEnumize(companion)
     }
 
     // 所属（membership）は resolver が一度だけ計算した事実を読み、役割へ写像する。
@@ -271,7 +272,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
     }
 
     private fun isGeneratedEnumish(symbol: FirRegularClassSymbol): Boolean =
-        resolver.isOurGenerated(symbol) &&
+        resolver.isGeneratedByEnumize(symbol) &&
             symbol.classId.shortClassName == EnumizeNames.ENUMISH_NAME
 
     private fun nestedNamesForBase(base: FirRegularClassSymbol): Set<Name> =

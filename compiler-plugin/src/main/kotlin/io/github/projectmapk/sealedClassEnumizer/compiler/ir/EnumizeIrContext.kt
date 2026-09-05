@@ -111,10 +111,11 @@ class EnumizeIrContext(val pluginContext: IrPluginContext, val defaultLabelCase:
             }
     }
 
-    // 生成プロパティはボディを IR で充填する getter-only であり backing field を持たない。
-    // FIR 側の宣言が default アクセサ形のため Fir2Ir が field を実体化することがあり、
-    // interface 上ではそれが不正な class file（instance field）になるため、充填時に除去する
-    fun ourPropertyGetter(container: IrClass, name: Name): IrSimpleFunction? {
+    // 生成プロパティの getter を、ボディ充填できる状態にして返す。
+    // 生成プロパティは getter-only であり backing field を持たないが、FIR 側の宣言が default アクセサ形の
+    // ため Fir2Ir が field を実体化することがあり、interface 上ではそれが不正な class file（instance field）
+    // になるため、ここで除去する
+    fun prepareGeneratedGetter(container: IrClass, name: Name): IrSimpleFunction? {
         val property =
             container.declarations.filterIsInstance<IrProperty>().firstOrNull {
                 it.isGeneratedByEnumize && it.name == name
@@ -123,7 +124,7 @@ class EnumizeIrContext(val pluginContext: IrPluginContext, val defaultLabelCase:
         return property.getter
     }
 
-    fun ourFunction(container: IrClass, name: Name): IrSimpleFunction? =
+    fun generatedFunction(container: IrClass, name: Name): IrSimpleFunction? =
         container.declarations.filterIsInstance<IrSimpleFunction>().firstOrNull {
             it.isGeneratedByEnumize && it.name == name
         }

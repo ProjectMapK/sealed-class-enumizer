@@ -106,8 +106,14 @@ class EnumizeHierarchyResolver(
 
     fun isSealed(symbol: FirRegularClassSymbol): Boolean = tracker.isRawSealed(symbol)
 
-    fun isOurGenerated(symbol: FirBasedSymbol<*>): Boolean =
-        (symbol.origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
+    // 自プラグインが生成した宣言か（IR 側の IrDeclaration.isGeneratedByEnumize と対になる判定）
+    fun isGeneratedByEnumize(symbol: FirBasedSymbol<*>): Boolean = isEnumizeOrigin(symbol.origin)
+
+    fun isGeneratedByEnumize(declaration: FirDeclaration): Boolean =
+        isEnumizeOrigin(declaration.origin)
+
+    private fun isEnumizeOrigin(origin: FirDeclarationOrigin): Boolean =
+        (origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
 
     // このシンボルが生成 Enumish（SI.Enumish）を表すか。同一 IC ラウンドの生成物は origin で判定できるが、
     // ラウンド外のファイル由来は前ラウンドのメタデータからの逆直列化で origin が失われるため、
@@ -115,13 +121,10 @@ class EnumizeHierarchyResolver(
     // RESERVED_NAME_CLASH でコンパイル不能のため、有効な前ラウンド出力とは衝突しない）
     fun representsGeneratedEnumish(symbol: FirRegularClassSymbol): Boolean {
         if (symbol.classId.shortClassName != EnumizeNames.ENUMISH_NAME) return false
-        if (isOurGenerated(symbol)) return true
+        if (isGeneratedByEnumize(symbol)) return true
         val outer = tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return false
         return isEnumizeBase(outer)
     }
-
-    fun isOurGeneratedDeclaration(declaration: FirDeclaration): Boolean =
-        (declaration.origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
 
     fun generatedEnumishClassId(base: FirRegularClassSymbol): ClassId =
         base.classId.createNestedClassId(EnumizeNames.ENUMISH_NAME)
@@ -201,7 +204,7 @@ class EnumizeHierarchyResolver(
         val enumishType = generatedEnumishClassId(base).constructClassLikeType()
         if (leaf.classKind == ClassKind.OBJECT) return leaf.defaultType()
         val companion = leaf.companionObjectSymbol ?: return enumishType
-        if (isOurGenerated(companion)) return companion.defaultType()
+        if (isGeneratedByEnumize(companion)) return companion.defaultType()
         return if (effectiveVisibilityAtLeast(companion, leaf)) companion.defaultType()
         else enumishType
     }
@@ -250,7 +253,7 @@ class EnumizeHierarchyResolver(
         base.fir.declarations.any { declaration ->
             declaration is FirRegularClass &&
                 declaration.name == EnumizeNames.ENUMISH_NAME &&
-                !isOurGenerated(declaration.symbol)
+                !isGeneratedByEnumize(declaration.symbol)
         }
 
     fun declaredCallableNames(symbol: FirRegularClassSymbol): Set<Name> =

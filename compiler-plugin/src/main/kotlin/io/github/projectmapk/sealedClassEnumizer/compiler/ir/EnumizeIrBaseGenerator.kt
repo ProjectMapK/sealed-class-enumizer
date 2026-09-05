@@ -77,7 +77,7 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
 
     private fun fillEnumishCompanionProperty(enumish: IrClass, companion: IrClass) {
         val getter =
-            ctx.ourPropertyGetter(enumish, EnumizeNames.ENUMISH_COMPANION_PROPERTY) ?: return
+            ctx.prepareGeneratedGetter(enumish, EnumizeNames.ENUMISH_COMPANION_PROPERTY) ?: return
         getter.body =
             ctx.builder(getter.symbol).run {
                 irBlockBody { +irReturn(irGetObjectValue(companion.defaultType, companion.symbol)) }
@@ -85,13 +85,13 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
     }
 
     private fun fillCompanionMembers(companion: IrClass, holder: IrClass) {
-        ctx.ourPropertyGetter(companion, EnumizeNames.ENTRIES)?.let { getter ->
+        ctx.prepareGeneratedGetter(companion, EnumizeNames.ENTRIES)?.let { getter ->
             fillHolderDelegatingGetter(getter, holder)
         }
-        ctx.ourFunction(companion, EnumizeNames.VALUE_OF)?.let { function ->
+        ctx.generatedFunction(companion, EnumizeNames.VALUE_OF)?.let { function ->
             fillHolderDelegatingFunction(function, holder, ctx.holderGetByLabel)
         }
-        ctx.ourFunction(companion, EnumizeNames.VALUE_OF_OR_NULL)?.let { function ->
+        ctx.generatedFunction(companion, EnumizeNames.VALUE_OF_OR_NULL)?.let { function ->
             fillHolderDelegatingFunction(function, holder, ctx.holderGetByLabelOrNull)
         }
     }
