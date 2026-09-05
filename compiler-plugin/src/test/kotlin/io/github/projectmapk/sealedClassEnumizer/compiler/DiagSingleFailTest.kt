@@ -1,17 +1,20 @@
-package io.github.projectmapk.gradle
+package io.github.projectmapk.sealedClassEnumizer.compiler
 
-import io.github.projectmapk.gradle.DiagAsserts.assertDiagnosticAt
-import io.github.projectmapk.gradle.DiagAsserts.assertDiagnosticInFile
-import io.github.projectmapk.gradle.DiagAsserts.assertFragmentAbsentAt
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.DiagAsserts.assertDiagnosticAt
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.DiagAsserts.assertDiagnosticInFile
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.DiagAsserts.assertFragmentAbsentAt
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.DiagFragments
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.FixtureCompilation
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.FixtureCompiler
 import kotlin.test.Test
 
-// 単一モジュールの発火系・言語委譲を diag-fail フィクスチャの 1 buildAndFail で全件検証する
+// 単一モジュールの発火系・言語委譲を diag-fail フィクスチャの 1 コンパイルで全件検証する
 // （docs/test/ケース04-診断.md の DIA 発火ケース群・docs/test/フィクスチャ構成.md §3）。
 // フィクスチャは 1 ファイル = 1 診断ケースであり、file:line 照合の行はその配置に対する実測値である。
 // 同一ファイルへ複数宣言が同居するケースでは、言語診断も宣言単位の分解能を保つため行照合を用いる。
-// DIA-71 のみ diag-test-source フィクスチャの追加ビルド（compileTestKotlin）を使う
-class DiagSingleFailTest : DiagTestBase() {
-    private fun fail(): String = failOutput("diag-fail", "compileKotlin")
+// DIA-71 のみ diag-test-source フィクスチャの test コンパイレーションを使う
+class DiagSingleFailTest {
+    private fun fail(): String = FixtureCompiler.failOutput("diag-fail")
 
     // docs/test/ケース04-診断.md DIA-01: K1 負値の全種別で NOT_SEALED が各宣言位置に発火する
     @Test
@@ -520,7 +523,13 @@ class DiagSingleFailTest : DiagTestBase() {
     // （コンパイル単位）制約の言語エラーへ委譲・プラグイン診断は不在
     @Test
     fun testCompilationLeafFailsWithSealedRule() {
-        val output = failOutput("diag-test-source", "compileTestKotlin")
+        val output =
+            FixtureCompiler.compile(
+                    "diag-test-source",
+                    listOf(FixtureCompilation.main(), FixtureCompilation.test()),
+                )
+                .last()
+                .output
         assertDiagnosticInFile(output, "TsLeaf.kt", "e: ")
         assertFragmentAbsentAt(output, "TsLeaf.kt", DiagFragments.NESTED_IN_HIERARCHY)
         assertFragmentAbsentAt(output, "TsLeaf.kt", DiagFragments.MANUAL_IMPL_OUTSIDE_HIERARCHY)

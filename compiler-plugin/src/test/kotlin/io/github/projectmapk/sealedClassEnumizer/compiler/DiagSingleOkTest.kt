@@ -1,9 +1,11 @@
-package io.github.projectmapk.gradle
+package io.github.projectmapk.sealedClassEnumizer.compiler
 
-import io.github.projectmapk.gradle.DiagAsserts.assertDiagnosticAt
-import io.github.projectmapk.gradle.DiagAsserts.assertFragmentAbsent
-import io.github.projectmapk.gradle.DiagAsserts.assertFragmentAbsentAt
-import io.github.projectmapk.gradle.DiagAsserts.assertNoDiagnosticAt
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.DiagAsserts.assertDiagnosticAt
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.DiagAsserts.assertFragmentAbsent
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.DiagAsserts.assertFragmentAbsentAt
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.DiagAsserts.assertNoDiagnosticAt
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.DiagFragments
+import io.github.projectmapk.sealedClassEnumizer.compiler.testing.FixtureCompiler
 import kotlin.test.Test
 
 // 単一モジュールの near-miss 非発火・EXTENSION_SHADOWED 警告・raw 追跡表記を diag-ok フィクスチャの
@@ -11,8 +13,8 @@ import kotlin.test.Test
 // docs/test/フィクスチャ構成.md §3）。成功ビルド自体がエラー系診断の総体的な非発火を含意し、
 // 各メソッドは当該断片の不在（またはファイル毎の無診断）で境界を固定する。
 // フィクスチャは 1 ファイル = 1 診断ケースであり、ES 警告の行照合はその配置に対する実測値である
-class DiagSingleOkTest : DiagTestBase() {
-    private fun ok(): String = successOutput("diag-ok", "compileKotlin")
+class DiagSingleOkTest {
+    private fun ok(): String = FixtureCompiler.successOutput("diag-ok")
 
     // docs/test/ケース04-診断.md DIA-05: 正値と下限境界（sealed class / interface・継承者ゼロ・
     // 型パラメータ付き基底 / 末端）は全診断非発火
