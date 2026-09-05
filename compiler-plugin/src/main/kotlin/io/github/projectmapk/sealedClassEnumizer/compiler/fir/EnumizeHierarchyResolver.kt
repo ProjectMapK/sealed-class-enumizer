@@ -257,13 +257,7 @@ class EnumizeHierarchyResolver(
         }
 
     fun declaredCallableNames(symbol: FirRegularClassSymbol): Set<Name> =
-        symbol.fir.declarations.mapNotNullTo(LinkedHashSet()) { declaration ->
-            when (declaration) {
-                is FirNamedFunction -> declaration.name
-                is FirProperty -> declaration.name
-                else -> null
-            }
-        }
+        symbol.fir.declarations.mapNotNullTo(LinkedHashSet(), ::callableNameOf)
 
     // sealed 連鎖のみを上向きに辿り、到達できる相異なる @Enumize 基底を集める
     private fun computeBases(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> {
@@ -329,6 +323,14 @@ class EnumizeHierarchyResolver(
         }
     }
 }
+
+// 宣言が持つ callable 名（名前を持たない宣言種別は null）
+fun callableNameOf(declaration: FirDeclaration): Name? =
+    when (declaration) {
+        is FirNamedFunction -> declaration.name
+        is FirProperty -> declaration.name
+        else -> null
+    }
 
 // セッション単一の階層照会コンポーネントへの入口（registrar が登録する）
 val FirSession.enumizeHierarchyResolver: EnumizeHierarchyResolver
