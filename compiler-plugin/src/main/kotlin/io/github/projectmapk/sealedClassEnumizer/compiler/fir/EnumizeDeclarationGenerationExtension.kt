@@ -86,7 +86,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
                     ownerSymbol.fir,
                 ) -> generateEnumishClass(ownerSymbol)
             name != SpecialNames.DEFAULT_NAME_FOR_COMPANION_OBJECT -> null
-            isGeneratedEnumish(ownerSymbol) -> generateEnumishCompanion(ownerSymbol)
+            isGeneratedEnumish(ownerSymbol) -> enumishCompanionOf(ownerSymbol)
             isCompanionGenerationCandidate(ownerSymbol) -> generateLeafCompanion(ownerSymbol)
             else -> null
         }
@@ -298,30 +298,27 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
                 modality = Modality.SEALED
                 superType(EnumizeNames.ENUMISH_CLASS_ID.constructClassLikeType())
             }
-        val companion = buildEnumishCompanion(enumish.symbol)
-        enumish.replaceCompanionObjectSymbol(companion)
-        EnumizeOwnerGeneratorPatch.stamp(companion.fir, this)
-        enumishCompanions[enumish.symbol] = companion
+        enumish.replaceCompanionObjectSymbol(enumishCompanionOf(enumish.symbol))
         // 継承者一覧の lazy 登録（V1）。計算は登録せず遅延し、実際の列挙は網羅性検査以降に走る（docs/コンパイラプラグイン設計01.md §5.2）
         enumish.setSealedClassInheritors { resolver.computeGeneratedEnumishInheritors(base) }
         return enumish.symbol
     }
 
-    private fun generateEnumishCompanion(enumish: FirRegularClassSymbol): FirClassLikeSymbol<*> =
-        enumishCompanions[enumish] ?: buildEnumishCompanion(enumish)
-
-    private fun buildEnumishCompanion(enumish: FirRegularClassSymbol): FirRegularClassSymbol {
-        val enumishType = enumish.classId.constructClassLikeType()
-        val companion =
-            createCompanionObject(enumish, EnumizeKey) {
-                superType(
-                    EnumizeNames.ENUMISH_COMPANION_CLASS_ID.constructClassLikeType(
-                        arrayOf<ConeTypeProjection>(enumishType)
+    // 生成 Enumish の companion は、ネスト分類子としての要求（generateNestedClassLikeDeclaration）と
+    // Enumish 自身への連結の両方から引かれるため、階層ごとに 1 インスタンスを作って共有する
+    private fun enumishCompanionOf(enumish: FirRegularClassSymbol): FirRegularClassSymbol =
+        enumishCompanions.getOrPut(enumish) {
+            val companion =
+                createCompanionObject(enumish, EnumizeKey) {
+                    superType(
+                        EnumizeNames.ENUMISH_COMPANION_CLASS_ID.constructClassLikeType(
+                            arrayOf<ConeTypeProjection>(enumish.classId.constructClassLikeType())
+                        )
                     )
-                )
-            }
-        return companion.symbol
-    }
+                }
+            EnumizeOwnerGeneratorPatch.stamp(companion, this)
+            companion.symbol
+        }
 
     // supertype transformer はプラグイン生成の companion を訪問しないため、生成 Enumish と同様に
     // supertype を生成時へ直接指定する（docs/コンパイラプラグイン設計01.md §5.1）。候補判定の誤検知時は解決済み supertype による
