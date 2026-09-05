@@ -10,6 +10,18 @@ for what each part means.
 
 ## [Unreleased]
 
+### Fixed
+
+- #63: `@Enumize(labelCase = ...)` naming the `LabelCase` entry through an import alias is now
+  converted consistently. The compile-time uniqueness check previously fell back to the project
+  default in that form, so labels that collide after conversion could pass compilation.
+- #63: Leaves whose supertype is written as a simple name resolved through an enclosing class's
+  companion object or superclass are now recognized as hierarchy members. Previously they received
+  no generated API, failing with an "abstract member not implemented" error, or with an internal
+  compiler error for abstract leaves.
+- #63: `ENUMIZE_EXTENSION_SHADOWED` is no longer reported for a member function named `label`,
+  which does not shadow the `label` extension property.
+
 ## [2.4.10-0.1.2]
 
 ### Fixed
