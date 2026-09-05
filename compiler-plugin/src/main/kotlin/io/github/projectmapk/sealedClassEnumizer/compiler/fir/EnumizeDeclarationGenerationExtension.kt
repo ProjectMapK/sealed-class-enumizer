@@ -102,7 +102,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         if (symbol.isLocal) return emptySet()
         val names = mutableSetOf<Name>()
         // 生成 companion は候補判定の誤検知（外側が末端でなかった）でもコンストラクタだけは必要（docs/コンパイラプラグイン設計01.md §6.2）
-        if (symbol.rawStatus.isCompanion && resolver.isGeneratedByEnumize(symbol)) {
+        if (symbol.rawStatus.isCompanion && symbol.isGeneratedByEnumize) {
             names += SpecialNames.INIT
         }
         val role = roleOf(symbol)
@@ -207,8 +207,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
         context: MemberGenerationContext
     ): List<FirConstructorSymbol> {
         val owner = context.owner as? FirRegularClassSymbol ?: return emptyList()
-        if (!owner.rawStatus.isCompanion || !resolver.isGeneratedByEnumize(owner))
-            return emptyList()
+        if (!owner.rawStatus.isCompanion || !owner.isGeneratedByEnumize) return emptyList()
         return listOf(createDefaultPrivateConstructor(owner, EnumizeKey).symbol)
     }
 
@@ -237,7 +236,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
     // 「同一入力に常に同一の答えを返す」要件）。手動宣言の companion は候補から外す
     private fun hasForeignCompanion(symbol: FirRegularClassSymbol): Boolean {
         val companion = symbol.companionObjectSymbol ?: return false
-        return !resolver.isGeneratedByEnumize(companion)
+        return !companion.isGeneratedByEnumize
     }
 
     // 所属（membership）は resolver が一度だけ計算した事実を読み、役割へ写像する。
@@ -266,8 +265,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
     }
 
     private fun isGeneratedEnumish(symbol: FirRegularClassSymbol): Boolean =
-        resolver.isGeneratedByEnumize(symbol) &&
-            symbol.classId.shortClassName == EnumizeNames.ENUMISH_NAME
+        symbol.isGeneratedByEnumize && symbol.classId.shortClassName == EnumizeNames.ENUMISH_NAME
 
     private fun nestedNamesForBase(base: FirRegularClassSymbol): Set<Name> =
         if (resolver.hasUserDeclaredNestedEnumish(base)) emptySet()
@@ -275,7 +273,8 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
 
     // ユーザーが同名メンバーを手動宣言している場合は生成しない（ENUMIZE_MEMBER_CONFLICT はチェッカーが報告）
     private fun notManuallyDeclared(symbol: FirRegularClassSymbol, vararg names: Name): Set<Name> {
-        val declared = resolver.declaredCallableNames(symbol)
+        val declared =
+            symbol.fir.declarations.mapNotNullTo(LinkedHashSet()) { it.callableNameOrNull }
         return names.filterNotTo(mutableSetOf()) { it in declared }
     }
 

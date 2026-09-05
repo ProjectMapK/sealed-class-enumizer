@@ -2,7 +2,6 @@
 
 package io.github.projectmapk.sealedClassEnumizer.compiler.fir
 
-import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeKey
 import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeLabelCase
 import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeNames
 import org.jetbrains.kotlin.descriptors.ClassKind
@@ -13,10 +12,6 @@ import org.jetbrains.kotlin.fir.caches.createCache
 import org.jetbrains.kotlin.fir.caches.firCachesFactory
 import org.jetbrains.kotlin.fir.caches.getValue
 import org.jetbrains.kotlin.fir.declarations.DirectDeclarationsAccess
-import org.jetbrains.kotlin.fir.declarations.FirDeclaration
-import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
-import org.jetbrains.kotlin.fir.declarations.FirNamedFunction
-import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.getAnnotationByClassId
 import org.jetbrains.kotlin.fir.declarations.getSealedClassInheritors
@@ -30,7 +25,6 @@ import org.jetbrains.kotlin.fir.extensions.extensionService
 import org.jetbrains.kotlin.fir.extensions.extensionSessionComponents
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.defaultType
-import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirEnumEntrySymbol
@@ -107,19 +101,13 @@ class EnumizeHierarchyResolver(
 
     fun isSealed(symbol: FirRegularClassSymbol): Boolean = tracker.isRawSealed(symbol)
 
-    // 自プラグインが生成した宣言か（IR 側の IrDeclaration.isGeneratedByEnumize と対になる判定）
-    fun isGeneratedByEnumize(symbol: FirBasedSymbol<*>): Boolean = isEnumizeOrigin(symbol.origin)
-
-    fun isGeneratedByEnumize(declaration: FirDeclaration): Boolean =
-        isEnumizeOrigin(declaration.origin)
-
     // このシンボルが生成 Enumish（SI.Enumish）を表すか。同一 IC ラウンドの生成物は origin で判定できるが、
     // ラウンド外のファイル由来は前ラウンドのメタデータからの逆直列化で origin が失われるため、
     // 「@Enumize 付き基底の直下の Enumish」という構造で判定する（ネスト名 Enumish の手動宣言は
     // RESERVED_NAME_CLASH でコンパイル不能のため、有効な前ラウンド出力とは衝突しない）
     fun representsGeneratedEnumish(symbol: FirRegularClassSymbol): Boolean {
         if (symbol.classId.shortClassName != EnumizeNames.ENUMISH_NAME) return false
-        if (isGeneratedByEnumize(symbol)) return true
+        if (symbol.isGeneratedByEnumize) return true
         val outer = tracker.resolveClassSymbol(symbol.classId.outerClassId) ?: return false
         return isEnumizeBase(outer)
     }
@@ -205,7 +193,7 @@ class EnumizeHierarchyResolver(
         val enumishType = generatedEnumishClassId(base).constructClassLikeType()
         if (leaf.classKind == ClassKind.OBJECT) return leaf.defaultType()
         val companion = leaf.companionObjectSymbol ?: return enumishType
-        if (isGeneratedByEnumize(companion)) return companion.defaultType()
+        if (companion.isGeneratedByEnumize) return companion.defaultType()
         return if (effectiveVisibilityAtLeast(companion, leaf)) companion.defaultType()
         else enumishType
     }
@@ -254,11 +242,8 @@ class EnumizeHierarchyResolver(
         base.fir.declarations.any { declaration ->
             declaration is FirRegularClass &&
                 declaration.name == EnumizeNames.ENUMISH_NAME &&
-                !isGeneratedByEnumize(declaration.symbol)
+                !declaration.symbol.isGeneratedByEnumize
         }
-
-    fun declaredCallableNames(symbol: FirRegularClassSymbol): Set<Name> =
-        symbol.fir.declarations.mapNotNullTo(LinkedHashSet(), ::callableNameOf)
 
     // sealed 連鎖のみを上向きに辿り、到達できる相異なる @Enumize 基底を集める
     private fun computeBases(symbol: FirRegularClassSymbol): List<FirRegularClassSymbol> {
@@ -324,18 +309,6 @@ class EnumizeHierarchyResolver(
         }
     }
 }
-
-// 自プラグインの生成物に付く origin か（生成宣言はすべて EnumizeKey を刻印する）
-fun isEnumizeOrigin(origin: FirDeclarationOrigin): Boolean =
-    (origin as? FirDeclarationOrigin.Plugin)?.key == EnumizeKey
-
-// 宣言が持つ callable 名（名前を持たない宣言種別は null）
-fun callableNameOf(declaration: FirDeclaration): Name? =
-    when (declaration) {
-        is FirNamedFunction -> declaration.name
-        is FirProperty -> declaration.name
-        else -> null
-    }
 
 // セッション単一の階層照会コンポーネントへの入口（registrar が登録する）
 val FirSession.enumizeHierarchyResolver: EnumizeHierarchyResolver
