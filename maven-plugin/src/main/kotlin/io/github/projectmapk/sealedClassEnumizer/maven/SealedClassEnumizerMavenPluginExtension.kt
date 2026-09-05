@@ -93,13 +93,28 @@ class SealedClassEnumizerMavenPluginExtension : KotlinMavenPluginExtension {
         }
     }
 
+    // プロジェクト既定の label ケース。未指定時の既定はコンパイラプラグインの組み込み既定
+    // （EnumizeLabelCase.BUILT_IN_DEFAULT）と同値の AS_DECLARED に固定し、二重既定の乖離を防ぐ。
+    // 不正値は診断が読みにくいコンパイラ側の失敗になる前に、設定面の名前を示して弾く
+    private fun resolveLabelCase(project: MavenProject): LabelCase {
+        val declared = project.properties.getProperty(LABEL_CASE_PROPERTY)?.trim().orEmpty()
+        if (declared.isEmpty()) {
+            return LabelCase.AS_DECLARED
+        }
+        return LabelCase.entries.firstOrNull { it.name == declared }
+            ?: throw IllegalArgumentException(
+                "Unknown value for the '$LABEL_CASE_PROPERTY' property: '$declared'. " +
+                    "Expected one of: ${LabelCase.entries.joinToString { it.name }}"
+            )
+    }
+
     // 対応外の Kotlin への適用は警告のみとする（サポートは KOTLIN_VERSION と同一マイナー。
     // 非互換の実害はコンパイル時に顕在化するため、原因を示す警告に留めてエラーにはしない）
     private fun warnIfUnsupportedKotlin(project: MavenProject, execution: MojoExecution) {
         // 適用先の Kotlin 版は、本拡張を読み込んでいる kotlin-maven-plugin 自身の版である
         val appliedKotlinVersion = execution.plugin?.version ?: return
         if (
-            isSupportedKotlinVersion(
+            KotlinVersionSupport.isSupported(
                 appliedKotlinVersion,
                 SealedClassEnumizerCoordinates.KOTLIN_VERSION,
             )
@@ -131,32 +146,3 @@ class SealedClassEnumizerMavenPluginExtension : KotlinMavenPluginExtension {
         private const val PLUGIN_OPTIONS_ELEMENT: String = "pluginOptions"
     }
 }
-
-// プロジェクト既定の label ケース。未指定時の既定はコンパイラプラグインの組み込み既定
-// （EnumizeLabelCase.BUILT_IN_DEFAULT）と同値の AS_DECLARED に固定し、二重既定の乖離を防ぐ。
-// 不正値は診断が読みにくいコンパイラ側の失敗になる前に、設定面の名前を示して弾く
-internal fun resolveLabelCase(project: MavenProject): LabelCase {
-    val declared =
-        project.properties
-            .getProperty(SealedClassEnumizerMavenPluginExtension.LABEL_CASE_PROPERTY)
-            ?.trim()
-            .orEmpty()
-    if (declared.isEmpty()) {
-        return LabelCase.AS_DECLARED
-    }
-    return LabelCase.entries.firstOrNull { it.name == declared }
-        ?: throw IllegalArgumentException(
-            "Unknown value for the " +
-                "'${SealedClassEnumizerMavenPluginExtension.LABEL_CASE_PROPERTY}' property: " +
-                "'$declared'. Expected one of: ${LabelCase.entries.joinToString { it.name }}"
-        )
-}
-
-// サポート判定はマイナー一致とする（同一 <major>.<minor> ならパッチ・プレリリースの差は対応内。
-// 版形式 <KotlinVersion>-<自版> の下で、成果物は対応マイナーの全パッチへ同一物を配るため）
-internal fun isSupportedKotlinVersion(
-    appliedKotlinVersion: String,
-    supportedKotlinVersion: String,
-): Boolean = majorMinorOf(appliedKotlinVersion) == majorMinorOf(supportedKotlinVersion)
-
-private fun majorMinorOf(version: String): String = version.split('.').take(2).joinToString(".")

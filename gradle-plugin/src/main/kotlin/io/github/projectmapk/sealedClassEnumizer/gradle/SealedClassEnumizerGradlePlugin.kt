@@ -23,7 +23,7 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
 
     private fun warnIfUnsupportedKotlin(project: Project, appliedKotlinVersion: String) {
         val supported = SealedClassEnumizerCoordinates.KOTLIN_VERSION
-        if (isSupportedKotlinVersion(appliedKotlinVersion, supported)) {
+        if (KotlinVersionSupport.isSupported(appliedKotlinVersion, supported)) {
             return
         }
         project.logger.warn(
@@ -98,12 +98,3 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
         private const val LABEL_CASE_OPTION_NAME: String = "labelCase"
     }
 }
-
-// サポート判定はマイナー一致とする（同一 <major>.<minor> ならパッチ・プレリリースの差は対応内。
-// 版形式 <KotlinVersion>-<自版> の下で、成果物は対応マイナーの全パッチへ同一物を配るため）
-internal fun isSupportedKotlinVersion(
-    appliedKotlinVersion: String,
-    supportedKotlinVersion: String,
-): Boolean = majorMinorOf(appliedKotlinVersion) == majorMinorOf(supportedKotlinVersion)
-
-private fun majorMinorOf(version: String): String = version.split('.').take(2).joinToString(".")

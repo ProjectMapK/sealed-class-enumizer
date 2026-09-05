@@ -6,8 +6,9 @@ import io.github.projectmapk.sealedClassEnumizer.compiler.EnumizeNames
 import io.github.projectmapk.sealedClassEnumizer.compiler.fir.EnumizeHierarchyResolver
 import io.github.projectmapk.sealedClassEnumizer.compiler.fir.EnumizeMembership
 import io.github.projectmapk.sealedClassEnumizer.compiler.fir.EnumizePredicates
-import io.github.projectmapk.sealedClassEnumizer.compiler.fir.callableNameOf
+import io.github.projectmapk.sealedClassEnumizer.compiler.fir.callableNameOrNull
 import io.github.projectmapk.sealedClassEnumizer.compiler.fir.enumizeHierarchyResolver
+import io.github.projectmapk.sealedClassEnumizer.compiler.fir.isGeneratedByEnumize
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
@@ -117,7 +118,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             declaration.declarations.firstOrNull { nested ->
                 nested is FirRegularClass &&
                     nested.name == EnumizeNames.ENUMISH_NAME &&
-                    !isGeneratedByEnumize(nested.symbol)
+                    !nested.symbol.isGeneratedByEnumize
             } ?: return
         reporter.reportOn(userEnumish.source, EnumizeErrors.ENUMIZE_RESERVED_NAME_CLASH)
     }
@@ -242,7 +243,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     ) {
         val symbol = declaration.symbol
         val companion = symbol.companionObjectSymbol ?: return
-        if (isGeneratedByEnumize(companion)) return
+        if (companion.isGeneratedByEnumize) return
         if (membershipOf(companion)?.isLeaf == true) {
             reporter.reportOn(companion.source, EnumizeErrors.ENUMIZE_COMPANION_LEAF_CONFLICT)
         }
@@ -280,7 +281,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         reportConflicts(declaration, symbol, leafNames, base)
         if (isObjectLeaf) return
         val companion = symbol.companionObjectSymbol ?: return
-        if (isGeneratedByEnumize(companion)) return
+        if (companion.isGeneratedByEnumize) return
         val kindNames = setOf(EnumizeNames.LABEL, EnumizeNames.ENUMIZED_CLASS_PROPERTY)
         reportConflicts(companion.fir, companion, kindNames, base)
     }
@@ -296,7 +297,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
             reporter.reportOn(
                 member.source,
                 EnumizeErrors.ENUMIZE_MEMBER_CONFLICT,
-                callableNameOf(member)?.asString().orEmpty(),
+                member.callableNameOrNull?.asString().orEmpty(),
             )
         }
         val inheritedConflicts =
@@ -317,8 +318,8 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         names: Set<Name>,
     ): List<FirDeclaration> =
         declaration.declarations.filter { member ->
-            val name = callableNameOf(member)
-            name != null && name in names && !isGeneratedByEnumize(member)
+            val name = member.callableNameOrNull
+            name != null && name in names && !member.symbol.isGeneratedByEnumize
         }
 
     // 階層外のユーザー interface から同名メンバーの default 実装（具象）を継承している構成の検出
@@ -468,7 +469,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
         declaration: FirDeclaration
     ): Boolean {
         if (declaration !is FirProperty || declaration.name != EnumizeNames.LABEL) return false
-        if (isGeneratedByEnumize(declaration)) return false
+        if (declaration.symbol.isGeneratedByEnumize) return false
         return declaration.status.visibility != Visibilities.Private
     }
 }

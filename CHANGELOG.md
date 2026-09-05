@@ -22,6 +22,10 @@ for what each part means.
 - #63: `ENUMIZE_EXTENSION_SHADOWED` is no longer reported for a member function named `label`,
   which does not shadow the `label` extension property.
 
+### Internal
+
+- #64: Internal refactoring of the compiler plugin and the build-tool plugins; no behavioral change.
+
 ## [2.4.10-0.1.2]
 
 ### Fixed

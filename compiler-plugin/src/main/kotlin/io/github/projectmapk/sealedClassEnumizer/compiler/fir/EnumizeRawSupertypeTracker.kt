@@ -231,7 +231,7 @@ class EnumizeRawSupertypeTracker(private val session: FirSession) {
         val nested = outerId.createNestedClassId(name)
         if (resolvesToClassLike(nested)) return nested
         val outer = resolveClassSymbol(outerId) ?: return null
-        val companion = outer.companionObjectSymbol?.takeUnless { isEnumizeOrigin(it.origin) }
+        val companion = outer.companionObjectSymbol?.takeUnless { it.isGeneratedByEnumize }
         if (companion != null) {
             val inCompanion = companion.classId.createNestedClassId(name)
             if (resolvesToClassLike(inCompanion)) return inCompanion
