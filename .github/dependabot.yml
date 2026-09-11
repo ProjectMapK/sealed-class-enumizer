@@ -19,7 +19,7 @@ updates:
   # integration-test は独立した Gradle ビルドだが、その settings はルートビルドを composite 参照するため、
   # /integration-test の更新ジョブが見るマニフェストはルート側（gradle wrapper 等）を含む。
   # ディレクトリごとに更新ジョブを分けると同一の更新が別々の PR として二重に出るため、両者を1つの
-  # 更新設定にまとめ、group-by で依存名ごとの単一 PR へ束ねる（PR の対象範囲と表題も一致する）
+  # 更新設定にまとめ、groups で PR の粒度を決める（PR の対象範囲と表題も一致する）
   - package-ecosystem: "gradle"
     directories:
       - "/"
@@ -30,8 +30,20 @@ updates:
       time: "19:00"
       timezone: "Asia/Tokyo"
     groups:
+      # Kotlin のライブラリとプラグインは catalog の単一の版宣言（version.ref = "kotlin"）を共有する。
+      # 依存名ごとに分けると同じ 1 行を書き換えるだけの PR が依存の数だけ並ぶため、パターンで束ねる。
+      # 版宣言を持つのはルート側の catalog だけなので、束ねてもディレクトリを跨いだ二重の PR にはならない
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin:*"
+          - "org.jetbrains.kotlin.*"
+      # 残りは依存名ごとの単一 PR へ束ねる。group-by は部分グループを作る際に他のグループの
+      # 割り当てを見ないため、kotlin グループが持つ対象は exclude-patterns で明示的に外す
       gradle-builds:
         group-by: "dependency-name"
+        exclude-patterns:
+          - "org.jetbrains.kotlin:*"
+          - "org.jetbrains.kotlin.*"
     ignore:
       # Maven 系の版は kotlin-maven-plugin の親 POM から導出する値であり（ルートの syncMavenVersion）、
       # 独立して選べる更新対象ではない。Kotlin の更新に伴って追随する
