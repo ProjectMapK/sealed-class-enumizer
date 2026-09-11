@@ -3,7 +3,7 @@ kotlin = "2.4.10"
 autoservice = "0.1.5"
 ktfmt = "0.27.0"
 mavenPublish = "0.37.0"
-pluginPublish = "2.1.1"
+pluginPublish = "2.2.0"
 dokka = "2.2.0"
 
 # 以下は単一情報源から導出される版であり、手で選ばない。
