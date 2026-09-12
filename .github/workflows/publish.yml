@@ -1,0 +1,376 @@
+# CD。main の CI が green になった時点を起点に、版宣言の入ったコミットへタグを付けて公開する。
+# 公開の順は Maven Central → Gradle Plugin Portal。後者は前者の成果物が実際に引けるようになるまで待つ
+# （公開したプラグインは利用者のビルドでコンパイラプラグインを Maven Central から解決するため、
+# 先に Portal へ出すと解決できない版が並ぶ）。Central は公開の確定まで自動で行うため、
+# 待つのは repo1 への同期だけであり、リリースに手作業は残らない。
+# 公開してよいかを決めるのは CI の結果であり、ここでテストは走らせない（同じ検証の二重実行を避ける）。
+# 各ジョブは公開先の状態を見て「済んでいれば飛ばす」ため、失敗したジョブの再実行だけで公開を完了できる。
+# ランナーは Central への公開のみ macos（宣言済みの全ターゲットをネイティブ + クロスコンパイルで賄えるため）。
+# アクションはコミットハッシュで固定する（末尾コメントの vX.Y.Z は参照用。更新は Dependabot が追随する）
+name: publish (auto)
+
+# 起点は CI の完了。参照はワークフロー名で行うため、ci.yml の name を変えるならここも変える。
+# 手での起動口は持たない（公開してよいかを決めるのはテストの結果であり、起こし手ではない）。
+# CI が落ちた場合は、直して main の CI を green にすれば改めてここが起きる
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+# 公開は取り消せないため、走行中のランをキャンセルしない。公開の途中で別のランが起きても、
+# 直列化により二重の公開にはならない
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  # 公開する版と公開先を決め、タグを付ける。版宣言が入っていない CI の成功（通常の開発）はここで止まる
+  prepare:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # ジョブ単位の permissions はワークフロー既定を置き換える。タグの push に contents: write が要る
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.derive.outputs.tag }}
+      version: ${{ steps.derive.outputs.version }}
+      centralPom: ${{ steps.derive.outputs.centralPom }}
+      portalMarker: ${{ steps.derive.outputs.portalMarker }}
+    steps:
+      # workflow_run の GITHUB_SHA は既定ブランチの先端であり、CI が見たコミットとは限らない。
+      # 公開するのは CI が通したコミットそのもののため、ref にはその head を指定する
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # 開発版のままなら公開する版は無い。CI の成功毎に通る経路のため、Gradle を起こす前にここで抜ける
+      - name: Detect a declared release version
+        id: declared
+        run: |
+          set -euo pipefail
+          current=$(sed -n 's/^enumizerVersion=//p' gradle.properties)
+          case "$current" in
+            *-SNAPSHOT)
+              echo "::notice::$current is a development version"
+              exit 0
+              ;;
+          esac
+          echo "release=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.declared.outputs.release == 'true'
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - if: steps.declared.outputs.release == 'true'
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      # 版・公開名・plugin id の正はビルドと gradle.properties にあり、ここでは写しを持たない。
+      # タグは版宣言のコミットへ付ける。既にあって別のコミットを指しているなら、この CI の成功は
+      # 公開済みの版を載せたまま進んだ後続コミットのものであり、公開の起点ではない
+      - name: Derive the release coordinates
+        id: derive
+        if: steps.declared.outputs.release == 'true'
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          version=$(./gradlew -q properties --property version | sed -n 's/^version: //p')
+          group=$(./gradlew -q properties --property group | sed -n 's/^group: //p')
+          artifact=$(./gradlew -q :sealed-class-enumizer-compiler-plugin:properties --property name \
+            | sed -n 's/^name: //p')
+          pluginId=$(sed -n 's/^compilerPluginId=//p' gradle.properties)
+          tag="v$version"
+          existing=$(git ls-remote --tags origin "refs/tags/$tag" | awk '{ print $1 }')
+          if [ -n "$existing" ] && [ "$existing" != "$SHA" ]; then
+            echo "::notice::$tag already points at $existing"
+            exit 0
+          fi
+          if [ -z "$existing" ]; then
+            git tag "$tag"
+            git push origin "$tag"
+          fi
+          # 公開済みかの判定に使う URL。Central へは 4 モジュールを 1 つのデプロイとして上げるため、
+          # 到達の確認はコンパイラプラグイン 1 つで足りる（公開したプラグインが利用者のビルドで
+          # Maven Central から解決するのもこの成果物）
+          central="https://repo1.maven.org/maven2/${group//.//}/$artifact/$version/$artifact-$version.pom"
+          # Plugin Portal 側は plugin marker（group = plugin id・artifactId = <plugin id>.gradle.plugin）を見る
+          marker="$pluginId.gradle.plugin"
+          portal="https://plugins.gradle.org/m2/${pluginId//.//}/$marker/$version/$marker-$version.pom"
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "centralPom=$central"
+            echo "portalMarker=$portal"
+          } >> "$GITHUB_OUTPUT"
+
+  # Maven Central への公開。デプロイの作成から公開の確定までを 1 タスクで行う
+  # （publishAndReleaseToMavenCentral。validation の通過を待ち、FAILED なら落ちる）。
+  # 公開は取り消せないため、上げてよいかの判断は CI の結果と下の公開可能ターゲットの検査が受け持つ。
+  # validation で落ちた場合は、Portal 上の失敗したデプロイを落としてから再実行する
+  # （dropMavenCentralDeployment がデプロイ ID を取って落とす）。
+  # vanniktech の設定値は ORG_GRADLE_PROJECT_ 接頭辞の環境変数で渡す
+  # （Gradle プロパティ名は大小文字を区別するため、シークレット名とは別に対応付ける）
+  maven-central:
+    needs: prepare
+    # 版宣言のコミットでなければ prepare の出力は空になる。後続は needs のスキップで連鎖して止まる
+    if: needs.prepare.outputs.tag != ''
+    runs-on: macos-latest
+    # 全ターゲットのビルドに加え、公開確定の待ち（プラグイン既定で最大 60 分）を含む
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
+      # ランナーが宣言ターゲットを全て賄えることを先に確かめる。賄えないターゲットの publication は
+      # kotlin.native.ignoreDisabledTargets により静かに落ち、成果物が欠けたまま公開が成功してしまう。
+      # 実行時の担保は publish タスクの依存としても掛かっており、ここは公開の前で落とすための前倒し
+      - name: Verify all declared targets are publishable
+        run: ./gradlew :sealed-class-enumizer-runtime-api:checkPublishableTargets
+
+      - name: Publish to Maven Central
+        env:
+          CENTRAL_POM: ${{ needs.prepare.outputs.centralPom }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # 公開済みの版へのデプロイは Central が受け付けない。再実行で二重に上げないよう先に見る
+          # （--retry は 5xx と接続の失敗だけを吸収し、404 = 未公開はそのまま返る）
+          if curl -fsI --retry 3 -o /dev/null "$CENTRAL_POM"; then
+            echo "::notice::$VERSION is already on Maven Central"
+            exit 0
+          fi
+          ./gradlew publishAndReleaseToMavenCentral
+
+  # Plugin Portal は取り消しができないうえ、公開したプラグインは利用者のビルドでコンパイラプラグインを
+  # Maven Central から解決する。公開の確定後、成果物が repo1 へ行き渡るまでには時間差があるため、
+  # 実際に引けることを確かめてから公開する
+  plugin-portal:
+    needs: [prepare, maven-central]
+    runs-on: ubuntu-latest
+    # 待つのは repo1 への同期だけで、掛かるのは概ね 10〜30 分。それを超える場合は同期の異常として落とす
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: Wait until the release is on Maven Central
+        env:
+          CENTRAL_POM: ${{ needs.prepare.outputs.centralPom }}
+        run: |
+          set -euo pipefail
+          # ジョブの打ち切りではなく、待ち過ぎを理由として落とす（同期の異常と分かる形にする）
+          deadline=$((SECONDS + 3000))
+          until curl -fsI --retry 3 -o /dev/null "$CENTRAL_POM"; do
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::$CENTRAL_POM is still not available"
+              exit 1
+            fi
+            echo "$(date -u +%H:%M:%SZ) waiting for $CENTRAL_POM"
+            sleep 60
+          done
+
+      - name: Publish to Gradle Plugin Portal
+        env:
+          PORTAL_MARKER: ${{ needs.prepare.outputs.portalMarker }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+        run: |
+          set -euo pipefail
+          if curl -fsI --retry 3 -o /dev/null "$PORTAL_MARKER"; then
+            echo "::notice::$VERSION is already on the Gradle Plugin Portal"
+            exit 0
+          fi
+          ./gradlew :sealed-class-enumizer-gradle-plugin:publishPlugins
+
+  # 公開の記録として GitHub Release を作る。両方の公開先へ出た後に作るため、入手できない版に
+  # Latest release が立つことはない。本文に変更点は持たず CHANGELOG の当該節を指す（変更点の正は
+  # CHANGELOG であり、写しを置くと版を跨いで食い違う）。Full Changelog 行だけは GitHub の
+  # 自動生成と同じものを API から取る
+  github-release:
+    needs: [prepare, plugin-portal]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      # 作業ツリーは要らない。gh は GH_REPO で対象を取る
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::notice::a release for $TAG already exists"
+            exit 0
+          fi
+          # CHANGELOG の版見出し `## [<版>]` に付くアンカー。記号が落ちた形になる
+          anchor=$(printf '%s' "$VERSION" | tr -d .)
+          full=$(gh api "repos/$GH_REPO/releases/generate-notes" -f tag_name="$TAG" --jq .body \
+            | grep '^\*\*Full Changelog\*\*:')
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes "$(printf '%s\n\n%s\n' \
+            "Changes in this release: [CHANGELOG](https://github.com/$GH_REPO/blob/$TAG/CHANGELOG.md#$anchor)" \
+            "$full")"
+
+  # API ドキュメントの掲載。Pages のソースは Actions のため、公開されるのはこのジョブが上げる成果物であり、
+  # 保管ブランチ（gh-pages）の内容が直接配信されることはない。同ブランチは過去版の出力だけを
+  # versions/<版>/ の形で持ち、版切替 UI の入力として使う。deploy はサイト全体を置き換えるため、
+  # 過去版の保持はこの保管場所から毎回作り直すことで成り立つ
+  docs:
+    needs: [prepare, plugin-portal]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      # 初回リリース時は保管ブランチがまだ無い。その場合は空の履歴から始める
+      - name: Restore archived versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          url="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$url" gh-pages >/dev/null 2>&1; then
+            git clone --branch gh-pages --depth 1 "$url" build/gh-pages
+          else
+            mkdir -p build/gh-pages
+            git -C build/gh-pages init -b gh-pages -q
+            git -C build/gh-pages remote add origin "$url"
+          fi
+          mkdir -p build/gh-pages/versions
+
+      - run: ./gradlew dokkaGenerate -PolderDocsDir=build/gh-pages/versions
+
+      # 保管するのは各版の出力そのものとし、生成物に含まれる過去版（older/）は落とす。
+      # 落とさないと版を重ねるたびに過去版が入れ子で積み上がる
+      - name: Archive this version
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          dest="build/gh-pages/versions/$VERSION"
+          rm -rf "$dest"
+          mkdir -p "$dest"
+          cp -r build/dokka/html/. "$dest/"
+          rm -rf "$dest/older"
+
+      # 保管ブランチの更新は通常のコミットで行う（force push は保護設定と整合しない）
+      - name: Update archive branch
+        working-directory: build/gh-pages
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "::notice::archive is already up to date"
+          else
+            git commit -q -m "docs: $VERSION の API ドキュメントを保管する"
+            git push origin gh-pages
+          fi
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: build/dokka/html
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  # 公開した版は消費済みのため、開発版（次パッチの -SNAPSHOT）へ戻す PR を出す。
+  # 直接 push しないのは、既定ブランチが PR 経由の更新を必須としているため。
+  # 配布物を説明する文書の版表記はここでは変わらない（同期の対象はリリース版を宣言している間に限るため、
+  # 公開済みの版を指したまま据え置かれる）
+  next-version:
+    needs: [prepare, plugin-portal]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # 公開したコミットではなく既定ブランチを起点にする（両者が一致しているとは限らない）
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - name: Open version bump pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          current=$(sed -n 's/^enumizerVersion=//p' gradle.properties)
+          case "$current" in
+            *-SNAPSHOT)
+              echo "::notice::$current is already a development version"
+              exit 0
+              ;;
+          esac
+          IFS=. read -r major minor patch <<< "$current"
+          next="$major.$minor.$((patch + 1))-SNAPSHOT"
+          branch="chore/next-version-$next"
+          # 開いている PR があれば同じ内容を持つため作り直さない（再実行で二重に出さないため）
+          open=$(gh pr list --head "$branch" --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            echo "::notice::pull request #$open is already open for $branch"
+            exit 0
+          fi
+          sed -i "s/^enumizerVersion=.*/enumizerVersion=$next/" gradle.properties
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -q -am "build: 開発版を $next へ進める"
+          # 閉じた PR のブランチが残っていることがあるため、内容を置き換える形で押す
+          git push -q --force origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "build: 開発版を $next へ進める" \
+            --body "$(printf '%s\n' \
+              "$VERSION の公開に伴い、開発版を次のパッチへ進める。" \
+              "" \
+              "配布物を説明する文書の版表記は公開済みの版を指したまま据え置かれる。" \
+              "次のリリースで -SNAPSHOT を外す際にまとめて追随する。" \
+              "" \
+              "CI は本 PR のランを Approve and run で起こす（bot が作った PR のランは承認待ちで止まる）。")"

@@ -34,17 +34,17 @@ on:
       - ".github/workflows/ci.yml"
       - "!**.md"
   pull_request:
-  # GITHUB_TOKEN が作った PR は push / pull_request を起こさないため、release / _publish が出す
-  # 版更新の PR には必須チェックが報告されない。それらがブランチを指定して起こすための入口
-  # （workflow_dispatch は GITHUB_TOKEN でも起動できる）。手での起動口も兼ねる
+  # ブランチを指定して手で回すための入口
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# main の push はコミット毎に結果が要る（後続の push で取り消すと、そのコミットを通した記録が残らない）。
+# PR は最新の push の結果だけが要るため取り消す
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # PR でのビルド入力の変更有無を判定する（push は起動条件の paths で判定済みのため常に true とする）。
