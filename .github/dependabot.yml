@@ -8,12 +8,13 @@
 # npm（kotlin-js-store/yarn.lock）は version updates の対象に含めない。lockfile は KGP が
 # JS/wasm テストランナー用に生成する成果物であり、宣言元の package.json はリポジトリに存在しないため、
 # Dependabot の更新 PR は次の kotlinUpgradeYarnLock で失われる。alerts は次の基準で捌く。
-#   1. 上流の宣言レンジ内に修正版がある場合: kotlinUpgradeYarnLock で lockfile を再生成して追随する
-#      （両ビルドで実行し、生成物は LF へ正規化する）
-#   2. レンジ内に修正版が無い場合: tolerable_risk として dismiss する。npm 依存は runtime-api の
-#      配布物に入らず（生成 package.json は依存ゼロ、公開先は Maven Central のみ）、
-#      処理する入力も CI 内の自リポジトリのテスト成果物に限られる。resolutions による
-#      major 跨ぎの強制上書きは、上流が検証していない組み合わせをテストランナーへ注入することになるため採らない
+#   1. 上流の宣言レンジ内に修正版がある場合: lockfile を作り直して追随する（手順は CLAUDE.md）。
+#      上流の解決へ合わせる通常の更新と同じ操作であり、alert 固有の手当ては要らない
+#   2. レンジ内に修正版が無い場合: tolerable_risk として dismiss し、上流が追随するのを待つ。npm 依存は
+#      runtime-api の配布物に入らず（生成 package.json は依存ゼロ、公開先は Maven Central のみ）、
+#      処理する入力も CI 内の自リポジトリのテスト成果物に限られる。resolutions による major 跨ぎの
+#      強制上書きは、上流が検証していない組み合わせをテストランナーへ注入するため、重大な脆弱性に
+#      上流が追随しないときに限って検討する
 version: 2
 updates:
   # integration-test は独立した Gradle ビルドだが、その settings はルートビルドを composite 参照するため、
