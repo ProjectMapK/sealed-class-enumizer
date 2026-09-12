@@ -169,7 +169,7 @@ val checkMavenVersion =
 // パッチまでの表記とマイナーまでの表記は、それぞれの粒度を保ったまま現行値へ置換する
 val versionMentionRules: List<Pair<Regex, String>> =
     listOf(
-        // 配布版のフル形式 <KotlinVersion>-<自版>（README のセットアップ例・版形式の現行例）
+        // 配布版のフル形式 <KotlinVersion>-<自版>（README のセットアップ例）
         Regex("""(?<![\d.])\d+\.\d+\.\d+-\d+\.\d+\.\d+(?![\d.-])""") to
             "$kotlinDeclaredVersion-$enumizerReleaseVersion",
         // README のセットアップ例が指定する KGP 版
@@ -186,10 +186,11 @@ val versionMentionRules: List<Pair<Regex, String>> =
 // 対象は文書の性質で 2 群に分ける。現行版への言及を持つ資料を増やした場合は該当する群へ追加する。
 // ただし過去の版を記録する文書（CHANGELOG）はどちらにも入れない。履歴の版が現行版へ書き換えられてしまう。
 //
-// 配布物を説明する文書（README のセットアップ例・互換表・概要 §7 の版形式）。表記が指すのは
+// 配布物を説明する文書（README のセットアップ例・互換表）。表記が指すのは
 // 利用者が実際に入手できる版であり、開発中に追随させると未公開の版を案内してしまう。
-// このためリリース版を宣言している間だけ対象とし、開発中は据え置く
-val releaseVersionMentionTargets = listOf("README.md", "docs/概要.md")
+// このためリリース版を宣言している間だけ対象とし、開発中は据え置く。
+// 版形式そのものを説明する表記（docs/概要.md §7 の例示）は現行版を指さないため対象にしない
+val releaseVersionMentionTargets = listOf("README.md")
 
 // 現在の開発・検証環境を記録する文書と、IDE が同期時に書き戻す設定。
 // カタログの更新へ即座に追随させる（追随しないと作業ツリーへ差分が残る）
