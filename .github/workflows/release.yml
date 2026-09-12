@@ -73,6 +73,8 @@ jobs:
           echo "full=$full" >> "$GITHUB_OUTPUT"
           echo "branch=release/v$full" >> "$GITHUB_OUTPUT"
 
+      # 公開まで進まなかった版を宣言し直せるよう、やり直しても同じ状態へ収束する形にする。
+      # 既に開いている PR があればそれが宣言そのものであり、作り直さない
       - name: Open release pull request
         env:
           GH_TOKEN: ${{ github.token }}
@@ -80,11 +82,22 @@ jobs:
           BRANCH: ${{ steps.declare.outputs.branch }}
         run: |
           set -euo pipefail
+          open=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            echo "::notice::pull request #$open is already open for $BRANCH"
+            exit 0
+          fi
+          # 書き換えが空 = 既定ブランチが既にこの版を宣言している（マージ済みで公開待ち）
+          if git diff --quiet; then
+            echo "::error::$FULL is already declared on main"
+            exit 1
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
           git commit -q -am "build: リリース版 $FULL を宣言する"
-          git push -q origin "$BRANCH"
+          # 閉じた PR のブランチが残っていることがあるため、内容を置き換える形で押す
+          git push -q --force origin "$BRANCH"
           gh pr create --base main --head "$BRANCH" \
             --title "build: リリース版 $FULL を宣言する" \
             --body "$(printf '%s\n' \
