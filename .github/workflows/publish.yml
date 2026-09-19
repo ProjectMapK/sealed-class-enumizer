@@ -40,7 +40,7 @@ jobs:
       tag: ${{ steps.derive.outputs.tag }}
       version: ${{ steps.derive.outputs.version }}
       centralPom: ${{ steps.derive.outputs.centralPom }}
-      portalMarker: ${{ steps.derive.outputs.portalMarker }}
+      portalPage: ${{ steps.derive.outputs.portalPage }}
     steps:
       # workflow_run の GITHUB_SHA は既定ブランチの先端であり、CI が見たコミットとは限らない。
       # 公開するのは CI が通したコミットそのもののため、ref にはその head を指定する
@@ -99,14 +99,15 @@ jobs:
           # 到達の確認はコンパイラプラグイン 1 つで足りる（公開したプラグインが利用者のビルドで
           # Maven Central から解決するのもこの成果物）
           central="https://repo1.maven.org/maven2/${group//.//}/$artifact/$version/$artifact-$version.pom"
-          # Plugin Portal 側は plugin marker（group = plugin id・artifactId = <plugin id>.gradle.plugin）を見る
-          marker="$pluginId.gradle.plugin"
-          portal="https://plugins.gradle.org/m2/${pluginId//.//}/$marker/$version/$marker-$version.pom"
+          # Plugin Portal 側は版ページで見る（公開済みなら 200・無ければ 400）。Portal の m2 は
+          # 未公開の版でも Maven Central へ転送し、plugin marker は Central にも公開されるため、
+          # そちらでは公開の有無を判定できない
+          portal="https://plugins.gradle.org/plugin/$pluginId/$version"
           {
             echo "version=$version"
             echo "tag=$tag"
             echo "centralPom=$central"
-            echo "portalMarker=$portal"
+            echo "portalPage=$portal"
           } >> "$GITHUB_OUTPUT"
 
   # Maven Central への公開。デプロイの作成から公開の確定までを 1 タスクで行う
@@ -197,13 +198,13 @@ jobs:
 
       - name: Publish to Gradle Plugin Portal
         env:
-          PORTAL_MARKER: ${{ needs.prepare.outputs.portalMarker }}
+          PORTAL_PAGE: ${{ needs.prepare.outputs.portalPage }}
           VERSION: ${{ needs.prepare.outputs.version }}
           GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
           GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
         run: |
           set -euo pipefail
-          if curl -fsI --retry 3 -o /dev/null "$PORTAL_MARKER"; then
+          if curl -fsI --retry 3 -o /dev/null "$PORTAL_PAGE"; then
             echo "::notice::$VERSION is already on the Gradle Plugin Portal"
             exit 0
           fi
