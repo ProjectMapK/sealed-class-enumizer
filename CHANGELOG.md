@@ -10,6 +10,8 @@ for what each part means.
 
 ## [Unreleased]
 
+## [2.4.20-0.1.3]
+
 ## [2.4.10-0.1.3]
 
 ### Fixed

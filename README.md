@@ -20,8 +20,8 @@ so `plugins {}` resolves it without extra repository configuration:
 
 ```kotlin
 plugins {
-    kotlin("jvm") version "2.4.10" // or kotlin("multiplatform") — any Kotlin target plugin
-    id("io.github.projectmapk.sealed-class-enumizer") version "2.4.10-0.1.3"
+    kotlin("jvm") version "2.4.20" // or kotlin("multiplatform") — any Kotlin target plugin
+    id("io.github.projectmapk.sealed-class-enumizer") version "2.4.20-0.1.3"
 }
 ```
 
@@ -57,7 +57,7 @@ execution, production and test compilations alike.
     <dependency>
       <groupId>io.github.projectmapk</groupId>
       <artifactId>sealed-class-enumizer-maven-plugin</artifactId>
-      <version>2.4.10-0.1.3</version>
+      <version>2.4.20-0.1.3</version>
     </dependency>
   </dependencies>
 </plugin>
@@ -70,7 +70,7 @@ dependency (Maven resolves the platform artifact, hence the `-jvm` suffix):
 <dependency>
   <groupId>io.github.projectmapk</groupId>
   <artifactId>sealed-class-enumizer-runtime-api-jvm</artifactId>
-  <version>2.4.10-0.1.3</version>
+  <version>2.4.20-0.1.3</version>
 </dependency>
 ```
 
