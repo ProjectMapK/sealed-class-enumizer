@@ -39,7 +39,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       # 版の正はビルド（カタログの Kotlin 版 + gradle.properties の enumizerVersion）にあるため、
       # フル版は書き換え後のビルドから導出する。入力は shell へ直接展開せず環境変数で受ける
