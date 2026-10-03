@@ -335,7 +335,7 @@ jobs:
       # setup-gradle 相当と Gradle User Home のキャッシュを内包するアクションのため、両者を別途は置かない
       # （依存解決のみでコンパイルしないため ~/.konan のキャッシュも不要。他ジョブと同じキーで
       # 部分的な内容を保存してしまう事故も避ける）
-      - uses: gradle/actions/dependency-submission@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - uses: gradle/actions/dependency-submission@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         # 登録対象は配布物へ載る依存に絞る（alerts を利用者へ届くものに限るため）。対象とする
         # runtime classpath は公開 POM の compile / runtime スコープの元であり、compileOnly（maven-core /
         # kotlin-compiler-embeddable 等）・テスト・buildscript のクラスパスはここへ入らない。
