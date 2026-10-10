@@ -3,6 +3,7 @@ import com.vanniktech.maven.publish.KotlinMultiplatform
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -30,8 +31,13 @@ kotlin {
     linuxArm64()
     // macosX64 は Intel Mac 廃止に伴い KGP 2.4 で非推奨化されたが、代替ターゲットは無く
     // （macosArm64 は別アーキテクチャ）、Intel Mac 向け klib の公開を維持するため宣言を残す。
-    // KGP から関数が削除された時点で改めて対応する
-    @Suppress("DEPRECATION") macosX64()
+    // KGP 2.5 では非推奨が ERROR へ上がるため、2.5 以降へ差し替えたマイナー横断ビルドでは宣言しない
+    // （呼び出しのコンパイルは DEPRECATION_ERROR の抑制で通す）。
+    // 2.5 へ移行する時はこの分岐を削除し、macosX64 の宣言をやめる
+    val (kgpMajor, kgpMinor) = getKotlinPluginVersion().split(".").take(2).map(String::toInt)
+    if (!KotlinVersion(kgpMajor, kgpMinor).isAtLeast(2, 5)) {
+        @Suppress("DEPRECATION", "DEPRECATION_ERROR") macosX64()
+    }
 
     macosArm64()
     // iOS 系。純 Kotlin の klib のため宣言は mac 以外のホストでも成立し、
