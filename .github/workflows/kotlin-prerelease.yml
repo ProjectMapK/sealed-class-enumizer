@@ -6,8 +6,10 @@ name: kotlin-prerelease (weekly)
 
 on:
   schedule:
-    # JST 金曜 19:00 = 金曜 10:00 UTC（Dependabot の更新 PR と同じ周期）
-    - cron: "0 10 * * 5"
+    # 金曜 19:07 JST（Dependabot の更新 PR と同じ周期・同じ時間帯）。
+    # 毎時 0 分は schedule の起動が混み合って数時間遅れるため、分をずらす
+    - cron: "7 19 * * 5"
+      timezone: "Asia/Tokyo"
   # 手元で版を指定して回すための入口（検出をとばして指定版で走る）
   workflow_dispatch:
     inputs:
