@@ -1,0 +1,7 @@
+$dokka.format:html-v1
+$dokka.linkExtension:html
+
+module:sealed-class-enumizer-gradle-plugin
+io.github.projectmapk.sealedClassEnumizer.gradle
+module:sealed-class-enumizer-runtime-api
+io.github.projectmapk.sealedClassEnumizer
