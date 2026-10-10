@@ -3,9 +3,10 @@
 # Windows/macOS/Linux のいずれで clone しても同一の改行コードになる。
 * text=auto eol=lf
 
-# Windows 専用スクリプトのみ CRLF を維持する。
-*.bat text eol=crlf
-*.cmd text eol=crlf
+# Windows 専用スクリプトは改行変換の対象外とし、CRLF のまま保存・展開する。
+# 生成ツールが CRLF で書いた内容を正規化無しにコミットしても、索引と作業ツリーが食い違わない。
+*.bat -text
+*.cmd -text
 
 # バイナリ（改行変換・テキスト差分の対象外）。
 *.jar binary
