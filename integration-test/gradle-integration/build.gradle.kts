@@ -2,6 +2,7 @@ import com.sun.management.OperatingSystemMXBean
 import java.io.File
 import java.lang.management.ManagementFactory
 import java.util.Properties
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 // Gradle TestKit ホスト（docs/test/テスト戦略.md §4）。
 // resources/fixtures 配下の合成ビルドを GradleRunner で駆動し、IC 回帰・決定性・
@@ -138,5 +139,8 @@ tasks.test {
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = false
+        // 既定の SHORT は例外の位置だけを出すため、アサーションが組み立てた診断一覧が落ちて
+        // 失敗の理由がログから読めない。CI の失敗はログだけが手掛かりなので全文を出す
+        exceptionFormat = TestExceptionFormat.FULL
     }
 }
