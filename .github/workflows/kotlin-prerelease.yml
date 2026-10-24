@@ -102,6 +102,23 @@ jobs:
           ./gradlew -p integration-test build $KOTLIN_OVERRIDE
           -x :gradle-integration:test -x :maven-integration:test
       # 重いテストはローカル Maven の非タイムスタンプ SNAPSHOT を入力に持ち UP-TO-DATE 判定が
-      # 信用できないため --rerun で必ず再実行する（ci.yml と同じ理由）
-      - run: ./gradlew -p integration-test :gradle-integration:test --rerun $KOTLIN_OVERRIDE
-      - run: ./gradlew -p integration-test :maven-integration:test --rerun $KOTLIN_OVERRIDE
+      # 信用できないため --rerun で必ず再実行する（ci.yml と同じ理由）。
+      # 本ビルドは必須チェックではなく検出が目的であり、週 1 回しか回らない。先に落ちた 1 件で
+      # ジョブが止まると残りの検出が隠れ、1 回の実行で 1 件しか分からなくなる。2 つのテストは
+      # 互いに依存しないため、両方を走らせてから最後にまとめて判定する
+      - id: gradle_it
+        continue-on-error: true
+        run: ./gradlew -p integration-test :gradle-integration:test --rerun $KOTLIN_OVERRIDE
+      - id: maven_it
+        continue-on-error: true
+        run: ./gradlew -p integration-test :maven-integration:test --rerun $KOTLIN_OVERRIDE
+      - env:
+          GRADLE_IT: ${{ steps.gradle_it.outcome }}
+          MAVEN_IT: ${{ steps.maven_it.outcome }}
+        run: |
+          set -euo pipefail
+          echo "gradle-integration: $GRADLE_IT"
+          echo "maven-integration: $MAVEN_IT"
+          if [ "$GRADLE_IT" != success ] || [ "$MAVEN_IT" != success ]; then
+            exit 1
+          fi
