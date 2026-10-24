@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 // Maven ビルドホスト（docs/test/テスト戦略.md §4）。
 // resources/fixtures 配下の合成 Maven プロジェクトを実 Maven で駆動し、kotlin-maven-plugin の拡張
@@ -83,5 +84,8 @@ tasks.test {
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = false
+        // 既定の SHORT は例外の位置だけを出すため、アサーションが組み立てた Maven 出力の抜粋が
+        // 落ちて失敗の理由がログから読めない。CI の失敗はログだけが手掛かりなので全文を出す
+        exceptionFormat = TestExceptionFormat.FULL
     }
 }
