@@ -93,8 +93,8 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) :
                 .constructClassLikeType()
         return listOf(
             EnumizeNames.ENUMIZED_CLASS_ID.constructClassLikeType(
-                arrayOf<ConeTypeProjection>(enumishType)
-            )
+                arrayOf<ConeTypeProjection>(enumishType),
+            ),
         )
     }
 
@@ -120,7 +120,7 @@ class EnumizeSupertypeGenerationExtension(session: FirSession) :
 
     // 処理中の宣言に与えられた解決済み supertype を展開して辿り、階層の基底を探す
     private fun findBaseFromResolved(
-        resolvedSupertypes: List<FirResolvedTypeRef>
+        resolvedSupertypes: List<FirResolvedTypeRef>,
     ): FirRegularClassSymbol? {
         val superSymbols = resolvedSupertypes.mapNotNull {
             tracker.resolveExpandedClassSymbol(it.coneType)

@@ -74,7 +74,7 @@ val checkPublishableTargets =
             if (unpublishable.isNotEmpty()) {
                 throw GradleException(
                     "このホストでは公開できないターゲットがあります: ${unpublishable.joinToString()}。" +
-                        "宣言した全ターゲットを賄えるホストで公開してください"
+                        "宣言した全ターゲットを賄えるホストで公開してください",
                 )
             }
         }

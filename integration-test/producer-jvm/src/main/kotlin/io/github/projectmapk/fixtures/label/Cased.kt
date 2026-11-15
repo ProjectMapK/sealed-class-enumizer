@@ -17,6 +17,6 @@ sealed interface Cased {
     @EnumishLabel("legacy-name") data class Renamed(val v: Int) : Cased
 
     enum class Builtin : Cased {
-        HELP
+        HELP,
     }
 }

@@ -84,7 +84,7 @@ class MavenBuildTest {
             Failed(
                 result.succeeded,
                 result.output.contains(
-                    "'@Enumize' is applicable only to a sealed class or a sealed interface."
+                    "'@Enumize' is applicable only to a sealed class or a sealed interface.",
                 ),
             ),
             result.output,
@@ -102,7 +102,7 @@ class MavenBuildTest {
                 result.output.contains(
                     "Unknown value for the 'sealed-class-enumizer.labelCase' property: " +
                         "'Upper_Snake'. Expected one of: AS_DECLARED, UPPER_SNAKE_CASE, " +
-                        "SNAKE_CASE, KEBAB_CASE"
+                        "SNAKE_CASE, KEBAB_CASE",
                 ),
             ),
             result.output,

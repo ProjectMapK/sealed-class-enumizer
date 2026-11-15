@@ -101,7 +101,7 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
         val argument = (enumizedClassGetter.returnType as? IrSimpleType)?.arguments?.singleOrNull()
         return argument?.typeOrNull?.classOrNull?.owner
             ?: error(
-                "enumizedClass of ${enumizedClassGetter.parentAsClass.name} does not denote KClass<leaf>"
+                "enumizedClass of ${enumizedClassGetter.parentAsClass.name} does not denote KClass<leaf>",
             )
     }
 
@@ -117,7 +117,7 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
                             ctx.kClassTypeOf(leafStarType),
                             leaf.symbol,
                             leafStarType,
-                        )
+                        ),
                     )
                 }
             }
@@ -217,7 +217,7 @@ class EnumizeIrLeafGenerator(private val ctx: EnumizeIrContext) {
                     +irReturn(
                         irCall(labelGetter.symbol, ctx.stringType).apply {
                             dispatchReceiver = irGet(receiver)
-                        }
+                        },
                     )
                 }
             }

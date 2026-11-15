@@ -46,7 +46,7 @@ class BinarySwapTest {
         // （inline なら v1 の集合が焼き込まれ差し替えが壊れる）
         val mainClass =
             dir.resolve(
-                "consumer/build/classes/kotlin/main/io/github/projectmapk/swapuse/MainKt.class"
+                "consumer/build/classes/kotlin/main/io/github/projectmapk/swapuse/MainKt.class",
             )
         val constantPoolText = String(mainClass.readBytes(), Charsets.ISO_8859_1)
         assertTrue("getEntries" in constantPoolText, "entries アクセサ呼び出しがメンバー参照のまま残ること")

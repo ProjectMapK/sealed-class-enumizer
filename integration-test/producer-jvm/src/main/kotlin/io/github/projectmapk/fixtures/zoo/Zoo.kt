@@ -42,7 +42,7 @@ sealed interface Zoo {
     interface Ghost : Zoo
 
     enum class EnumLeaf : Zoo {
-        ONE
+        ONE,
     }
 
     @JvmInline value class ValueLeaf(val x: Int) : Zoo

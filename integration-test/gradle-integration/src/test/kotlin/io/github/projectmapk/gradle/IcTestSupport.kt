@@ -26,7 +26,7 @@ object IcTestSupport {
         Path.of(
             requireNotNull(System.getProperty("enumizer.fixtureWorkRoot")) {
                 "システムプロパティ enumizer.fixtureWorkRoot が未設定（gradle-integration/build.gradle.kts が注入する)"
-            }
+            },
         )
 
     fun emptyDir(prefix: String): Path {

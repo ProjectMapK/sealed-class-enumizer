@@ -52,7 +52,7 @@ val generateCoordinates =
                 outputDir
                     .get()
                     .file(
-                        "io/github/projectmapk/sealedClassEnumizer/maven/SealedClassEnumizerCoordinates.kt"
+                        "io/github/projectmapk/sealedClassEnumizer/maven/SealedClassEnumizerCoordinates.kt",
                     )
                     .asFile
             file.parentFile.mkdirs()
@@ -68,7 +68,7 @@ val generateCoordinates =
                 |    const val COMPILER_PLUGIN_ID: String = "$compilerPluginId"
                 |}
                 |"""
-                    .trimMargin()
+                    .trimMargin(),
             )
         }
     }

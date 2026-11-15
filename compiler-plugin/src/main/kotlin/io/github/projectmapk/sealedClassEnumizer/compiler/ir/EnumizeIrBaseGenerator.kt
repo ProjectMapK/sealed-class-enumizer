@@ -106,7 +106,7 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
                     +irReturn(
                         irCall(holderEntriesGetter.symbol, getter.returnType).apply {
                             dispatchReceiver = irGetObjectValue(holder.defaultType, holder.symbol)
-                        }
+                        },
                     )
                 }
             }
@@ -125,7 +125,7 @@ class EnumizeIrBaseGenerator(private val ctx: EnumizeIrContext) {
                         irCall(callee, function.returnType).apply {
                             dispatchReceiver = irGetObjectValue(holder.defaultType, holder.symbol)
                             setRegularArgument(callee, irGet(valueParameter))
-                        }
+                        },
                     )
                 }
             }

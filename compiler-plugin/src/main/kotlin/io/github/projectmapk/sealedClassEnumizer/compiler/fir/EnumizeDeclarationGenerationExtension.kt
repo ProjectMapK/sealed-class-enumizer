@@ -204,7 +204,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
     }
 
     override fun generateConstructors(
-        context: MemberGenerationContext
+        context: MemberGenerationContext,
     ): List<FirConstructorSymbol> {
         val owner = context.owner as? FirRegularClassSymbol ?: return emptyList()
         if (!owner.rawStatus.isCompanion || !owner.isGeneratedByEnumize) return emptyList()
@@ -306,8 +306,8 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
                 createCompanionObject(enumish, EnumizeKey) {
                     superType(
                         EnumizeNames.ENUMISH_COMPANION_CLASS_ID.constructClassLikeType(
-                            arrayOf<ConeTypeProjection>(enumish.classId.constructClassLikeType())
-                        )
+                            arrayOf<ConeTypeProjection>(enumish.classId.constructClassLikeType()),
+                        ),
                     )
                 }
             EnumizeOwnerGeneratorPatch.stamp(companion, this)
@@ -351,7 +351,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
             EnumizeKey,
             EnumizeNames.ENUMIZED_CLASS_PROPERTY,
             StandardClassIds.KClass.constructClassLikeType(
-                arrayOf(ConeKotlinTypeProjectionOut(resolver.starProjectedType(base)))
+                arrayOf(ConeKotlinTypeProjectionOut(resolver.starProjectedType(base))),
             ),
             hasBackingField = false,
         ) {
@@ -392,7 +392,7 @@ class EnumizeDeclarationGenerationExtension(session: FirSession) :
             EnumizeKey,
             EnumizeNames.ENUMIZED_CLASS_PROPERTY,
             StandardClassIds.KClass.constructClassLikeType(
-                arrayOf<ConeTypeProjection>(resolver.starProjectedType(leaf))
+                arrayOf<ConeTypeProjection>(resolver.starProjectedType(leaf)),
             ),
             hasBackingField = false,
         ) {

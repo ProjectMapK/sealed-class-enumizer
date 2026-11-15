@@ -74,7 +74,7 @@ class EnumizeIrGenerationExtension(private val defaultLabelCase: EnumizeLabelCas
     private fun verifyBody(function: IrFunction, modality: Modality, owner: IrClass) {
         if (modality == Modality.ABSTRACT || function.body != null) return
         error(
-            "generated declaration was not filled: ${owner.kotlinFqName}.${function.name} (${function.origin})"
+            "generated declaration was not filled: ${owner.kotlinFqName}.${function.name} (${function.origin})",
         )
     }
 }

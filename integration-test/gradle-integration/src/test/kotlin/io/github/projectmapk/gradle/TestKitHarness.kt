@@ -66,7 +66,7 @@ object TestKitHarness {
             requireNotNull(javaClass.classLoader.getResource("fixtures")) {
                     "src/test/resources/fixtures が見つからない"
                 }
-                .toURI()
+                .toURI(),
         )
 
     // フィクスチャ一式を projectDir へ展開し、テキストファイルのプレースホルダを置換する

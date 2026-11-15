@@ -25,7 +25,7 @@ class EnumizeCommandLineProcessor : CommandLineProcessor {
             LABEL_CASE_OPTION_NAME -> configuration.put(LABEL_CASE_KEY, parseLabelCase(value))
             else ->
                 throw CliOptionProcessingException(
-                    "Unsupported plugin option: ${option.optionName}"
+                    "Unsupported plugin option: ${option.optionName}",
                 )
         }
     }
@@ -57,7 +57,7 @@ class EnumizeCommandLineProcessor : CommandLineProcessor {
             EnumizeLabelCase.fromNameOrNull(value)
                 ?: throw CliOptionProcessingException(
                     "Unknown value for plugin option '$LABEL_CASE_OPTION_NAME': '$value'. " +
-                        "Expected one of: ${EnumizeLabelCase.entries.joinToString { it.name }}"
+                        "Expected one of: ${EnumizeLabelCase.entries.joinToString { it.name }}",
                 )
     }
 }

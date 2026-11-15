@@ -109,7 +109,7 @@ val upstreamMavenVersion: Provider<String> = run {
         val child = childPom.singleFile.readText()
         val parentBlock =
             checkNotNull(
-                    Regex("""<parent>(.*?)</parent>""", RegexOption.DOT_MATCHES_ALL).find(child)
+                    Regex("""<parent>(.*?)</parent>""", RegexOption.DOT_MATCHES_ALL).find(child),
                 ) {
                     "kotlin-maven-plugin の POM に <parent> がありません"
                 }
@@ -124,7 +124,7 @@ val upstreamMavenVersion: Provider<String> = run {
         }
         checkNotNull(
                 Regex("""<maven\.version>([^<]+)</maven\.version>""")
-                    .find(parentPom.singleFile.readText())
+                    .find(parentPom.singleFile.readText()),
             ) {
                 "親 POM に <maven.version> がありません"
             }
@@ -152,7 +152,7 @@ val checkMavenVersion =
             if (declared != expected) {
                 throw GradleException(
                     "maven 版が kotlin-maven-plugin の参照版とズレています（宣言 $declared / 上流 $expected）。" +
-                        "./gradlew syncMavenVersion で追随してください"
+                        "./gradlew syncMavenVersion で追随してください",
                 )
             }
         }
@@ -232,7 +232,7 @@ val checkVersionMentions =
             if (stale.isNotEmpty()) {
                 throw GradleException(
                     "現行バージョンとズレた表記があります: ${stale.joinToString { it.first }}。" +
-                        "./gradlew syncVersionMentions で追随してください"
+                        "./gradlew syncVersionMentions で追随してください",
                 )
             }
         }

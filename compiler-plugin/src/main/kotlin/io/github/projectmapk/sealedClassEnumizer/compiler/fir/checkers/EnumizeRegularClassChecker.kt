@@ -456,7 +456,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
     // 継承経路上で label を宣言している最初のクラス。Enumish 由来（runtime-api Enumish・生成 Enumish）の
     // label は kind の値そのものを返すためシャドーイングの実害が無く、対象から外す
     private fun EnumizeHierarchyResolver.inheritedLabelOwner(
-        symbol: FirRegularClassSymbol
+        symbol: FirRegularClassSymbol,
     ): FirRegularClassSymbol? =
         supertypeClosure(symbol).firstOrNull { superSymbol ->
             superSymbol.classId != EnumizeNames.ENUMISH_CLASS_ID &&
@@ -466,7 +466,7 @@ object EnumizeRegularClassChecker : FirRegularClassChecker(MppCheckerKind.Common
 
     // private プロパティはクラス外の呼び出し点の解決に参加せず継承もされないため、シャドーイングの対象から外す
     private fun EnumizeHierarchyResolver.isVisibleLabelProperty(
-        declaration: FirDeclaration
+        declaration: FirDeclaration,
     ): Boolean {
         if (declaration !is FirProperty || declaration.name != EnumizeNames.LABEL) return false
         if (declaration.symbol.isGeneratedByEnumize) return false
