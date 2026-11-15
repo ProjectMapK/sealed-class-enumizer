@@ -80,7 +80,7 @@ class SealedClassEnumizerMavenPluginExtension : KotlinMavenPluginExtension {
                 getCompilerPluginId(),
                 LABEL_CASE_OPTION_NAME,
                 resolveLabelCase(project).name,
-            )
+            ),
         )
     }
 
@@ -104,7 +104,7 @@ class SealedClassEnumizerMavenPluginExtension : KotlinMavenPluginExtension {
         return LabelCase.entries.firstOrNull { it.name == declared }
             ?: throw IllegalArgumentException(
                 "Unknown value for the '$LABEL_CASE_PROPERTY' property: '$declared'. " +
-                    "Expected one of: ${LabelCase.entries.joinToString { it.name }}"
+                    "Expected one of: ${LabelCase.entries.joinToString { it.name }}",
             )
     }
 
@@ -125,7 +125,7 @@ class SealedClassEnumizerMavenPluginExtension : KotlinMavenPluginExtension {
             "sealed-class-enumizer ${SealedClassEnumizerCoordinates.VERSION} targets Kotlin " +
                 "${SealedClassEnumizerCoordinates.KOTLIN_VERSION} and is not verified against " +
                 "Kotlin $appliedKotlinVersion applied to ${project.artifactId}. Compilation may " +
-                "fail; use the plugin version matching your Kotlin version."
+                "fail; use the plugin version matching your Kotlin version.",
         )
     }
 

@@ -30,7 +30,7 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
             "sealed-class-enumizer ${SealedClassEnumizerCoordinates.VERSION} targets Kotlin " +
                 "$supported and is not verified against Kotlin $appliedKotlinVersion applied to " +
                 "${project.path}. Compilation may fail; use the plugin version matching your " +
-                "Kotlin version."
+                "Kotlin version.",
         )
     }
 
@@ -46,7 +46,7 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
         )
 
     override fun applyToCompilation(
-        kotlinCompilation: KotlinCompilation<*>
+        kotlinCompilation: KotlinCompilation<*>,
     ): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
         addRuntimeDependencyIfEnabled(project, kotlinCompilation)
@@ -59,7 +59,7 @@ class SealedClassEnumizerGradlePlugin : KotlinCompilerPluginSupportPlugin {
                 SubpluginOption(
                     key = LABEL_CASE_OPTION_NAME,
                     value = extension.labelCase.get().name,
-                )
+                ),
             )
         }
     }

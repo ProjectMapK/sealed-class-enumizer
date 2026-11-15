@@ -133,7 +133,7 @@ class SealedClassEnumizerMavenPluginExtensionTest {
                 "sealed-class-enumizer ${SealedClassEnumizerCoordinates.VERSION} targets Kotlin " +
                     "${SealedClassEnumizerCoordinates.KOTLIN_VERSION} and is not verified against " +
                     "Kotlin 2.9.0 applied to fixture. Compilation may fail; use the plugin " +
-                    "version matching your Kotlin version."
+                    "version matching your Kotlin version.",
             ),
             logger.warnings,
         )
@@ -187,7 +187,7 @@ class SealedClassEnumizerMavenPluginExtensionTest {
                     addChild(
                         Xpp3Dom("pluginOptions").apply {
                             addChild(Xpp3Dom("option").apply { value = it })
-                        }
+                        },
                     )
                 }
         }

@@ -73,7 +73,7 @@ val generateCoordinates =
                 outputDir
                     .get()
                     .file(
-                        "io/github/projectmapk/sealedClassEnumizer/gradle/SealedClassEnumizerCoordinates.kt"
+                        "io/github/projectmapk/sealedClassEnumizer/gradle/SealedClassEnumizerCoordinates.kt",
                     )
                     .asFile
             file.parentFile.mkdirs()
@@ -92,7 +92,7 @@ val generateCoordinates =
                 |    const val COMPILER_PLUGIN_ID: String = "$id"
                 |}
                 |"""
-                    .trimMargin()
+                    .trimMargin(),
             )
         }
     }

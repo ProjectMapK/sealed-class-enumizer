@@ -110,7 +110,7 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
                             returnType,
                             base.symbol,
                             baseStarType,
-                        )
+                        ),
                     )
                 }
             }
@@ -149,7 +149,7 @@ class EnumizeEntriesHolderIrGenerator(private val ctx: EnumizeIrContext) {
                         irCall(ctx.listOfVararg, returnType).apply {
                             typeArguments[0] = enumishType
                             arguments[0] = vararg
-                        }
+                        },
                     )
                 }
             }

@@ -36,7 +36,7 @@ object MavenHarness {
             requireNotNull(javaClass.classLoader.getResource("fixtures")) {
                     "src/test/resources/fixtures が見つからない"
                 }
-                .toURI()
+                .toURI(),
         )
 
     private val workDirCounter = AtomicInteger()

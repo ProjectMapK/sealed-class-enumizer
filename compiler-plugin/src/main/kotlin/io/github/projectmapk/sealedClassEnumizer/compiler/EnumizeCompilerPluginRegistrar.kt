@@ -22,7 +22,7 @@ class EnumizeCompilerPluginRegistrar : CompilerPluginRegistrar() {
             configuration[EnumizeCommandLineProcessor.LABEL_CASE_KEY]
                 ?: EnumizeLabelCase.BUILT_IN_DEFAULT
         FirExtensionRegistrarAdapter.registerExtension(
-            EnumizeFirExtensionRegistrar(defaultLabelCase)
+            EnumizeFirExtensionRegistrar(defaultLabelCase),
         )
         IrGenerationExtension.registerExtension(EnumizeIrGenerationExtension(defaultLabelCase))
     }

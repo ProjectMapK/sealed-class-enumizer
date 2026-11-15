@@ -280,7 +280,7 @@ class IcCompanionTest {
         // クラス出力（ファイル単位の帰属を持つもの）だけを dirty 税の判定対象にする
         val changed =
             IcTestSupport.changedKeys(times0, IcTestSupport.classTimes(dir)).filterTo(
-                mutableSetOf()
+                mutableSetOf(),
             ) {
                 !it.startsWith("META-INF/")
             }

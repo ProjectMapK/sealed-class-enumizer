@@ -42,7 +42,7 @@ class EnumizeIrContext(val pluginContext: IrPluginContext, val defaultLabelCase:
     val holderBaseClass: IrClassSymbol =
         pluginContext.referenceClass(EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID)
             ?: error(
-                "runtime-api class not found on classpath: ${EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID}"
+                "runtime-api class not found on classpath: ${EnumizeNames.ENTRIES_HOLDER_BASE_CLASS_ID}",
             )
 
     val holderBaseConstructor =

@@ -181,7 +181,7 @@ class EnumizeHierarchyResolver(
 
     fun starProjectedType(symbol: FirRegularClassSymbol): ConeClassLikeType =
         symbol.classId.constructClassLikeType(
-            Array<ConeTypeProjection>(symbol.typeParameterSymbols.size) { ConeStarProjection }
+            Array<ConeTypeProjection>(symbol.typeParameterSymbols.size) { ConeStarProjection },
         )
 
     // asEnumish の返り値型の規則（docs/コンパイラプラグイン設計01.md §5.4・docs/エッジケースへの対応方針.md §1.3）。
@@ -291,7 +291,7 @@ class EnumizeHierarchyResolver(
     }
 
     private fun computeSupertypeClosure(
-        symbol: FirRegularClassSymbol
+        symbol: FirRegularClassSymbol,
     ): List<FirRegularClassSymbol> {
         val result = LinkedHashMap<ClassId, FirRegularClassSymbol>()
         collectClosure(symbol, result)

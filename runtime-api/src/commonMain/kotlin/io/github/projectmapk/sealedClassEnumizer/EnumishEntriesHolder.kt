@@ -40,6 +40,6 @@ abstract class EnumishEntriesHolder<T : Enumish> {
     fun getByLabel(label: String): T =
         getByLabelOrNull(label)
             ?: throw IllegalArgumentException(
-                "No enumish entry with label '$label' in ${enumizedRootClass.simpleName}"
+                "No enumish entry with label '$label' in ${enumizedRootClass.simpleName}",
             )
 }
