@@ -58,3 +58,8 @@ updates:
       day: "friday"
       time: "19:00"
       timezone: "Asia/Tokyo"
+    # アクションの更新も 1 本の PR へまとめる
+    groups:
+      github-actions:
+        patterns:
+          - "*"
